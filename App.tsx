@@ -1,16 +1,18 @@
-import { NavigationContainer, NavigationState } from '@react-navigation/native';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Appearance, LogBox, StatusBar, StatusBarStyle } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Provider } from 'react-redux';
-import { store } from './src/Redux/store';
-import Routing from './src/Routes';
-import COLORS from './src/Utilities/Colors';
+import { NavigationContainer, NavigationState } from "@react-navigation/native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Appearance, LogBox, StatusBar, StatusBarStyle } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
+import { setCurrentRoute } from "./src/Redux/slices/initialSlice";
+import { useAppDispatch, useAppSelector } from "./src/Redux/store";
+import Routing from "./src/Routes";
+import COLORS from "./src/Utilities/Colors";
 
 LogBox.ignoreAllLogs();
 
 const App = () => {
-  const [currentRoute, setCurrentRoute] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const { currentRoute } = useAppSelector((state) => state.initial);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Function to get the current route name from navigation state
@@ -27,26 +29,32 @@ const App = () => {
 
   // Handler for navigation state changes
   const handleNavigationStateChange = (
-    state: Readonly<NavigationState> | undefined,
+    state: Readonly<NavigationState> | undefined
   ) => {
     const routeName = getCurrentRouteName(state);
     const routeHistory: any = state?.routes.find(
-      item => item.name === 'mainStack',
+      (item) => item.name === "mainStack"
     )?.state?.history;
 
     setIsDrawerOpen(
-      routeHistory?.find((item: any) => item.type === 'drawer')?.status ===
-        'open',
+      routeHistory?.find((item: any) => item.type === "drawer")?.status ===
+        "open"
     );
-    setCurrentRoute(routeName);
+    dispatch(setCurrentRoute(routeName));
   };
 
   const authRoutes = [
-    'welcome',
-    'signIn',
-    'signUp',
-    'forgotpassword',
-    'resetPassword',
+    "splash",
+    "welcome",
+    "signIn",
+    "signUp",
+    "forgotpassword",
+    "resetPassword",
+    "workoutResult",
+    "addExercise",
+    "addNewExercise",
+    "addNewWorkout",
+    "ingredientList",
   ];
 
   const statusBarColor = useMemo((): {
@@ -54,35 +62,57 @@ const App = () => {
     content: StatusBarStyle;
   } => {
     if (authRoutes.includes(currentRoute!)) {
+      if (
+        currentRoute === "workoutResult" ||
+        currentRoute === "addNewExercise" ||
+        currentRoute === "addExercise" ||
+        currentRoute === "addNewWorkout" ||
+        currentRoute === "ingredientList"
+      ) {
+        return {
+          bgColor: COLORS.darkBrown,
+          content: "light-content",
+        };
+      } else {
+        return {
+          bgColor: COLORS.black,
+          content: "light-content",
+        };
+      }
+    } else if (currentRoute === "SETTINGS") {
       return {
-        bgColor: COLORS.black,
-        content: 'light-content',
+        bgColor: "#1C1816",
+        content: "light-content",
+      };
+    } else if (!authRoutes.includes(currentRoute!)) {
+      return {
+        bgColor: COLORS.brown,
+        content: "light-content",
       };
     } else {
       return {
-        bgColor: COLORS.white,
-        content: 'default',
+        bgColor: COLORS.black,
+        content: "default",
       };
     }
   }, [currentRoute]);
 
   useEffect(() => {
-    Appearance.setColorScheme('light');
+    Appearance.setColorScheme("light");
   }, []);
 
   return (
     <>
-      <Provider store={store}>
-        <SafeAreaProvider>
-          <StatusBar
-            backgroundColor={statusBarColor.bgColor}
-            barStyle={statusBarColor.content}
-          />
-          <NavigationContainer onStateChange={handleNavigationStateChange}>
-            <Routing />
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </Provider>
+      <SafeAreaProvider>
+        <StatusBar
+          backgroundColor={currentRoute ? statusBarColor.bgColor : COLORS.black}
+          barStyle={statusBarColor.content}
+        />
+        <NavigationContainer onStateChange={handleNavigationStateChange}>
+          <Routing />
+        </NavigationContainer>
+      </SafeAreaProvider>
+      <Toast />
     </>
   );
 };

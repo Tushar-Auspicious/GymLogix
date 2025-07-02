@@ -1,24 +1,25 @@
-import { Text, type TextProps } from 'react-native';
-import FONTS, { FontFamilyType } from '../Assets/fonts';
-import COLORS from '../Utilities/Colors';
-import { responsiveFontSize } from '../Utilities/Metrics';
+import { Text, type TextProps } from "react-native";
+import FONTS, { FontFamilyType } from "../Assets/fonts";
+import COLORS from "../Utilities/Colors";
+import { responsiveFontSize } from "../Utilities/Metrics";
 
 export type CustomTextProps = TextProps & {
   color?: string;
   fontFamily?: FontFamilyType;
   fontSize?: number;
+  fontWeight?: string;
+  lineHeight?: number;
 };
 
 export function CustomText({
   style,
-  fontFamily = 'regular',
+  fontFamily = "regular",
   fontSize = 16,
+  fontWeight = "400",
   color = COLORS.white,
+  lineHeight,
   ...rest
 }: CustomTextProps) {
-  // Function to calculate dynamic lineHeight based on fontSize
-  const calculateLineHeight = (fontSize: number) => Math.ceil(fontSize * 1.1);
-
   return (
     <Text
       style={[
@@ -26,7 +27,6 @@ export function CustomText({
           color,
           fontFamily: FONTS[fontFamily],
           fontSize: responsiveFontSize(fontSize),
-          lineHeight: calculateLineHeight(responsiveFontSize(fontSize)),
           opacity: rest.disabled ? 0.7 : 1,
         },
         style,

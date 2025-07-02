@@ -26,7 +26,6 @@ const deviceSpecificSize = (
 ) => {
   return isTablet ? tabletSize : mobileSize;
 };
-
 // Functions to calculate percentage-based dimensions
 const wp = (widthPercent: string | number) => {
   const elemWidth =

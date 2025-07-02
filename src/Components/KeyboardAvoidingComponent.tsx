@@ -32,16 +32,18 @@ export function KeyboardAvoidingContainer({
           backgroundColor,
         },
       ]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={
-        Platform.OS === 'ios' ? 0 : StatusBar.currentHeight
-      }>
+        Platform.OS === "ios" ? 0 : StatusBar.currentHeight
+      }
+    >
       <Content
         contentContainerStyle={[
           scrollEnabled ? styles.scrollContent : styles.content,
           style,
         ]}
-        keyboardShouldPersistTaps="never">
+        keyboardShouldPersistTaps="handled"
+      >
         {children}
       </Content>
     </KeyboardAvoidingView>
