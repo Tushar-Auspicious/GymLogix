@@ -1,31 +1,44 @@
-import React, { FC, useCallback, useMemo } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import ICONS from "../../Assets/Icons";
-import AddLogButton from "../../Components/AddLogButton";
-import CalendarList from "../../Components/CalendarList";
-import CustomIcon from "../../Components/CustomIcon";
-import { CustomText } from "../../Components/CustomText";
-import PrimaryButton from "../../Components/PrimaryButton";
+import React, {FC, useCallback, useMemo} from 'react';
+import {ScrollView, StyleSheet, View} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import ICONS from '../../Assets/Icons';
+import AddLogButton from '../../Components/AddLogButton';
+import CalendarList from '../../Components/CalendarList';
+import CustomIcon from '../../Components/CustomIcon';
+import {CustomText} from '../../Components/CustomText';
+import PrimaryButton from '../../Components/PrimaryButton';
 import {
   setHomeActiveIndex,
   setLogMealActiveIndex,
-} from "../../Redux/slices/initialSlice";
-import { useAppDispatch, useAppSelector } from "../../Redux/store";
-import { HomeTabScreenProps } from "../../Typings/route";
-import COLORS from "../../Utilities/Colors";
-import { horizontalScale, verticalScale, wp } from "../../Utilities/Metrics";
-import MealLogmenu from "./LogMenus/MealLogmenu";
-import NotesLogMenu from "./LogMenus/NotesLogMenu";
-import MeasurementlogMenu from "./LogMenus/MeasurementlogMenu";
-import WorkoutMenu from "./LogMenus/WorkoutMenu";
+} from '../../Redux/slices/initialSlice';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
+import {HomeTabScreenProps} from '../../Typings/route';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
+import MealLogmenu from './LogMenus/MealLogmenu';
+import NotesLogMenu from './LogMenus/NotesLogMenu';
+import MeasurementlogMenu from './LogMenus/MeasurementlogMenu';
+import WorkoutMenu from './LogMenus/WorkoutMenu';
 
-const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
+const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
 
-  const { dates, month, homeActiveIndex, logMealActiveIndex } = useAppSelector(
-    (state) => state.initial
+  const {userData} = useAppSelector(state => state.userData);
+
+  const {dates, month, homeActiveIndex, logMealActiveIndex} = useAppSelector(
+    state => state.initial,
   );
+
+  const progressLine = () => {
+    let progress = 0;
+
+    if (userData?.email) progress += 25;
+    if (userData?.first_name && userData?.last_name) progress += 25;
+    if (userData?.pic_URL) progress += 25;
+    if (userData?.age) progress += 25;
+
+    return `${progress}%`;
+  };
 
   const renderCompleteProfileCard = () => {
     return (
@@ -36,8 +49,7 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
           paddingHorizontal: horizontalScale(10),
           borderRadius: 10,
           gap: verticalScale(10),
-        }}
-      >
+        }}>
         <CustomText fontFamily="bold" fontSize={14}>
           Complete Your Profile
         </CustomText>
@@ -48,16 +60,15 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
         <View
           style={{
             backgroundColor: COLORS.darkBrown,
-            width: "100%",
+            width: '100%',
             height: verticalScale(10),
             borderRadius: 5,
             marginVertical: verticalScale(10),
-          }}
-        >
+          }}>
           <View
             style={{
               backgroundColor: COLORS.green,
-              width: "20%",
+              width: progressLine(),
               borderRadius: 5,
               height: verticalScale(10),
             }}
@@ -65,10 +76,12 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
         </View>
         <PrimaryButton
           title="Add Details"
-          onPress={() => {}}
+          onPress={() => {
+            navigation.navigate('SETTINGS');
+          }}
           style={{
-            alignSelf: "flex-end",
-            width: "auto",
+            alignSelf: 'flex-end',
+            width: 'auto',
             paddingVertical: verticalScale(5),
             paddingHorizontal: horizontalScale(10),
             borderRadius: verticalScale(5),
@@ -89,23 +102,20 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
           paddingHorizontal: horizontalScale(10),
           borderRadius: 10,
           gap: verticalScale(20),
-        }}
-      >
+        }}>
         <View
           style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
+            flexDirection: 'row',
+            justifyContent: 'space-between',
             gap: horizontalScale(10),
             paddingRight: horizontalScale(20),
-          }}
-        >
+          }}>
           <View
             style={{
               flex: 1,
-              justifyContent: "space-between",
+              justifyContent: 'space-between',
               gap: verticalScale(10),
-            }}
-          >
+            }}>
             <CustomText fontFamily="italic" fontSize={14}>
               Workout in progress
             </CustomText>
@@ -119,8 +129,8 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
           title="Continue"
           onPress={() => {}}
           style={{
-            alignSelf: "flex-end",
-            width: "auto",
+            alignSelf: 'flex-end',
+            width: 'auto',
             paddingVertical: verticalScale(5),
             paddingHorizontal: horizontalScale(10),
             borderRadius: verticalScale(5),
@@ -138,8 +148,7 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
         style={{
           rowGap: verticalScale(10),
           paddingBottom: verticalScale(10),
-        }}
-      >
+        }}>
         <CustomText fontFamily="bold">History</CustomText>
         {[1, 2, 3, 4].map((item, index) => {
           return (
@@ -149,28 +158,25 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
                 backgroundColor: COLORS.lightBrown,
                 padding: 10,
                 borderRadius: 10,
-                flexDirection: "row",
+                flexDirection: 'row',
                 gap: verticalScale(10),
-              }}
-            >
+              }}>
               <View
                 style={{
                   backgroundColor: COLORS.whiteTail,
                   paddingVertical: verticalScale(10),
                   paddingHorizontal: horizontalScale(10),
                   borderRadius: 10,
-                }}
-              >
+                }}>
                 <View
                   style={{
                     width: 35,
                     height: 35,
-                    justifyContent: "center",
-                    alignItems: "center",
+                    justifyContent: 'center',
+                    alignItems: 'center',
                     backgroundColor: COLORS.sharpBlue,
                     borderRadius: 100,
-                  }}
-                >
+                  }}>
                   <CustomIcon
                     Icon={ICONS.DumbellWhiteIcon}
                     height={18}
@@ -182,8 +188,7 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
                 style={{
                   gap: verticalScale(5),
                   paddingVertical: verticalScale(2),
-                }}
-              >
+                }}>
                 <CustomText fontFamily="medium" fontSize={15}>
                   Legs Day 1
                 </CustomText>
@@ -201,34 +206,34 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
   // Memoize the CalendarList component to prevent unnecessary re-renders
   const MemoizedCalendarList = useCallback(
     () => <CalendarList />,
-    [dates, month]
+    [dates, month],
   );
 
   const LOGGING_MENU_ITEMS = [
     {
       icon: ICONS.WorkoutLogIcon,
-      label: "Workout",
+      label: 'Workout',
       onPress: () => {
         dispatch(setHomeActiveIndex(1));
       },
     },
     {
       icon: ICONS.MealLogIcon,
-      label: "Meal",
+      label: 'Meal',
       onPress: () => {
         dispatch(setHomeActiveIndex(2));
       },
     },
     {
       icon: ICONS.MeasurementLogIcon,
-      label: "Measurement",
+      label: 'Measurement',
       onPress: () => {
         dispatch(setHomeActiveIndex(3));
       },
     },
     {
       icon: ICONS.NotesLogIcon,
-      label: "Notes",
+      label: 'Notes',
       onPress: () => {
         dispatch(setHomeActiveIndex(4));
       },
@@ -241,8 +246,7 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
         return (
           <ScrollView
             style={styles.scrollViewStyle}
-            contentContainerStyle={styles.scrollViewContainer}
-          >
+            contentContainerStyle={styles.scrollViewContainer}>
             {renderCompleteProfileCard()}
             {renderWorkoutInProgress()}
             {renderHistory()}
@@ -264,24 +268,22 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
 
   return (
     <View style={styles.main}>
-      <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
         {logMealActiveIndex === 3 ? (
           <View
             style={{
               backgroundColor: COLORS.darkBrown,
-              alignItems: "center",
+              alignItems: 'center',
               gap: verticalScale(32),
               paddingTop: verticalScale(20),
               paddingBottom: verticalScale(20),
-            }}
-          >
+            }}>
             <View
               style={{
                 paddingLeft: 10,
-                justifyContent: "flex-start",
-                width: "100%",
-              }}
-            >
+                justifyContent: 'flex-start',
+                width: '100%',
+              }}>
               <CustomIcon
                 onPress={() => {
                   dispatch(setHomeActiveIndex(0));
@@ -293,27 +295,24 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
             <CustomText fontFamily="bold">Total Meal Macro</CustomText>
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-evenly",
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-evenly',
                 width: wp(100),
-              }}
-            >
+              }}>
               {[
-                { title: "Calories", value: 1500 },
-                { title: "Fat", value: 1500 },
-                { title: "Protein", value: 1500 },
-                { title: "Carbs", value: 1500 },
+                {title: 'Calories', value: 1500},
+                {title: 'Fat', value: 1500},
+                {title: 'Protein', value: 1500},
+                {title: 'Carbs', value: 1500},
               ].map((item, index) => (
                 <View
-                  style={{ alignItems: "center", gap: verticalScale(5) }}
-                  key={index.toString()}
-                >
+                  style={{alignItems: 'center', gap: verticalScale(5)}}
+                  key={index.toString()}>
                   <CustomText
                     fontSize={10}
                     fontFamily="medium"
-                    color={COLORS.whiteTail}
-                  >
+                    color={COLORS.whiteTail}>
                     {item.title}
                   </CustomText>
 
@@ -343,7 +342,7 @@ const HOME: FC<HomeTabScreenProps> = ({ navigation }) => {
 export default HOME;
 
 const styles = StyleSheet.create({
-  main: { backgroundColor: COLORS.brown, flex: 1 },
+  main: {backgroundColor: COLORS.brown, flex: 1},
   safeArea: {
     flex: 1,
   },
@@ -354,7 +353,9 @@ const styles = StyleSheet.create({
     paddingTop: verticalScale(10),
   },
 
-  scrollViewStyle: {},
+  scrollViewStyle: {
+    paddingHorizontal: horizontalScale(15),
+  },
 
   scrollViewContainer: {
     rowGap: verticalScale(20),
@@ -362,10 +363,10 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
   },
   mealStatItem: {
-    alignItems: "center",
+    alignItems: 'center',
     backgroundColor: COLORS.lighterBrown,
     paddingVertical: verticalScale(8),
     paddingHorizontal: horizontalScale(20),

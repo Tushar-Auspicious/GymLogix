@@ -1,6 +1,6 @@
-import { NavigatorScreenParams } from "@react-navigation/native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { WeeklyStructure } from "../Seeds/TrainingPLans";
+import {NavigatorScreenParams} from '@react-navigation/native';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {WeeklyStructure} from '../Seeds/TrainingPLans';
 
 export type RootStackParams = {
   splash: undefined;
@@ -13,7 +13,9 @@ export type AuthStackParams = {
   signIn: undefined;
   signUp: undefined;
   forgotpassword: undefined;
-  resetPassword: undefined;
+  resetPassword: {
+    isEmail: string;
+  };
 };
 
 export type MainStackParams = {
@@ -52,7 +54,7 @@ export type MainStackParams = {
   addNewWorkout: undefined;
   addNewExercise: undefined;
   savedWorkouts: undefined;
-  exerciseSettings: { exerciseId: string };
+  exerciseSettings: {exerciseId: string};
   addNewMeal: undefined;
   ingredientList: {
     isFrom?: string;
@@ -71,103 +73,103 @@ export type BottomTabParams = {
 // SCREEN PROPS -------------------------------------------------------------------------------
 
 // Splash Screens
-export type SplashProps = NativeStackScreenProps<RootStackParams, "splash">;
+export type SplashProps = NativeStackScreenProps<RootStackParams, 'splash'>;
 
 // Auth Screens
 
-export type WelcomeProps = NativeStackScreenProps<AuthStackParams, "welcome">;
+export type WelcomeProps = NativeStackScreenProps<AuthStackParams, 'welcome'>;
 export type SignInProps = NativeStackScreenProps<
   AuthStackParams & RootStackParams,
-  "signIn"
+  'signIn'
 >;
-export type SignUpProps = NativeStackScreenProps<AuthStackParams, "signUp">;
+export type SignUpProps = NativeStackScreenProps<AuthStackParams, 'signUp'>;
 export type ForgotPasswordProps = NativeStackScreenProps<
   AuthStackParams,
-  "forgotpassword"
+  'forgotpassword'
 >;
 export type ResetPasswordProps = NativeStackScreenProps<
   AuthStackParams,
-  "resetPassword"
+  'resetPassword'
 >;
 
 // Main Screens
 export type HomeTabScreenProps = NativeStackScreenProps<
   MainStackParams & BottomTabParams,
-  "HOME"
+  'HOME'
 >;
 
 export type PlanTabScreenProps = NativeStackScreenProps<
   MainStackParams & BottomTabParams,
-  "PLAN"
+  'PLAN'
 >;
 
 // Meal Screen Props
 export type MealDetailScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "mealDetails"
+  'mealDetails'
 >;
 
 // Meal Screen Props
 export type EditMealDetailScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "editMealDetails"
+  'editMealDetails'
 >;
 
 // Log Meal Screen Props
 export type LogMealScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "logMeal"
+  'logMeal'
 >;
 
 // Log Workout Program Details Screen Props
 export type LogWorkoutProgramDetailsScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "workoutProgramDetails"
+  'workoutProgramDetails'
 >;
 
 // Workout Result Screen Props
 export type WorkoutResultScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "workoutResult"
+  'workoutResult'
 >;
 
 // Workout Result Screen Props
 export type ExerciseListScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "exerciseList"
+  'exerciseList'
 >;
 // Add New Workout Screen Props
 export type AddNewWorkoutScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "addNewWorkout"
+  'addNewWorkout'
 >;
 
 // Add New Exercise Screen Props
 export type AddNewExerciseScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "addNewExercise"
+  'addNewExercise'
 >;
 
 // Saved Workouts Screen Props
 export type SavedWorkoutsScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "savedWorkouts"
+  'savedWorkouts'
 >;
 
 // Exercise Settings Screen Props
 export type ExerciseSettingsScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "exerciseSettings"
+  'exerciseSettings'
 >;
 
 // Exercise Settings Screen Props
 export type AddNewMealScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "addNewMeal"
+  'addNewMeal'
 >;
 
 // Ingredient List Screen Props
 export type IngredientScreenProps = NativeStackScreenProps<
   MainStackParams,
-  "ingredientList"
+  'ingredientList'
 >;

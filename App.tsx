@@ -1,18 +1,20 @@
-import { NavigationContainer, NavigationState } from "@react-navigation/native";
-import React, { useEffect, useMemo, useState } from "react";
-import { Appearance, LogBox, StatusBar, StatusBarStyle } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
-import { setCurrentRoute } from "./src/Redux/slices/initialSlice";
-import { useAppDispatch, useAppSelector } from "./src/Redux/store";
-import Routing from "./src/Routes";
-import COLORS from "./src/Utilities/Colors";
+import {NavigationContainer, NavigationState} from '@react-navigation/native';
+import React, {useEffect, useMemo, useState} from 'react';
+import {Appearance, LogBox, StatusBar, StatusBarStyle} from 'react-native';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
+import {setCurrentRoute} from './src/Redux/slices/initialSlice';
+import {useAppDispatch, useAppSelector} from './src/Redux/store';
+import Routing from './src/Routes';
+import COLORS from './src/Utilities/Colors';
+import CustomToast from './src/Components/CustomToast';
+import NetworkLogger from './src/Components/NetworkLogger';
 
 LogBox.ignoreAllLogs();
 
 const App = () => {
   const dispatch = useAppDispatch();
-  const { currentRoute } = useAppSelector((state) => state.initial);
+  const {currentRoute} = useAppSelector(state => state.initial);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Function to get the current route name from navigation state
@@ -29,32 +31,32 @@ const App = () => {
 
   // Handler for navigation state changes
   const handleNavigationStateChange = (
-    state: Readonly<NavigationState> | undefined
+    state: Readonly<NavigationState> | undefined,
   ) => {
     const routeName = getCurrentRouteName(state);
     const routeHistory: any = state?.routes.find(
-      (item) => item.name === "mainStack"
+      item => item.name === 'mainStack',
     )?.state?.history;
 
     setIsDrawerOpen(
-      routeHistory?.find((item: any) => item.type === "drawer")?.status ===
-        "open"
+      routeHistory?.find((item: any) => item.type === 'drawer')?.status ===
+        'open',
     );
     dispatch(setCurrentRoute(routeName));
   };
 
   const authRoutes = [
-    "splash",
-    "welcome",
-    "signIn",
-    "signUp",
-    "forgotpassword",
-    "resetPassword",
-    "workoutResult",
-    "addExercise",
-    "addNewExercise",
-    "addNewWorkout",
-    "ingredientList",
+    'splash',
+    'welcome',
+    'signIn',
+    'signUp',
+    'forgotpassword',
+    'resetPassword',
+    'workoutResult',
+    'addExercise',
+    'addNewExercise',
+    'addNewWorkout',
+    'ingredientList',
   ];
 
   const statusBarColor = useMemo((): {
@@ -63,42 +65,42 @@ const App = () => {
   } => {
     if (authRoutes.includes(currentRoute!)) {
       if (
-        currentRoute === "workoutResult" ||
-        currentRoute === "addNewExercise" ||
-        currentRoute === "addExercise" ||
-        currentRoute === "addNewWorkout" ||
-        currentRoute === "ingredientList"
+        currentRoute === 'workoutResult' ||
+        currentRoute === 'addNewExercise' ||
+        currentRoute === 'addExercise' ||
+        currentRoute === 'addNewWorkout' ||
+        currentRoute === 'ingredientList'
       ) {
         return {
           bgColor: COLORS.darkBrown,
-          content: "light-content",
+          content: 'light-content',
         };
       } else {
         return {
           bgColor: COLORS.black,
-          content: "light-content",
+          content: 'light-content',
         };
       }
-    } else if (currentRoute === "SETTINGS") {
+    } else if (currentRoute === 'SETTINGS') {
       return {
-        bgColor: "#1C1816",
-        content: "light-content",
+        bgColor: '#1C1816',
+        content: 'light-content',
       };
     } else if (!authRoutes.includes(currentRoute!)) {
       return {
         bgColor: COLORS.brown,
-        content: "light-content",
+        content: 'light-content',
       };
     } else {
       return {
         bgColor: COLORS.black,
-        content: "default",
+        content: 'default',
       };
     }
   }, [currentRoute]);
 
   useEffect(() => {
-    Appearance.setColorScheme("light");
+    Appearance.setColorScheme('light');
   }, []);
 
   return (
@@ -111,8 +113,15 @@ const App = () => {
         <NavigationContainer onStateChange={handleNavigationStateChange}>
           <Routing />
         </NavigationContainer>
+        {__DEV__ && <NetworkLogger />}
+        <Toast
+          config={{
+            customToast: props => {
+              return <CustomToast {...props} type={props?.props.type} />;
+            },
+          }}
+        />
       </SafeAreaProvider>
-      <Toast />
     </>
   );
 };

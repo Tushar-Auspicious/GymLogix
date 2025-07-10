@@ -1,3 +1,5 @@
+import Toast from 'react-native-toast-message';
+
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export const isValidEmail = (email: string): boolean => {
@@ -37,21 +39,29 @@ export const calculate1RM = (weight: string, reps: string): number => {
 
 export const COLORS_ARRAY = [
   // First row
-  "#FF3B5C", // Red
-  "#FF5CFF", // Pink
-  "#5C5CFF", // Purple
-  "#0066FF", // Blue
-  "#00CCFF", // Light Blue
+  '#FF3B5C', // Red
+  '#FF5CFF', // Pink
+  '#5C5CFF', // Purple
+  '#0066FF', // Blue
+  '#00CCFF', // Light Blue
 
   // Second row
-  "#00FFCC", // Teal
-  "#00FF66", // Green
-  "#FFCC33", // Yellow
-  "#FF8833", // Orange
-  "#FFFF66", // Light Yellow
+  '#00FFCC', // Teal
+  '#00FF66', // Green
+  '#FFCC33', // Yellow
+  '#FF8833', // Orange
+  '#FFFF66', // Light Yellow
 ];
 
 export const getRandomColor = () => {
   const randomIndex = Math.floor(Math.random() * COLORS_ARRAY.length);
   return COLORS_ARRAY[randomIndex];
+};
+
+export const showCustomToast = (type: 'success' | 'error', message: string) => {
+  Toast.show({
+    type: 'customToast',
+    text1: message,
+    props: {type},
+  });
 };

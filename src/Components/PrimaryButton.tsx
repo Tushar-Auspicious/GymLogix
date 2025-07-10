@@ -1,5 +1,10 @@
 import React, {FC} from 'react';
-import {StyleSheet, TouchableOpacity, ViewStyle} from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  ViewStyle,
+} from 'react-native';
 import COLORS from '../Utilities/Colors';
 import {horizontalScale, verticalScale, wp} from '../Utilities/Metrics';
 import {CustomText} from './CustomText';
@@ -13,6 +18,7 @@ type PrimaryButtonProps = {
   disabled?: boolean;
   textSize?: number;
   isFullWidth?: boolean;
+  isLoading?: boolean;
 };
 
 const PrimaryButton: FC<PrimaryButtonProps> = ({
@@ -24,11 +30,12 @@ const PrimaryButton: FC<PrimaryButtonProps> = ({
   style,
   textSize = 16,
   isFullWidth = true,
+  isLoading = false,
 }) => {
   const color = disabled ? COLORS.lightGrey : textColor;
   return (
     <TouchableOpacity
-      disabled={disabled}
+      disabled={disabled || isLoading}
       activeOpacity={0.7}
       style={[
         isFullWidth && styles.button,
@@ -39,9 +46,13 @@ const PrimaryButton: FC<PrimaryButtonProps> = ({
         style,
       ]}
       onPress={onPress}>
-      <CustomText fontFamily="bold" fontSize={textSize} color={color}>
-        {title}
-      </CustomText>
+      {isLoading ? (
+        <ActivityIndicator color={COLORS.white} />
+      ) : (
+        <CustomText fontFamily="bold" fontSize={textSize} color={color}>
+          {title}
+        </CustomText>
+      )}
     </TouchableOpacity>
   );
 };

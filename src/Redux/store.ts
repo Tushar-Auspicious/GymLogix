@@ -1,24 +1,22 @@
-import { configureStore } from "@reduxjs/toolkit";
-import { useDispatch, useSelector } from "react-redux";
-import initialReducer from "./slices/initialSlice";
-import modalReducer from "./slices/modalSlice";
-import newWorkoutReducer from "./slices/newWorkoutSlice";
-import exerciseCatalogReducer from "./slices/exerciseCatalogSlice";
+import {configureStore} from '@reduxjs/toolkit';
+import {useDispatch, useSelector} from 'react-redux';
+import initialReducer from './slices/initialSlice';
+import modalReducer from './slices/modalSlice';
+import newWorkoutReducer from './slices/newWorkoutSlice';
+import exerciseCatalogReducer from './slices/exerciseCatalogSlice';
 import historyReducer, {
   importWorkouts,
   addPersonalRecord,
   updateStats,
-} from "./slices/historySlice";
-import muscleReducer from "./slices/muscleSlice";
-import ingredientReducer from "./slices/ingredientSlice";
-import savedWorkoutsReducer from "./slices/savedWorkoutsSlice";
-import trainingPlansReducer from "./slices/trainingPlansSlice";
-import newMealReducer from "./slices/newMealSlice";
-import myMealReducer from "./slices/myMealsSlice";
-import {
-  workoutHistoryData,
-  personalRecordsData,
-} from "../Seeds/WorkoutHistory";
+} from './slices/historySlice';
+import muscleReducer from './slices/muscleSlice';
+import ingredientReducer from './slices/ingredientSlice';
+import savedWorkoutsReducer from './slices/savedWorkoutsSlice';
+import trainingPlansReducer from './slices/trainingPlansSlice';
+import newMealReducer from './slices/newMealSlice';
+import myMealReducer from './slices/myMealsSlice';
+import {workoutHistoryData, personalRecordsData} from '../Seeds/WorkoutHistory';
+import userReducer from './slices/UserSlice';
 
 export const store = configureStore({
   reducer: {
@@ -33,6 +31,7 @@ export const store = configureStore({
     ingredients: ingredientReducer,
     newMeal: newMealReducer,
     myMeals: myMealReducer,
+    userData: userReducer,
   },
 });
 
@@ -46,5 +45,5 @@ export const useAppSelector = useSelector.withTypes<RootState>();
 
 // Initialize history with seed data
 store.dispatch(importWorkouts(workoutHistoryData));
-personalRecordsData.forEach((pr) => store.dispatch(addPersonalRecord(pr)));
+personalRecordsData.forEach(pr => store.dispatch(addPersonalRecord(pr)));
 store.dispatch(updateStats());
