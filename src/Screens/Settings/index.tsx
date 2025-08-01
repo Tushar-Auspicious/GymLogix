@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {FC, useState} from 'react';
 import {
   Alert,
   Image,
@@ -7,17 +7,23 @@ import {
   Switch,
   TouchableOpacity,
   View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import ICONS from "../../Assets/Icons";
-import IMAGES from "../../Assets/Images";
-import CustomIcon from "../../Components/CustomIcon";
-import { CustomText } from "../../Components/CustomText";
-import COLORS from "../../Utilities/Colors";
-import { horizontalScale, verticalScale, wp } from "../../Utilities/Metrics";
+} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import ICONS from '../../Assets/Icons';
+import IMAGES from '../../Assets/Images';
+import CustomIcon from '../../Components/CustomIcon';
+import {CustomText} from '../../Components/CustomText';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
+import {useAppSelector} from '../../Redux/store';
+import {deleteLocalStorageData} from '../../Utilities/Storage';
+import STORAGE_KEYS from '../../Utilities/Constants';
+import {SettingScreenProps} from '../../Typings/route';
 
-const SETTINGS = () => {
+const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
   const [acitveUi, setAcitveUi] = useState(0);
+
+  const {userData} = useAppSelector(state => state.userData);
 
   // Expanded UI states
   const [expandedSoundUI, setExpandedSoundUI] = useState(false);
@@ -32,12 +38,11 @@ const SETTINGS = () => {
   const [enableReminders, setEnableReminders] = useState(true);
 
   // General settings
-  const [selectedLanguage, setSelectedLanguage] = useState("English");
-  const [selectedUnits, setSelectedUnits] = useState("Metric"); // Metric or Imperial
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [selectedUnits, setSelectedUnits] = useState('Metric'); // Metric or Imperial
   const [preventScreenLock, setPreventScreenLock] = useState(true);
 
- 
-  const [selectedRMFormula, setSelectedRMFormula] = useState("Epley Formula");
+  const [selectedRMFormula, setSelectedRMFormula] = useState('Epley Formula');
   const [
     updateBodyWeightFromMeasurements,
     setUpdateBodyWeightFromMeasurements,
@@ -45,7 +50,7 @@ const SETTINGS = () => {
 
   // Data settings
   const [syncToCloud, setSyncToCloud] = useState(true);
-  const [dataRetentionPeriod, setDataRetentionPeriod] = useState("1 Year");
+  const [dataRetentionPeriod, setDataRetentionPeriod] = useState('1 Year');
   const [shareAnalytics, setShareAnalytics] = useState(false);
 
   const rendermemberShipData = () => {
@@ -56,26 +61,23 @@ const SETTINGS = () => {
 
           gap: verticalScale(10),
         }}
-        style={{ flex: 1, marginBottom: verticalScale(5) }}
-      >
+        style={{flex: 1, marginBottom: verticalScale(5)}}>
         <View
           style={{
             paddingHorizontal: horizontalScale(20),
             paddingVertical: verticalScale(20),
-            alignSelf: "center",
+            alignSelf: 'center',
             gap: verticalScale(30),
             backgroundColor: COLORS.brown,
             borderRadius: 10,
-            width: "95%",
-          }}
-        >
+            width: '95%',
+          }}>
           <View
             style={{
-              flexDirection: "row",
+              flexDirection: 'row',
               gap: horizontalScale(10),
-              alignItems: "center",
-            }}
-          >
+              alignItems: 'center',
+            }}>
             <CustomIcon
               onPress={() => setAcitveUi(0)}
               Icon={ICONS.BackArrow}
@@ -85,90 +87,81 @@ const SETTINGS = () => {
             <CustomText
               fontFamily="italicBold"
               color={COLORS.yellow}
-              fontSize={20}
-            >
+              fontSize={20}>
               Membership Benefits
             </CustomText>
           </View>
 
-          <View style={{ gap: verticalScale(20) }}>
-            <View style={{ flexDirection: "row", gap: horizontalScale(10) }}>
+          <View style={{gap: verticalScale(20)}}>
+            <View style={{flexDirection: 'row', gap: horizontalScale(10)}}>
               <CustomIcon Icon={ICONS.Membership1Icon} height={22} width={22} />
-              <View style={{ flex: 1 }}>
+              <View style={{flex: 1}}>
                 <CustomText
                   fontFamily="italicBold"
                   color={COLORS.yellow}
-                  fontSize={14}
-                >
+                  fontSize={14}>
                   Access to all programs
                 </CustomText>
                 <CustomText
                   color={COLORS.whiteTail}
                   fontSize={11}
-                  fontFamily="medium"
-                >
+                  fontFamily="medium">
                   Gain unlimited access to all workout and nutrition programs,
                   tailored to your goals.
                 </CustomText>
               </View>
             </View>
-            <View style={{ flexDirection: "row", gap: horizontalScale(10) }}>
+            <View style={{flexDirection: 'row', gap: horizontalScale(10)}}>
               <CustomIcon Icon={ICONS.Membership2Icon} height={22} width={22} />
-              <View style={{ flex: 1 }}>
+              <View style={{flex: 1}}>
                 <CustomText
                   fontFamily="italicBold"
                   color={COLORS.yellow}
-                  fontSize={14}
-                >
+                  fontSize={14}>
                   AI Driven insight
                 </CustomText>
                 <CustomText
                   color={COLORS.whiteTail}
                   fontSize={11}
-                  fontFamily="medium"
-                >
+                  fontFamily="medium">
                   Track progress smarter with AI-driven insights—review detailed
                   summaries of past workouts to fine-tune your performance and
                   reach your fitness goals faster.
                 </CustomText>
               </View>
             </View>
-            <View style={{ flexDirection: "row", gap: horizontalScale(10) }}>
+            <View style={{flexDirection: 'row', gap: horizontalScale(10)}}>
               <CustomIcon Icon={ICONS.Membershi3Icon} height={22} width={22} />
-              <View style={{ flex: 1 }}>
+              <View style={{flex: 1}}>
                 <CustomText
                   fontFamily="italicBold"
                   color={COLORS.yellow}
-                  fontSize={14}
-                >
+                  fontSize={14}>
                   Expert Guidance
                 </CustomText>
                 <CustomText
                   color={COLORS.whiteTail}
                   fontSize={11}
-                  fontFamily="medium"
-                >
+                  fontFamily="medium">
                   Get expert guidance on demand—receive personalized feedback
                   from real trainers and ask questions to enhance your workout
                   experience anytime.
                 </CustomText>
               </View>
             </View>
-            <View style={{ flexDirection: "row", gap: horizontalScale(10) }}>
+            <View style={{flexDirection: 'row', gap: horizontalScale(10)}}>
               <CustomIcon Icon={ICONS.Membershi4Icon} height={22} width={22} />
-              <View style={{ flex: 1 }}>
+              <View style={{flex: 1}}>
                 <CustomText
                   fontFamily="italicBold"
                   color={COLORS.yellow}
-                  fontSize={14}
-                >
+                  fontSize={14}>
                   Advanced Meteric
                 </CustomText>
                 <CustomText
                   color={COLORS.whiteTail}
                   fontSize={11}
-                  fontFamily="medium"
-                >
+                  fontFamily="medium">
                   Elevate your progress with in-depth metrics and detailed
                   statistics, helping you analyze and optimize every aspect of
                   your training.
@@ -182,46 +175,40 @@ const SETTINGS = () => {
               gap: verticalScale(10),
               paddingHorizontal: horizontalScale(20),
               marginVertical: verticalScale(20),
-            }}
-          >
+            }}>
             <CustomText
               fontSize={12}
               fontFamily="bold"
-              style={{ textAlign: "center" }}
-            >
+              style={{textAlign: 'center'}}>
               Cancel Anytime * Recurring Billing
             </CustomText>
             <CustomText
               fontSize={11}
               fontFamily="medium"
-              style={{ textAlign: "center" }}
-            >
+              style={{textAlign: 'center'}}>
               Your Google Play or iTunes account will be charged, and the
               membership will renew automatically. You can cancel at least 24
               hours before the end of the billing period to prevent renewal.
             </CustomText>
           </View>
 
-          <View style={{ paddingHorizontal: horizontalScale(40) }}>
+          <View style={{paddingHorizontal: horizontalScale(40)}}>
             <CustomText
               fontSize={12}
               fontFamily="medium"
-              style={{ textAlign: "center" }}
-            >
-              You acknowledge and accept GymLogix's{" "}
+              style={{textAlign: 'center'}}>
+              You acknowledge and accept GymLogix's{' '}
               <CustomText
                 fontSize={12}
                 fontFamily="medium"
-                color={COLORS.yellow}
-              >
+                color={COLORS.yellow}>
                 privacy policy
-              </CustomText>{" "}
-              and{" "}
+              </CustomText>{' '}
+              and{' '}
               <CustomText
                 fontSize={12}
                 fontFamily="medium"
-                color={COLORS.yellow}
-              >
+                color={COLORS.yellow}>
                 Terms & Conditions
               </CustomText>
             </CustomText>
@@ -231,56 +218,49 @@ const SETTINGS = () => {
           style={{
             paddingHorizontal: horizontalScale(20),
             paddingVertical: verticalScale(20),
-            alignSelf: "center",
+            alignSelf: 'center',
             gap: verticalScale(30),
             backgroundColor: COLORS.brown,
-            width: "95%",
+            width: '95%',
             borderRadius: 10,
-          }}
-        >
+          }}>
           <CustomText
-            style={{ textAlign: "center" }}
+            style={{textAlign: 'center'}}
             fontFamily="bold"
-            fontSize={12}
-          >
+            fontSize={12}>
             Join Now to access all beinfits
           </CustomText>
-          <View style={{ gap: verticalScale(10) }}>
+          <View style={{gap: verticalScale(10)}}>
             <View
               style={{
                 borderRadius: 100,
-                flexDirection: "row",
-                alignItems: "center",
-                overflow: "hidden",
-              }}
-            >
+                flexDirection: 'row',
+                alignItems: 'center',
+                overflow: 'hidden',
+              }}>
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: "#D71745",
+                  backgroundColor: '#D71745',
                   paddingVertical: verticalScale(10),
-                }}
-              >
+                }}>
                 <CustomText
                   fontSize={12}
                   fontFamily="medium"
-                  style={{ textAlign: "center" }}
-                >
+                  style={{textAlign: 'center'}}>
                   CONTINUE
                 </CustomText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: "#941231",
+                  backgroundColor: '#941231',
                   paddingVertical: verticalScale(10),
-                }}
-              >
+                }}>
                 <CustomText
                   fontSize={12}
                   fontFamily="medium"
-                  style={{ textAlign: "center" }}
-                >
+                  style={{textAlign: 'center'}}>
                   29.99$/mo
                 </CustomText>
               </TouchableOpacity>
@@ -288,47 +268,41 @@ const SETTINGS = () => {
             <CustomText
               fontSize={12}
               fontFamily="medium"
-              style={{ textAlign: "center" }}
-            >
+              style={{textAlign: 'center'}}>
               Billed annually at 202%/year
             </CustomText>
           </View>
-          <View style={{ gap: verticalScale(10) }}>
+          <View style={{gap: verticalScale(10)}}>
             <View
               style={{
                 borderRadius: 100,
-                flexDirection: "row",
-                alignItems: "center",
-                overflow: "hidden",
-              }}
-            >
+                flexDirection: 'row',
+                alignItems: 'center',
+                overflow: 'hidden',
+              }}>
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: "#999999",
+                  backgroundColor: '#999999',
                   paddingVertical: verticalScale(10),
-                }}
-              >
+                }}>
                 <CustomText
                   fontSize={12}
                   fontFamily="medium"
-                  style={{ textAlign: "center" }}
-                >
+                  style={{textAlign: 'center'}}>
                   CONTINUE
                 </CustomText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: "#706567",
+                  backgroundColor: '#706567',
                   paddingVertical: verticalScale(10),
-                }}
-              >
+                }}>
                 <CustomText
                   fontSize={12}
                   fontFamily="medium"
-                  style={{ textAlign: "center" }}
-                >
+                  style={{textAlign: 'center'}}>
                   29.99$/mo
                 </CustomText>
               </TouchableOpacity>
@@ -336,14 +310,31 @@ const SETTINGS = () => {
             <CustomText
               fontSize={12}
               fontFamily="medium"
-              style={{ textAlign: "center" }}
-            >
+              style={{textAlign: 'center'}}>
               Billed Monthly
             </CustomText>
           </View>
         </View>
       </ScrollView>
     );
+  };
+
+  const logOut = () => {
+    Alert.alert('Log out', 'Are your sure you want to log out', [
+      {
+        text: 'cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Confirm',
+        onPress: () => {
+          deleteLocalStorageData(STORAGE_KEYS.token);
+          navigation.replace('authStack', {
+            screen: 'signIn',
+          });
+        },
+      },
+    ]);
   };
 
   // Helper component for settings row with switch
@@ -370,8 +361,7 @@ const SETTINGS = () => {
           <CustomText
             fontFamily="regular"
             fontSize={12}
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             {subtitle}
           </CustomText>
         )}
@@ -379,7 +369,7 @@ const SETTINGS = () => {
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: COLORS.lightBrown, true: COLORS.yellow }}
+        trackColor={{false: COLORS.lightBrown, true: COLORS.yellow}}
         thumbColor={value ? COLORS.white : COLORS.whiteTail}
       />
     </View>
@@ -409,8 +399,7 @@ const SETTINGS = () => {
           <CustomText
             fontFamily="regular"
             fontSize={12}
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             {subtitle}
           </CustomText>
         )}
@@ -437,25 +426,24 @@ const SETTINGS = () => {
             <CustomText
               fontFamily="regular"
               fontSize={12}
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               {volumeLevel}%
             </CustomText>
           </View>
           <View style={styles.sliderContainer}>
             <View style={styles.customSlider}>
-              <View style={[styles.sliderTrack, { width: "100%" }]} />
-              <View style={[styles.sliderFill, { width: `${volumeLevel}%` }]} />
+              <View style={[styles.sliderTrack, {width: '100%'}]} />
+              <View style={[styles.sliderFill, {width: `${volumeLevel}%`}]} />
               <TouchableOpacity
                 style={[
                   styles.sliderThumb,
-                  { left: `${Math.max(0, Math.min(92, volumeLevel))}%` },
+                  {left: `${Math.max(0, Math.min(92, volumeLevel))}%`},
                 ]}
                 onPress={() => {
                   // Cycle through volume levels
                   const levels = [0, 25, 50, 75, 100];
                   const currentIndex = levels.findIndex(
-                    (level) => level >= volumeLevel
+                    level => level >= volumeLevel,
                   );
                   const nextIndex = (currentIndex + 1) % levels.length;
                   setVolumeLevel(levels[nextIndex]);
@@ -465,15 +453,13 @@ const SETTINGS = () => {
             {/* Volume level buttons */}
             <View style={styles.volumeButtons}>
               <TouchableOpacity
-                onPress={() => setVolumeLevel(Math.max(0, volumeLevel - 10))}
-              >
+                onPress={() => setVolumeLevel(Math.max(0, volumeLevel - 10))}>
                 <CustomText fontSize={12} color={COLORS.yellow}>
                   -
                 </CustomText>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setVolumeLevel(Math.min(100, volumeLevel + 10))}
-              >
+                onPress={() => setVolumeLevel(Math.min(100, volumeLevel + 10))}>
                 <CustomText fontSize={12} color={COLORS.yellow}>
                   +
                 </CustomText>
@@ -509,20 +495,20 @@ const SETTINGS = () => {
           subtitle="Choose your preferred language"
           value={selectedLanguage}
           onPress={() => {
-            Alert.alert("Language", "Choose your preferred language", [
+            Alert.alert('Language', 'Choose your preferred language', [
               {
-                text: "English",
-                onPress: () => setSelectedLanguage("English"),
+                text: 'English',
+                onPress: () => setSelectedLanguage('English'),
               },
               {
-                text: "Español",
-                onPress: () => setSelectedLanguage("Español"),
+                text: 'Español',
+                onPress: () => setSelectedLanguage('Español'),
               },
               {
-                text: "Français",
-                onPress: () => setSelectedLanguage("Français"),
+                text: 'Français',
+                onPress: () => setSelectedLanguage('Français'),
               },
-              { text: "Cancel", style: "cancel" },
+              {text: 'Cancel', style: 'cancel'},
             ]);
           }}
           icon={ICONS.GeneralIcon}
@@ -533,16 +519,16 @@ const SETTINGS = () => {
           subtitle="Weight and distance measurement units"
           value={selectedUnits}
           onPress={() => {
-            Alert.alert("Unit System", "Choose your preferred unit system", [
+            Alert.alert('Unit System', 'Choose your preferred unit system', [
               {
-                text: "Metric (kg/km)",
-                onPress: () => setSelectedUnits("Metric"),
+                text: 'Metric (kg/km)',
+                onPress: () => setSelectedUnits('Metric'),
               },
               {
-                text: "Imperial (lb/mi)",
-                onPress: () => setSelectedUnits("Imperial"),
+                text: 'Imperial (lb/mi)',
+                onPress: () => setSelectedUnits('Imperial'),
               },
-              { text: "Cancel", style: "cancel" },
+              {text: 'Cancel', style: 'cancel'},
             ]);
           }}
           icon={ICONS.GeneralIcon}
@@ -567,27 +553,27 @@ const SETTINGS = () => {
           value={selectedRMFormula}
           onPress={() => {
             Alert.alert(
-              "RM Formula",
-              "Choose your preferred 1RM calculation formula",
+              'RM Formula',
+              'Choose your preferred 1RM calculation formula',
               [
                 {
-                  text: "Epley Formula",
-                  onPress: () => setSelectedRMFormula("Epley Formula"),
+                  text: 'Epley Formula',
+                  onPress: () => setSelectedRMFormula('Epley Formula'),
                 },
                 {
-                  text: "Brzycki Formula",
-                  onPress: () => setSelectedRMFormula("Brzycki Formula"),
+                  text: 'Brzycki Formula',
+                  onPress: () => setSelectedRMFormula('Brzycki Formula'),
                 },
                 {
-                  text: "Lombardi Formula",
-                  onPress: () => setSelectedRMFormula("Lombardi Formula"),
+                  text: 'Lombardi Formula',
+                  onPress: () => setSelectedRMFormula('Lombardi Formula'),
                 },
                 {
                   text: "O'Connor Formula",
                   onPress: () => setSelectedRMFormula("O'Connor Formula"),
                 },
-                { text: "Cancel", style: "cancel" },
-              ]
+                {text: 'Cancel', style: 'cancel'},
+              ],
             );
           }}
           icon={ICONS.WorkoutIcon}
@@ -611,8 +597,7 @@ const SETTINGS = () => {
           fontFamily="bold"
           fontSize={18}
           color={COLORS.yellow}
-          style={styles.sectionTitle}
-        >
+          style={styles.sectionTitle}>
           Data Management
         </CustomText>
 
@@ -629,24 +614,24 @@ const SETTINGS = () => {
           subtitle="How long to keep workout history"
           value={dataRetentionPeriod}
           onPress={() => {
-            Alert.alert("Data Retention", "Choose how long to keep your data", [
+            Alert.alert('Data Retention', 'Choose how long to keep your data', [
               {
-                text: "6 Months",
-                onPress: () => setDataRetentionPeriod("6 Months"),
+                text: '6 Months',
+                onPress: () => setDataRetentionPeriod('6 Months'),
               },
               {
-                text: "1 Year",
-                onPress: () => setDataRetentionPeriod("1 Year"),
+                text: '1 Year',
+                onPress: () => setDataRetentionPeriod('1 Year'),
               },
               {
-                text: "2 Years",
-                onPress: () => setDataRetentionPeriod("2 Years"),
+                text: '2 Years',
+                onPress: () => setDataRetentionPeriod('2 Years'),
               },
               {
-                text: "Forever",
-                onPress: () => setDataRetentionPeriod("Forever"),
+                text: 'Forever',
+                onPress: () => setDataRetentionPeriod('Forever'),
               },
-              { text: "Cancel", style: "cancel" },
+              {text: 'Cancel', style: 'cancel'},
             ]);
           }}
           icon={ICONS.DataIcon}
@@ -670,8 +655,7 @@ const SETTINGS = () => {
             <CustomText
               fontFamily="regular"
               fontSize={12}
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               Export your data to external files
             </CustomText>
           </View>
@@ -679,14 +663,12 @@ const SETTINGS = () => {
 
         {/* Export Buttons */}
         <View
-          style={{ gap: verticalScale(10), paddingLeft: horizontalScale(35) }}
-        >
+          style={{gap: verticalScale(10), paddingLeft: horizontalScale(35)}}>
           <TouchableOpacity
             style={styles.optionButton}
             onPress={() =>
-              Alert.alert("Export", "Exporting all workout data...")
-            }
-          >
+              Alert.alert('Export', 'Exporting all workout data...')
+            }>
             <CustomText fontFamily="medium" fontSize={14} color={COLORS.white}>
               Export Workouts
             </CustomText>
@@ -695,8 +677,9 @@ const SETTINGS = () => {
 
           <TouchableOpacity
             style={styles.optionButton}
-            onPress={() => Alert.alert("Export", "Exporting training plans...")}
-          >
+            onPress={() =>
+              Alert.alert('Export', 'Exporting training plans...')
+            }>
             <CustomText fontFamily="medium" fontSize={14} color={COLORS.white}>
               Export Plans
             </CustomText>
@@ -705,8 +688,7 @@ const SETTINGS = () => {
 
           <TouchableOpacity
             style={styles.optionButton}
-            onPress={() => Alert.alert("Export", "Exporting meal data...")}
-          >
+            onPress={() => Alert.alert('Export', 'Exporting meal data...')}>
             <CustomText fontFamily="medium" fontSize={14} color={COLORS.white}>
               Export Meals
             </CustomText>
@@ -715,8 +697,7 @@ const SETTINGS = () => {
 
           <TouchableOpacity
             style={styles.optionButton}
-            onPress={() => Alert.alert("Export", "Exporting notes...")}
-          >
+            onPress={() => Alert.alert('Export', 'Exporting notes...')}>
             <CustomText fontFamily="medium" fontSize={14} color={COLORS.white}>
               Export Notes
             </CustomText>
@@ -725,8 +706,7 @@ const SETTINGS = () => {
 
           <TouchableOpacity
             style={styles.optionButton}
-            onPress={() => Alert.alert("Export", "Exporting measurements...")}
-          >
+            onPress={() => Alert.alert('Export', 'Exporting measurements...')}>
             <CustomText fontFamily="medium" fontSize={14} color={COLORS.white}>
               Export Measurements
             </CustomText>
@@ -734,16 +714,14 @@ const SETTINGS = () => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.optionButton, { backgroundColor: COLORS.yellow }]}
+            style={[styles.optionButton, {backgroundColor: COLORS.yellow}]}
             onPress={() =>
-              Alert.alert("Export", "Exporting complete data file...")
-            }
-          >
+              Alert.alert('Export', 'Exporting complete data file...')
+            }>
             <CustomText
               fontFamily="bold"
               fontSize={14}
-              color={COLORS.darkBrown}
-            >
+              color={COLORS.darkBrown}>
               Export All Data
             </CustomText>
             <CustomIcon Icon={ICONS.RightArrowIcon} height={12} width={20} />
@@ -760,8 +738,7 @@ const SETTINGS = () => {
           fontFamily="bold"
           fontSize={18}
           color={COLORS.yellow}
-          style={styles.sectionTitle}
-        >
+          style={styles.sectionTitle}>
           Help & Support
         </CustomText>
 
@@ -769,11 +746,10 @@ const SETTINGS = () => {
           style={styles.settingsRow}
           onPress={() =>
             Alert.alert(
-              "FAQ",
-              "Frequently Asked Questions will be displayed here"
+              'FAQ',
+              'Frequently Asked Questions will be displayed here',
             )
-          }
-        >
+          }>
           <CustomIcon Icon={ICONS.HelpIcon} height={20} width={20} />
           <View style={styles.settingsTextContainer}>
             <CustomText fontFamily="medium" fontSize={16} color={COLORS.white}>
@@ -782,8 +758,7 @@ const SETTINGS = () => {
             <CustomText
               fontFamily="regular"
               fontSize={12}
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               Frequently asked questions
             </CustomText>
           </View>
@@ -792,8 +767,7 @@ const SETTINGS = () => {
 
         <TouchableOpacity
           style={styles.settingsRow}
-          onPress={() => Alert.alert("Contact", "Contact support team")}
-        >
+          onPress={() => Alert.alert('Contact', 'Contact support team')}>
           <CustomIcon Icon={ICONS.HelpIcon} height={20} width={20} />
           <View style={styles.settingsTextContainer}>
             <CustomText fontFamily="medium" fontSize={16} color={COLORS.white}>
@@ -802,8 +776,7 @@ const SETTINGS = () => {
             <CustomText
               fontFamily="regular"
               fontSize={12}
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               Get help from our support team
             </CustomText>
           </View>
@@ -812,8 +785,7 @@ const SETTINGS = () => {
 
         <TouchableOpacity
           style={styles.settingsRow}
-          onPress={() => Alert.alert("Feedback", "Send us your feedback")}
-        >
+          onPress={() => Alert.alert('Feedback', 'Send us your feedback')}>
           <CustomIcon Icon={ICONS.HelpIcon} height={20} width={20} />
           <View style={styles.settingsTextContainer}>
             <CustomText fontFamily="medium" fontSize={16} color={COLORS.white}>
@@ -822,8 +794,7 @@ const SETTINGS = () => {
             <CustomText
               fontFamily="regular"
               fontSize={12}
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               Help us improve the app
             </CustomText>
           </View>
@@ -832,8 +803,7 @@ const SETTINGS = () => {
 
         <TouchableOpacity
           style={styles.settingsRow}
-          onPress={() => Alert.alert("Tutorial", "App tutorial will start")}
-        >
+          onPress={() => Alert.alert('Tutorial', 'App tutorial will start')}>
           <CustomIcon Icon={ICONS.HelpIcon} height={20} width={20} />
           <View style={styles.settingsTextContainer}>
             <CustomText fontFamily="medium" fontSize={16} color={COLORS.white}>
@@ -842,8 +812,7 @@ const SETTINGS = () => {
             <CustomText
               fontFamily="regular"
               fontSize={12}
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               Learn how to use the app
             </CustomText>
           </View>
@@ -852,8 +821,7 @@ const SETTINGS = () => {
 
         <TouchableOpacity
           style={styles.settingsRow}
-          onPress={() => Alert.alert("Terms", "Terms and conditions")}
-        >
+          onPress={() => Alert.alert('Terms', 'Terms and conditions')}>
           <CustomIcon Icon={ICONS.HelpIcon} height={20} width={20} />
           <View style={styles.settingsTextContainer}>
             <CustomText fontFamily="medium" fontSize={16} color={COLORS.white}>
@@ -862,8 +830,7 @@ const SETTINGS = () => {
             <CustomText
               fontFamily="regular"
               fontSize={12}
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               Read our terms and conditions
             </CustomText>
           </View>
@@ -872,8 +839,7 @@ const SETTINGS = () => {
 
         <TouchableOpacity
           style={styles.settingsRow}
-          onPress={() => Alert.alert("Privacy", "Privacy policy")}
-        >
+          onPress={() => Alert.alert('Privacy', 'Privacy policy')}>
           <CustomIcon Icon={ICONS.HelpIcon} height={20} width={20} />
           <View style={styles.settingsTextContainer}>
             <CustomText fontFamily="medium" fontSize={16} color={COLORS.white}>
@@ -882,8 +848,7 @@ const SETTINGS = () => {
             <CustomText
               fontFamily="regular"
               fontSize={12}
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               Read our privacy policy
             </CustomText>
           </View>
@@ -895,44 +860,41 @@ const SETTINGS = () => {
 
   return (
     <View style={styles.main}>
-      <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
         <View
           style={{
-            width: "100%",
+            width: '100%',
             paddingVertical: verticalScale(20),
             gap: verticalScale(10),
-          }}
-        >
+          }}>
           <View
             style={{
-              width: "100%",
+              width: '100%',
               paddingHorizontal: horizontalScale(20),
-              flexDirection: "row",
-              alignItems: "center",
+              flexDirection: 'row',
+              alignItems: 'center',
               gap: horizontalScale(10),
-            }}
-          >
+            }}>
             <Image
               source={IMAGES.profileDummy}
               style={{
                 height: verticalScale(66),
                 width: verticalScale(66),
-                resizeMode: "contain",
+                resizeMode: 'contain',
               }}
             />
-            <View style={{ flex: 1 }}>
+            <View style={{flex: 1}}>
               <View
                 style={{
                   flex: 1,
-                  flexDirection: "row",
+                  flexDirection: 'row',
                   gap: horizontalScale(10),
-                  alignItems: "center",
-                }}
-              >
-                <View style={{ flex: 1 }}>
+                  alignItems: 'center',
+                }}>
+                <View style={{flex: 1}}>
                   <CustomText fontFamily="bold">John Smith</CustomText>
                   <CustomText fontFamily="medium" fontSize={14}>
-                    Jjohn.smith@gmail.com
+                    {userData?.email}
                   </CustomText>
                 </View>
 
@@ -940,16 +902,15 @@ const SETTINGS = () => {
               </View>
               <View
                 style={{
-                  width: "100%",
-                  flexDirection: "row",
-                  alignItems: "center",
+                  width: '100%',
+                  flexDirection: 'row',
+                  alignItems: 'center',
                   gap: horizontalScale(10),
-                  justifyContent: "space-between",
+                  justifyContent: 'space-between',
                   marginTop: verticalScale(10),
-                }}
-              >
+                }}>
                 <CustomText fontFamily="medium" fontSize={12}>
-                  ID: 14124
+                  ID: {userData?.user_id}
                 </CustomText>
                 <CustomIcon
                   Icon={ICONS.RightArrowIcon}
@@ -969,23 +930,21 @@ const SETTINGS = () => {
               borderTopRightRadius: 10,
               backgroundColor: COLORS.brown,
               paddingHorizontal: horizontalScale(10),
-              alignSelf: "center",
+              alignSelf: 'center',
             }}
-            style={{ flex: 1, marginBottom: verticalScale(5) }}
-          >
+            style={{flex: 1, marginBottom: verticalScale(5)}}>
             <TouchableOpacity
               onPress={() => setAcitveUi(1)}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: horizontalScale(10),
                 paddingVertical: verticalScale(30),
                 borderBottomWidth: 1,
                 borderBottomColor: COLORS.lightBrown,
-              }}
-            >
+              }}>
               <CustomIcon Icon={ICONS.MembershipIcon} height={24} width={24} />
-              <CustomText fontFamily="medium" fontSize={18} style={{ flex: 1 }}>
+              <CustomText fontFamily="medium" fontSize={18} style={{flex: 1}}>
                 Membership
               </CustomText>
               <CustomIcon Icon={ICONS.RightArrowIcon} height={12} width={20} />
@@ -993,20 +952,19 @@ const SETTINGS = () => {
             <TouchableOpacity
               onPress={() => setExpandedSoundUI(!expandedSoundUI)}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: horizontalScale(10),
                 paddingVertical: verticalScale(30),
                 borderBottomWidth: 1,
                 borderBottomColor: COLORS.lightBrown,
-              }}
-            >
+              }}>
               <CustomIcon
                 Icon={ICONS.NotificationIcon}
                 height={24}
                 width={24}
               />
-              <CustomText fontFamily="medium" fontSize={18} style={{ flex: 1 }}>
+              <CustomText fontFamily="medium" fontSize={18} style={{flex: 1}}>
                 Sound & notification
               </CustomText>
               <CustomIcon Icon={ICONS.RightArrowIcon} height={12} width={20} />
@@ -1015,16 +973,15 @@ const SETTINGS = () => {
             <TouchableOpacity
               onPress={() => setExpandedGeneralUI(!expandedGeneralUI)}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: horizontalScale(10),
                 paddingVertical: verticalScale(30),
                 borderBottomWidth: 1,
                 borderBottomColor: COLORS.lightBrown,
-              }}
-            >
+              }}>
               <CustomIcon Icon={ICONS.GeneralIcon} height={24} width={24} />
-              <CustomText fontFamily="medium" fontSize={18} style={{ flex: 1 }}>
+              <CustomText fontFamily="medium" fontSize={18} style={{flex: 1}}>
                 General
               </CustomText>
               <CustomIcon Icon={ICONS.RightArrowIcon} height={12} width={20} />
@@ -1033,25 +990,41 @@ const SETTINGS = () => {
             <TouchableOpacity
               onPress={() => setExpandedWorkoutUI(!expandedWorkoutUI)}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: horizontalScale(10),
                 paddingVertical: verticalScale(30),
                 borderBottomWidth: 1,
                 borderBottomColor: COLORS.lightBrown,
-              }}
-            >
+              }}>
               <CustomIcon Icon={ICONS.WorkoutIcon} height={24} width={24} />
-              <CustomText fontFamily="medium" fontSize={18} style={{ flex: 1 }}>
+              <CustomText fontFamily="medium" fontSize={18} style={{flex: 1}}>
                 Workout
               </CustomText>
               <CustomIcon Icon={ICONS.RightArrowIcon} height={12} width={20} />
             </TouchableOpacity>
+
             {expandedWorkoutUI && renderWorkoutUI()}
+            <TouchableOpacity
+              onPress={logOut}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: horizontalScale(10),
+                paddingVertical: verticalScale(30),
+                borderBottomWidth: 1,
+                borderBottomColor: COLORS.lightBrown,
+              }}>
+              <CustomIcon Icon={ICONS.WorkoutIcon} height={24} width={24} />
+              <CustomText fontFamily="medium" fontSize={18} style={{flex: 1}}>
+                Log out
+              </CustomText>
+              <CustomIcon Icon={ICONS.RightArrowIcon} height={12} width={20} />
+            </TouchableOpacity>
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: horizontalScale(10),
                 paddingVertical: verticalScale(40),
                 borderBottomWidth: 1,
@@ -1061,16 +1034,15 @@ const SETTINGS = () => {
             <TouchableOpacity
               onPress={() => setExpandedDataUI(!expandedDataUI)}
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: horizontalScale(10),
                 paddingVertical: verticalScale(30),
                 borderBottomWidth: 1,
                 borderBottomColor: COLORS.lightBrown,
-              }}
-            >
+              }}>
               <CustomIcon Icon={ICONS.DataIcon} height={24} width={24} />
-              <CustomText fontFamily="medium" fontSize={18} style={{ flex: 1 }}>
+              <CustomText fontFamily="medium" fontSize={18} style={{flex: 1}}>
                 Data
               </CustomText>
               <CustomIcon Icon={ICONS.RightArrowIcon} height={12} width={20} />
@@ -1078,16 +1050,15 @@ const SETTINGS = () => {
             {expandedDataUI && renderDataUI()}
             <TouchableOpacity
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: horizontalScale(10),
                 paddingVertical: verticalScale(30),
                 borderBottomWidth: 1,
                 borderBottomColor: COLORS.lightBrown,
-              }}
-            >
+              }}>
               <CustomIcon Icon={ICONS.HelpIcon} height={24} width={24} />
-              <CustomText fontFamily="medium" fontSize={18} style={{ flex: 1 }}>
+              <CustomText fontFamily="medium" fontSize={18} style={{flex: 1}}>
                 Help & Suggestions
               </CustomText>
               <CustomIcon Icon={ICONS.RightArrowIcon} height={12} width={20} />
@@ -1095,13 +1066,12 @@ const SETTINGS = () => {
 
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: horizontalScale(10),
                 paddingVertical: verticalScale(30),
-              }}
-            >
-              <CustomText fontFamily="medium" fontSize={18} style={{ flex: 1 }}>
+              }}>
+              <CustomText fontFamily="medium" fontSize={18} style={{flex: 1}}>
                 About
               </CustomText>
               <CustomText fontFamily="medium" fontSize={18} style={{}}>
@@ -1119,7 +1089,7 @@ const SETTINGS = () => {
 export default SETTINGS;
 
 const styles = StyleSheet.create({
-  main: { backgroundColor: "#1C1816", flex: 1 },
+  main: {backgroundColor: '#1C1816', flex: 1},
   safeArea: {
     flex: 1,
   },
@@ -1127,7 +1097,7 @@ const styles = StyleSheet.create({
     gap: verticalScale(15),
     paddingHorizontal: horizontalScale(20),
     backgroundColor: COLORS.brown,
-    width: "95%",
+    width: '95%',
     borderRadius: 10,
     marginTop: verticalScale(10),
   },
@@ -1135,8 +1105,8 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   settingsRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(15),
     paddingVertical: verticalScale(12),
     borderBottomWidth: 1,
@@ -1147,51 +1117,51 @@ const styles = StyleSheet.create({
     gap: verticalScale(2),
   },
   settingsValueContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(8),
   },
   sliderContainer: {
     width: 120,
     height: 30,
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   volumeButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: verticalScale(5),
     paddingHorizontal: horizontalScale(5),
   },
   customSlider: {
     height: 4,
-    position: "relative",
+    position: 'relative',
     borderRadius: 2,
   },
   sliderTrack: {
     height: 4,
     backgroundColor: COLORS.lightBrown,
     borderRadius: 2,
-    position: "absolute",
+    position: 'absolute',
   },
   sliderFill: {
     height: 4,
     backgroundColor: COLORS.yellow,
     borderRadius: 2,
-    position: "absolute",
+    position: 'absolute',
   },
   sliderThumb: {
     width: 16,
     height: 16,
     backgroundColor: COLORS.white,
     borderRadius: 8,
-    position: "absolute",
+    position: 'absolute',
     top: -6,
     marginLeft: -8,
   },
   optionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: verticalScale(12),
     paddingHorizontal: horizontalScale(15),
     backgroundColor: COLORS.lightBrown,
@@ -1208,14 +1178,14 @@ const styles = StyleSheet.create({
     color: COLORS.darkBrown,
   },
   modalOverlay: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 1000,
   },
   languageModal: {
@@ -1223,11 +1193,11 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: verticalScale(20),
     width: wp(85),
-    maxHeight: "80%",
+    maxHeight: '80%',
   },
   languageOption: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: verticalScale(12),
     paddingHorizontal: horizontalScale(15),
     borderRadius: 8,
@@ -1242,7 +1212,7 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(12),
     paddingHorizontal: horizontalScale(20),
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: verticalScale(15),
   },
 });

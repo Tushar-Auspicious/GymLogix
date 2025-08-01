@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from "react";
+import React, {FC, useState} from 'react';
 import {
   FlatList,
   Image,
@@ -8,18 +8,18 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 import {
   Asset,
   launchCamera,
   launchImageLibrary,
-} from "react-native-image-picker";
-import LinearGradient from "react-native-linear-gradient";
-import ICONS from "../../Assets/Icons";
-import CustomIcon from "../../Components/CustomIcon";
-import { CustomText } from "../../Components/CustomText";
-import UploadImageOptions from "../../Components/Modals/UploadImageOptions";
-import PrimaryButton from "../../Components/PrimaryButton";
+} from 'react-native-image-picker';
+import LinearGradient from 'react-native-linear-gradient';
+import ICONS from '../../Assets/Icons';
+import CustomIcon from '../../Components/CustomIcon';
+import {CustomText} from '../../Components/CustomText';
+import UploadImageOptions from '../../Components/Modals/UploadImageOptions';
+import PrimaryButton from '../../Components/PrimaryButton';
 import {
   removeIngredient,
   removeMealImage,
@@ -27,29 +27,26 @@ import {
   setCoverImage,
   setDescription,
   setInstructions,
-  setMacros,
   setMealImages,
   setTitle,
-} from "../../Redux/slices/newMealSlice";
-import { useAppDispatch, useAppSelector } from "../../Redux/store";
-import { AddNewMealScreenProps } from "../../Typings/route";
-import COLORS from "../../Utilities/Colors";
-import {
-  horizontalScale,
-  hp,
-  verticalScale,
-  wp,
-} from "../../Utilities/Metrics";
-import { addMeal } from "../../Redux/slices/myMealsSlice";
+} from '../../Redux/slices/newMealSlice';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
+import {AddNewMealScreenProps} from '../../Typings/route';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, hp, verticalScale, wp} from '../../Utilities/Metrics';
+import {addMeal} from '../../Redux/slices/myMealsSlice';
+import {postData, postFormData} from '../../APIServices/api';
+import ENDPOINTS from '../../APIServices/endPoints';
 
 export interface CapturedPhoto {
   uri: string;
   width?: number;
   height?: number;
   type?: string;
+  name?: String;
 }
 
-const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
+const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
   const {
     title,
@@ -59,7 +56,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
     macros,
     mealImages,
     instructions,
-  } = useAppSelector((state) => state.newMeal);
+  } = useAppSelector(state => state.newMeal);
 
   const [isUploadImageOptionModal, setIsUploadImageOptionModal] =
     useState(false);
@@ -71,20 +68,94 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
   const [showMacrosInput, setShowMacrosInput] = useState(false);
   const [showTitleInput, setShowTitleInput] = useState(false);
 
-  const handleSave = () => {
-    navigation.goBack();
-    dispatch(
-      addMeal({
-        id: `meals-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        coverImage,
-        description,
-        title,
-        ingredients,
-        instructions,
-        macros,
-        mealImages,
-      })
+  const [fileData, setFileData] = useState<any | null>(null);
+
+  const handleSave = async () => {
+    if (!fileData) {
+      console.log('Image is not uploaded yet');
+      return;
+    }
+
+    const macroCalorieData = ingredients.reduce(
+      (sum, item) => sum + (item.calories[0] || 0),
+      0,
     );
+
+    const macroCrabsData = ingredients.reduce(
+      (sum, item) => sum + (item.calories[1] || 0),
+      0,
+    );
+    const macroFatData = ingredients.reduce(
+      (sum, item) => sum + (item.calories[2] || 0),
+      0,
+    );
+    const macroProteinData = ingredients.reduce(
+      (sum, item) => sum + (item.calories[3] || 0),
+      0,
+    );
+    const data = {
+      name: title,
+      description: description,
+      image_url: fileData,
+      calories: macroCalorieData,
+      carbs: macroCrabsData,
+      fats: macroFatData,
+      protein: macroProteinData,
+      preparation_instructions: instructions,
+      foods: ingredients.map(item => ({
+        food_id: item.idFood,
+        amount_g: item.quantity,
+        calories: item.calories[0],
+        carbs: item.calories[1],
+        fats: item.calories[2],
+        protein: item.calories[3],
+        serving_size: item.size,
+        measurement: item.measurementUnit,
+      })),
+      tags: ['breakfast'],
+    };
+
+    console.log('sent data ---->', data);
+
+    try {
+      const response = await postData<any>(ENDPOINTS.mealCreate, {data});
+      if (response.data) {
+        const getMealId = response.data.data.meal_id;
+        const getUserId = response.data.data.user_id;
+        const getImage_Url = response.data.data.image_url;
+        const getCalorieData = response.data.calories;
+        const getCrabsData = response.data.carbs;
+        const getFatData = response.data.fats;
+        const getProteinData = response.data.protein;
+        // const getTagsData = response.data.tags;
+        // const getPublicData = response.data.is_public;
+        dispatch(
+          addMeal({
+            id: getMealId,
+            coverImage: getImage_Url,
+            description,
+            title,
+            ingredients,
+            instructions,
+            macros: {
+              calories: getCalorieData,
+              carbs: getCrabsData,
+              fat: getFatData,
+              protein: getProteinData,
+            },
+            mealImages,
+            userId: getUserId,
+            // tags: getTagsData,
+            // isPublic: getPublicData,
+          }),
+        );
+
+        navigation.goBack();
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+
     dispatch(resetMeal());
   };
 
@@ -93,25 +164,50 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
     setIsMealImagesModal(false);
   };
 
-  const openImagePicker = (type: "cover" | "ingredient", index?: number) => {
+  const openImagePicker = (type: 'cover' | 'ingredient', index?: number) => {
     setIsUploadImageOptionModal(true);
   };
 
   const handleImagePick = () => {
-    launchImageLibrary({ mediaType: "photo", quality: 0.8 }, (response) => {
+    launchImageLibrary({mediaType: 'photo', quality: 0.5}, async response => {
       if (response.didCancel) {
-        console.log("User cancelled image picker");
+        console.log('User cancelled image picker');
       } else if (response.errorCode) {
-        console.log("ImagePicker Error: ", response.errorMessage);
+        console.log('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
         const imageData: CapturedPhoto = {
-          uri: asset.uri || "",
+          uri: asset.uri || '',
           width: asset.width,
           height: asset.height,
           type: asset.type,
+          name: asset.fileName,
         };
         dispatch(setCoverImage(imageData));
+        const formData = new FormData();
+        const assets = imageData;
+        formData.append('asset', {
+          uri: assets.uri,
+          type: assets.type,
+          name: assets.name,
+        });
+
+        try {
+          const response = await postFormData<any>(
+            ENDPOINTS.uploadFile,
+            formData,
+          );
+          console.log('image pick ', response.data);
+
+          if (response.data) {
+            const get_Image_url = response.data.url;
+            if (get_Image_url) {
+              setFileData(get_Image_url);
+            }
+          }
+        } catch (error) {
+          console.log(error, 'Something went wrong');
+        }
       }
       closeModal();
     });
@@ -121,28 +217,50 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
     try {
       const result = await launchCamera({
         quality: 1,
-        mediaType: "photo",
+        mediaType: 'photo',
       });
 
       if (result.didCancel) {
-        console.log("User cancelled camera");
+        console.log('User cancelled camera');
       } else if (result.errorCode) {
-        console.log("Camera error:", result.errorMessage);
+        console.log('Camera error:', result.errorMessage);
       } else if (result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         const imageData: CapturedPhoto = {
-          uri: asset.uri || "",
+          uri: asset.uri || '',
           width: asset.width,
           height: asset.height,
           type: asset.type,
+          name: asset.fileName,
         };
-
         dispatch(setCoverImage(imageData));
+        const formData = new FormData();
+        const assets = imageData;
+        formData.append('asset', {
+          uri: assets.uri,
+          name: assets.name,
+          type: assets.type,
+        });
+
+        try {
+          const response = await postFormData<any>(
+            ENDPOINTS.uploadFile,
+            formData,
+          );
+          if (response.data) {
+            const get_Image_url = response.data.url;
+            if (get_Image_url) {
+              setFileData(get_Image_url);
+            }
+          }
+        } catch (error) {
+          console.log(error, 'Something went wrong');
+        }
       }
 
       closeModal();
     } catch (error) {
-      console.log("Camera capture failed:", error);
+      console.log('Camera capture failed:', error);
     }
   };
 
@@ -154,22 +272,22 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
   const handleMultipleImagePick = async () => {
     try {
       const result = await launchImageLibrary({
-        mediaType: "photo",
+        mediaType: 'photo',
         quality: 0.8,
         selectionLimit: 0, // 0 means no limit
       });
 
       if (result.didCancel) {
-        console.log("User cancelled image picker");
+        console.log('User cancelled image picker');
       } else if (result.errorCode) {
-        console.log("ImagePicker Error:", result.errorMessage);
+        console.log('ImagePicker Error:', result.errorMessage);
       } else if (result.assets && result.assets.length > 0) {
         // Add new images to existing ones
         dispatch(setMealImages([...mealImages, ...(result.assets as Asset[])]));
       }
       closeModal();
     } catch (error) {
-      console.log("Multiple image selection failed:", error);
+      console.log('Multiple image selection failed:', error);
     }
   };
 
@@ -178,20 +296,20 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
     try {
       const result = await launchCamera({
         quality: 0.8,
-        mediaType: "photo",
+        mediaType: 'photo',
       });
 
       if (result.didCancel) {
-        console.log("User cancelled camera");
+        console.log('User cancelled camera');
       } else if (result.errorCode) {
-        console.log("Camera Error:", result.errorMessage);
+        console.log('Camera Error:', result.errorMessage);
       } else if (result.assets && result.assets.length > 0) {
         // Add new image to existing ones
         dispatch(setMealImages([...mealImages, ...(result.assets as Asset[])]));
       }
       closeModal();
     } catch (error) {
-      console.log("Camera capture failed:", error);
+      console.log('Camera capture failed:', error);
     }
   };
 
@@ -200,31 +318,27 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
       <ScrollView
         contentContainerStyle={{
           gap: verticalScale(40),
-        }}
-      >
+        }}>
         {/* Cover Image Section */}
         <ImageBackground
           source={{
             uri: coverImage?.uri,
           }}
           style={styles.coverImage}
-          imageStyle={styles.coverImageStyle}
-        >
+          imageStyle={styles.coverImageStyle}>
           <LinearGradient
-            colors={["rgba(0,0,0,0)", "#1F1A16"]}
+            colors={['rgba(0,0,0,0)', '#1F1A16']}
             style={styles.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-          >
+            start={{x: 0, y: 0}}
+            end={{x: 0, y: 1}}>
             <View style={styles.headerContainer}>
               <View
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  width: "100%",
-                  justifyContent: "space-between",
-                }}
-              >
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  width: '100%',
+                  justifyContent: 'space-between',
+                }}>
                 <CustomIcon
                   onPress={() => navigation.goBack()}
                   Icon={ICONS.BackArrow}
@@ -232,7 +346,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
                 <View style={styles.headerTextContainer}>
                   <CustomIcon
                     onPress={() => {
-                      openImagePicker("cover");
+                      openImagePicker('cover');
                     }}
                     Icon={ICONS.EditIcon}
                   />
@@ -240,20 +354,18 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
               </View>
 
               {/* Title Section */}
-              <View style={[styles.section, { width: "100%" }]}>
+              <View style={[styles.section, {width: '100%'}]}>
                 <View
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
+                    flexDirection: 'row',
+                    alignItems: 'center',
                     gap: horizontalScale(10),
-                  }}
-                >
+                  }}>
                   <CustomText fontFamily="extraBold" fontSize={18}>
-                    {title.length > 0 ? title : "Title"}
+                    {title.length > 0 ? title : 'Title'}
                   </CustomText>
                   <TouchableOpacity
-                    onPress={() => setShowTitleInput(!showTitleInput)}
-                  >
+                    onPress={() => setShowTitleInput(!showTitleInput)}>
                     <CustomIcon Icon={ICONS.EditIcon} height={20} width={20} />
                   </TouchableOpacity>
                 </View>
@@ -261,7 +373,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
                   <TextInput
                     style={styles.input}
                     value={title}
-                    onChangeText={(text) => dispatch(setTitle(text))}
+                    onChangeText={text => dispatch(setTitle(text))}
                     placeholder="Enter meal title"
                     placeholderTextColor={COLORS.lightBrown}
                   />
@@ -272,14 +384,13 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
         </ImageBackground>
 
         {/* Macros Section */}
-        <View style={[styles.section, { paddingHorizontal: 20 }]}>
+        <View style={[styles.section, {paddingHorizontal: 20}]}>
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
             <CustomText fontFamily="extraBold" fontSize={18}>
               Macros
             </CustomText>
@@ -290,18 +401,16 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
                 <CustomText
                   fontFamily="medium"
                   fontSize={14}
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   Calories
                 </CustomText>
                 <CustomText
                   fontFamily="medium"
                   fontSize={14}
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   {ingredients.reduce(
                     (sum, item) => sum + (item.calories[0] || 0),
-                    0
+                    0,
                   )}
                 </CustomText>
               </View>
@@ -310,18 +419,16 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
                 <CustomText
                   fontFamily="medium"
                   fontSize={14}
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   Fat
                 </CustomText>
                 <CustomText
                   fontFamily="medium"
                   fontSize={14}
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   {ingredients.reduce(
                     (sum, item) => sum + (item.calories[1] || 0),
-                    0
+                    0,
                   )}
                 </CustomText>
               </View>
@@ -330,18 +437,16 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
                 <CustomText
                   fontFamily="medium"
                   fontSize={14}
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   Carbs
                 </CustomText>
                 <CustomText
                   fontFamily="medium"
                   fontSize={14}
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   {ingredients.reduce(
                     (sum, item) => sum + (item.calories[2] || 0),
-                    0
+                    0,
                   )}
                 </CustomText>
               </View>
@@ -350,18 +455,16 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
                 <CustomText
                   fontFamily="medium"
                   fontSize={14}
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   Protein
                 </CustomText>
                 <CustomText
                   fontFamily="medium"
                   fontSize={14}
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   {ingredients.reduce(
                     (sum, item) => sum + (item.calories[3] || 0),
-                    0
+                    0,
                   )}
                 </CustomText>
               </View>
@@ -370,19 +473,17 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
         </View>
 
         {/* Description Section */}
-        <View style={[styles.section, { paddingHorizontal: 20 }]}>
+        <View style={[styles.section, {paddingHorizontal: 20}]}>
           <View
             style={{
-              justifyContent: "space-between",
+              justifyContent: 'space-between',
               gap: verticalScale(10),
-            }}
-          >
+            }}>
             <CustomText fontFamily="extraBold" fontSize={18}>
               Description
             </CustomText>
             <TouchableOpacity
-              onPress={() => setShowDescriptionInput(!showDescriptionInput)}
-            >
+              onPress={() => setShowDescriptionInput(!showDescriptionInput)}>
               <CustomIcon Icon={ICONS.EditIcon} height={20} width={20} />
             </TouchableOpacity>
           </View>
@@ -390,7 +491,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
             <TextInput
               style={[styles.input, styles.multilineInput]}
               value={description}
-              onChangeText={(text) => dispatch(setDescription(text))}
+              onChangeText={text => dispatch(setDescription(text))}
               placeholder="Enter meal description"
               placeholderTextColor={COLORS.lightBrown}
               multiline
@@ -405,10 +506,9 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
             styles.imagesContainer,
             {
               justifyContent:
-                mealImages.length === 1 ? "flex-start" : "space-between",
+                mealImages.length === 1 ? 'flex-start' : 'space-between',
             },
-          ]}
-        >
+          ]}>
           {mealImages.map((image, index) => (
             <View
               key={index}
@@ -418,10 +518,9 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
                   width: index === 3 ? wp(90) : horizontalScale(100),
                   height: index === 3 ? hp(30) : horizontalScale(100),
                 },
-              ]}
-            >
+              ]}>
               <Image
-                source={{ uri: image.uri }}
+                source={{uri: image.uri}}
                 style={
                   index === 3
                     ? {
@@ -435,8 +534,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
               />
               <TouchableOpacity
                 style={styles.removeImageButton}
-                onPress={() => removeImage(index)}
-              >
+                onPress={() => removeImage(index)}>
                 <CustomIcon Icon={ICONS.DeleteIcon} height={16} width={16} />
               </TouchableOpacity>
             </View>
@@ -446,23 +544,22 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
           {mealImages.length < 4 && (
             <TouchableOpacity
               style={styles.addImageButton}
-              onPress={() => setIsMealImagesModal(true)}
-            >
+              onPress={() => setIsMealImagesModal(true)}>
               <CustomIcon Icon={ICONS.PlusIcon} height={24} width={24} />
             </TouchableOpacity>
           )}
         </View>
 
         {/* Ingredients Section */}
-        <View style={[styles.section, { paddingHorizontal: 20 }]}>
+        <View style={[styles.section, {paddingHorizontal: 20}]}>
           <View style={styles.sectionHeader}>
             <CustomText fontFamily="extraBold" fontSize={18}>
               Ingredients
             </CustomText>
             <PrimaryButton
               onPress={() =>
-                navigation.navigate("ingredientList", {
-                  isFrom: "addNewMeal",
+                navigation.navigate('ingredientList', {
+                  isFrom: 'addNewMeal',
                 })
               }
               title="Add ingredients"
@@ -476,15 +573,15 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
           </View>
           <FlatList
             data={ingredients}
-            contentContainerStyle={{ gap: horizontalScale(10) }}
-            renderItem={({ item: ingredient, index }) => {
+            contentContainerStyle={{gap: horizontalScale(10)}}
+            renderItem={({item: ingredient, index}) => {
               return (
                 <View key={index} style={styles.ingredientRow}>
                   <Image
-                    source={{ uri: ingredient.image }}
-                    style={{ height: 70, width: 70, borderRadius: 10 }}
+                    source={{uri: ingredient.image}}
+                    style={{height: 70, width: 70, borderRadius: 10}}
                   />
-                  <View style={{ flex: 1 }}>
+                  <View style={{flex: 1}}>
                     <CustomText fontFamily="medium" fontSize={14}>
                       {ingredient.title}
                     </CustomText>
@@ -494,9 +591,8 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
                   </CustomText>
 
                   <TouchableOpacity
-                    style={{ marginLeft: horizontalScale(20) }}
-                    onPress={() => dispatch(removeIngredient(ingredient.id))}
-                  >
+                    style={{marginLeft: horizontalScale(20)}}
+                    onPress={() => dispatch(removeIngredient(ingredient.id))}>
                     <CustomIcon
                       Icon={ICONS.DeleteIcon}
                       height={20}
@@ -510,19 +606,17 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
         </View>
 
         {/* Instructions Section */}
-        <View style={[styles.section, { paddingHorizontal: 20 }]}>
+        <View style={[styles.section, {paddingHorizontal: 20}]}>
           <View
             style={{
-              justifyContent: "space-between",
+              justifyContent: 'space-between',
               gap: verticalScale(10),
-            }}
-          >
+            }}>
             <CustomText fontFamily="extraBold" fontSize={18}>
               Instructions
             </CustomText>
             <TouchableOpacity
-              onPress={() => setShowInstructionInput(!showInstructionInput)}
-            >
+              onPress={() => setShowInstructionInput(!showInstructionInput)}>
               <CustomIcon Icon={ICONS.EditIcon} height={20} width={20} />
             </TouchableOpacity>
           </View>
@@ -530,7 +624,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
             <TextInput
               style={[styles.input, styles.multilineInput]}
               value={instructions}
-              onChangeText={(text) => dispatch(setInstructions(text))}
+              onChangeText={text => dispatch(setInstructions(text))}
               placeholder="Enter cooking instructions"
               placeholderTextColor={COLORS.lightBrown}
               multiline
@@ -556,7 +650,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({ navigation }) => {
           isModalVisible={isUploadImageOptionModal}
           onPressCamera={handleCameraPick}
           onPressGallery={handleImagePick}
-          title={"Select Cover Image"}
+          title={'Select Cover Image'}
         />
       )}
       {isMealImagesModal && (
@@ -579,15 +673,15 @@ const styles = StyleSheet.create({
   },
   coverImageStyle: {
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   gradient: {
     flex: 1,
   },
   headerContainer: {
     flex: 1,
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: verticalScale(10),
     paddingHorizontal: verticalScale(15),
     paddingVertical: verticalScale(10),
@@ -602,9 +696,9 @@ const styles = StyleSheet.create({
     gap: verticalScale(20),
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: horizontalScale(10),
     paddingBottom: verticalScale(10),
   },
@@ -612,45 +706,45 @@ const styles = StyleSheet.create({
     gap: verticalScale(10),
   },
   sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   imageContainer: {
     height: verticalScale(200),
     borderRadius: 10,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-start",
-    alignItems: "flex-end",
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
     gap: verticalScale(5),
-    flexDirection: "row",
+    flexDirection: 'row',
     padding: verticalScale(10),
   },
   overlayText: {
     color: COLORS.whiteTail,
-    fontFamily: "medium",
+    fontFamily: 'medium',
   },
   input: {
     backgroundColor: COLORS.brown,
     borderRadius: 8,
     padding: verticalScale(10),
     color: COLORS.whiteTail,
-    fontFamily: "medium",
+    fontFamily: 'medium',
     fontSize: 14,
     borderWidth: 1,
     borderColor: COLORS.lightBrown,
   },
   multilineInput: {
     minHeight: verticalScale(100),
-    textAlignVertical: "top",
+    textAlignVertical: 'top',
   },
   infoContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: horizontalScale(10),
   },
   infoInputContainer: {
@@ -662,23 +756,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: verticalScale(8),
     color: COLORS.whiteTail,
-    fontFamily: "medium",
+    fontFamily: 'medium',
     fontSize: 14,
     borderWidth: 1,
     borderColor: COLORS.lightBrown,
-    textAlign: "center",
+    textAlign: 'center',
   },
   ingredientRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(10),
     marginVertical: verticalScale(5),
-    position: "relative",
+    position: 'relative',
   },
   ingredientImage: {
     height: hp(8),
     width: hp(8),
-    resizeMode: "cover",
+    resizeMode: 'cover',
     borderRadius: 10,
   },
   ingredientInput: {
@@ -686,31 +780,31 @@ const styles = StyleSheet.create({
   },
   weightInput: {
     width: wp(20),
-    textAlign: "center",
+    textAlign: 'center',
   },
   saveButton: {
     width: wp(40),
-    alignSelf: "center",
+    alignSelf: 'center',
   },
   ingredientImageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 10,
   },
   macrosContainer: {
     gap: verticalScale(5),
   },
   macroItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: horizontalScale(15),
   },
   macroValueContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(8),
   },
   macroInput: {
@@ -719,15 +813,15 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(6),
     paddingHorizontal: horizontalScale(12),
     color: COLORS.white,
-    fontFamily: "medium",
+    fontFamily: 'medium',
     fontSize: 14,
-    textAlign: "center",
+    textAlign: 'center',
     minWidth: wp(15),
   },
 
   imagesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: horizontalScale(5),
     width: wp(90),
     paddingHorizontal: horizontalScale(10),
@@ -737,16 +831,16 @@ const styles = StyleSheet.create({
     height: horizontalScale(100),
     borderRadius: 20,
 
-    overflow: "hidden",
-    position: "relative",
+    overflow: 'hidden',
+    position: 'relative',
     marginBottom: verticalScale(10),
   },
   mealImage: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   removeImageButton: {
-    position: "absolute",
+    position: 'absolute',
     top: 5,
     right: 5,
     backgroundColor: COLORS.darkBrown,
@@ -759,7 +853,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.whiteTail,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -1,63 +1,60 @@
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { FC, useState } from "react";
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import React, {FC, useState} from 'react';
 import {
   FlatList,
   ImageBackground,
   Pressable,
   StyleSheet,
   View,
-} from "react-native";
-import { CustomText } from "../../Components/CustomText";
-import { useAppSelector } from "../../Redux/store";
-import { MyMealsListItem } from "../../Seeds/Plans";
-import { BottomTabParams, MainStackParams } from "../../Typings/route";
-import COLORS from "../../Utilities/Colors";
-import { horizontalScale, verticalScale } from "../../Utilities/Metrics";
+} from 'react-native';
+import {CustomText} from '../../Components/CustomText';
+import {useAppSelector} from '../../Redux/store';
+import {MyMealsListItem} from '../../Seeds/Plans';
+import {BottomTabParams, MainStackParams} from '../../Typings/route';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, verticalScale} from '../../Utilities/Metrics';
 
 type MealPlansListProps = {
   navigation: NativeStackNavigationProp<
     MainStackParams & BottomTabParams,
-    "PLAN",
+    'PLAN',
     undefined
   >;
 };
 
-const MealPlansList: FC<MealPlansListProps> = ({ navigation }) => {
-  const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>(
-    {}
+const MealPlansList: FC<MealPlansListProps> = ({navigation}) => {
+  const {myMealsList} = useAppSelector(state => state.myMeals);
+
+  const [imageLoading, setImageLoading] = useState<{[key: string]: boolean}>(
+    {},
   );
 
-  const { myMealsList } = useAppSelector((state) => state.myMeals);
-
-  const renderItem = ({ item }: { item: MyMealsListItem }) => {
+  const renderItem = ({item}: {item: MyMealsListItem}) => {
     return (
       <Pressable
         onPress={() =>
-          navigation.navigate("mealDetails", {
+          navigation.navigate('mealDetails', {
             mealId: item.id,
-            isFromMyMeal: true,
+            isFromMyMeal: item.isPublic,
           })
         }
-        style={styles.cardContainer}
-      >
+        style={styles.cardContainer}>
         <ImageBackground
-          source={{ uri: item.coverImage?.uri }}
+          source={{uri: item.coverImage?.uri}}
           style={styles.imageBackground}
           imageStyle={styles.imageStyle}
           onLoadStart={() =>
-            setImageLoading((prev) => ({ ...prev, [item.id]: true }))
+            setImageLoading(prev => ({...prev, [item.id]: true}))
           }
           onLoadEnd={() =>
-            setImageLoading((prev) => ({ ...prev, [item.id]: false }))
-          }
-        >
+            setImageLoading(prev => ({...prev, [item.id]: false}))
+          }>
           <View style={styles.textOverlay}>
             <CustomText
               fontFamily="bold"
               fontSize={13}
               color={COLORS.white}
-              style={styles.title}
-            >
+              style={styles.title}>
               {item.title}
             </CustomText>
           </View>
@@ -73,7 +70,7 @@ const MealPlansList: FC<MealPlansListProps> = ({ navigation }) => {
         numColumns={2}
         columnWrapperStyle={styles.columnWrapper}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id} // Already a string based on type
+        keyExtractor={item => item.id.toString()} // Already a string based on type
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
         initialNumToRender={6} // Render fewer items initially for performance
@@ -94,7 +91,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.darkBrown,
   },
   columnWrapper: {
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
     columnGap: verticalScale(15),
   },
   contentContainer: {
@@ -106,24 +103,24 @@ const styles = StyleSheet.create({
   },
   imageBackground: {
     height: 150,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   imageStyle: {
     borderRadius: 10,
   },
   loader: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: [{ translateX: -10 }, { translateY: -10 }],
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{translateX: -10}, {translateY: -10}],
   },
   textOverlay: {
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     padding: verticalScale(10),
     borderBottomLeftRadius: 10,
     borderBottomRightRadius: 10,
   },
   title: {
-    textAlign: "center",
+    textAlign: 'center',
   },
 });

@@ -21,11 +21,11 @@ export type AuthStackParams = {
 export type MainStackParams = {
   tabs: NavigatorScreenParams<BottomTabParams>;
   mealDetails: {
-    mealId: string;
+    mealId: number;
     isFromMyMeal?: boolean;
   };
   editMealDetails: {
-    mealId: string;
+    mealId: number;
   };
   programDetails: {
     programId: string;
@@ -58,7 +58,7 @@ export type MainStackParams = {
   addNewMeal: undefined;
   ingredientList: {
     isFrom?: string;
-    mealId?: string;
+    mealId?: number;
   };
 };
 
@@ -172,4 +172,8 @@ export type AddNewMealScreenProps = NativeStackScreenProps<
 export type IngredientScreenProps = NativeStackScreenProps<
   MainStackParams,
   'ingredientList'
+>;
+export type SettingScreenProps = NativeStackScreenProps<
+  BottomTabParams & RootStackParams,
+  'SETTINGS'
 >;

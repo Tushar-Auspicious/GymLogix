@@ -17,6 +17,10 @@ import newMealReducer from './slices/newMealSlice';
 import myMealReducer from './slices/myMealsSlice';
 import {workoutHistoryData, personalRecordsData} from '../Seeds/WorkoutHistory';
 import userReducer from './slices/UserSlice';
+import PlanReducer from './slices/PlanDataSlice';
+import foodDataReducer from './slices/foodSlice';
+import exerciseReducer from './slices/ExerciseSlice';
+import scheduleReducer from './slices/ScheduleSlice';
 
 export const store = configureStore({
   reducer: {
@@ -32,6 +36,10 @@ export const store = configureStore({
     newMeal: newMealReducer,
     myMeals: myMealReducer,
     userData: userReducer,
+    planData: PlanReducer,
+    foodData: foodDataReducer,
+    exerciseData: exerciseReducer,
+    scheduleData: scheduleReducer,
   },
 });
 

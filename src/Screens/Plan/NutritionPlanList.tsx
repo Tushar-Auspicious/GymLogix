@@ -1,5 +1,5 @@
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { FC } from "react";
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import React, {FC} from 'react';
 import {
   FlatList,
   Image,
@@ -9,83 +9,74 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-} from "react-native";
-import LinearGradient from "react-native-linear-gradient";
-import ICONS from "../../Assets/Icons";
-import CustomIcon from "../../Components/CustomIcon";
-import { CustomText } from "../../Components/CustomText";
-import PrimaryButton from "../../Components/PrimaryButton";
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import ICONS from '../../Assets/Icons';
+import CustomIcon from '../../Components/CustomIcon';
+import {CustomText} from '../../Components/CustomText';
+import PrimaryButton from '../../Components/PrimaryButton';
 import {
   setActiveNutritionprogramIndex,
   setCurrentprogramId,
   setCurrentProgramList,
-} from "../../Redux/slices/initialSlice";
-import { useAppDispatch, useAppSelector } from "../../Redux/store";
+} from '../../Redux/slices/initialSlice';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
 import NutritionProgramData, {
   NutritionPlanItem,
-} from "../../Seeds/NutritionPrograms";
-import { myMealsList } from "../../Seeds/Plans";
-import { BottomTabParams, MainStackParams } from "../../Typings/route";
-import COLORS from "../../Utilities/Colors";
-import {
-  horizontalScale,
-  hp,
-  verticalScale,
-  wp,
-} from "../../Utilities/Metrics";
-import NutritionProgramDetails from "./NutritionProgramDetails";
+} from '../../Seeds/NutritionPrograms';
+import {myMealsList} from '../../Seeds/Plans';
+import {BottomTabParams, MainStackParams} from '../../Typings/route';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, hp, verticalScale, wp} from '../../Utilities/Metrics';
+import NutritionProgramDetails from './NutritionProgramDetails';
 
 export type NutritionPlansListProps = {
   navigation: NativeStackNavigationProp<
     MainStackParams & BottomTabParams,
-    "PLAN",
+    'PLAN',
     undefined
   >;
 };
 
-const NutritionPlanList: FC<NutritionPlansListProps> = ({ navigation }) => {
+const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
-  const { activeNutritionprogramIndex, currentProgramList } = useAppSelector(
-    (state) => state.initial
+  const {activeNutritionprogramIndex, currentProgramList} = useAppSelector(
+    state => state.initial,
   );
+  const {foodData} = useAppSelector(state => state.foodData);
 
   const renderBanner = () => {
     return (
       <Pressable
         onPress={() => {
-          navigation.navigate("mealDetails", {
+          navigation.navigate('mealDetails', {
             mealId: myMealsList[8].id,
             isFromMyMeal: false,
           });
-        }}
-      >
+        }}>
         <ImageBackground
           source={{
             uri: myMealsList[8].coverImage?.uri,
           }}
           style={styles.bannerImage}
-          imageStyle={styles.bannerImageStyle}
-        >
+          imageStyle={styles.bannerImageStyle}>
           <LinearGradient
-            colors={["rgba(0,0,0,0)", "#1F1A16"]}
+            colors={['rgba(0,0,0,0)', '#1F1A16']}
             style={styles.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-          >
+            start={{x: 0, y: 0}}
+            end={{x: 0, y: 1}}>
             <View style={styles.bannerContent}>
               <CustomText
                 fontSize={12}
                 fontFamily="light"
                 color={COLORS.whiteTail}
-                style={styles.recipeTag}
-              >
+                style={styles.recipeTag}>
                 Recipe of the day
               </CustomText>
               <CustomText
                 fontSize={24}
                 fontFamily="bold"
-                style={styles.bannerTitle}
-              >
+                style={styles.bannerTitle}>
                 {myMealsList[8].title}
               </CustomText>
             </View>
@@ -103,15 +94,14 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({ navigation }) => {
           numColumns={3}
           contentContainerStyle={styles.bulkingProgramsList}
           columnWrapperStyle={styles.bulkingProgramsColumn}
-          renderItem={({ item, index }) => {
+          renderItem={({item, index}) => {
             return (
               <Pressable
                 onPress={() => {
                   dispatch(setCurrentprogramId(item.id));
                   dispatch(setActiveNutritionprogramIndex(2));
                 }}
-                style={styles.bulkingProgramItem}
-              >
+                style={styles.bulkingProgramItem}>
                 <ImageBackground
                   key={item.id + index.toString()}
                   source={{
@@ -131,9 +121,9 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({ navigation }) => {
             dispatch(setActiveNutritionprogramIndex(1));
             dispatch(
               setCurrentProgramList({
-                title: "Bulking programs",
+                title: 'Bulking programs',
                 data: NutritionProgramData,
-              })
+              }),
             );
           }}
           backgroundColor={COLORS.lightBrown}
@@ -148,19 +138,18 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({ navigation }) => {
       <FlatList
         data={myMealsList}
         horizontal
-        renderItem={({ item }) => {
+        renderItem={({item}) => {
           return (
             <Pressable
               onPress={() => {
-                navigation.navigate("mealDetails", {
+                navigation.navigate('mealDetails', {
                   mealId: item.id,
                   isFromMyMeal: false,
                 });
               }}
-              style={styles.mealIdeaItem}
-            >
+              style={styles.mealIdeaItem}>
               <Image
-                source={{ uri: item.coverImage?.uri }}
+                source={{uri: item.coverImage?.uri}}
                 style={styles.mealIdeaImage}
               />
               <CustomText fontFamily="semiBold" style={styles.mealIdeaTitle}>
@@ -169,49 +158,49 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({ navigation }) => {
             </Pressable>
           );
         }}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.mealIdeasList}
       />
     );
   };
 
   const renderFullWidthPrograms = (data: NutritionPlanItem[]) => {
+    const itemsRender =
+      activeNutritionprogramIndex === 0 ? foodData?.slice(0, 5) : data;
     return (
       <View style={styles.sectionContainer}>
-        {data.map((item, index) => (
-          <Pressable
-            key={item.id.toString()}
-            onPress={() => {
-              dispatch(setActiveNutritionprogramIndex(2));
-              dispatch(setCurrentprogramId(item.id));
-            }}
-          >
-            <ImageBackground
-              key={item.id + index.toString()}
-              source={{
-                uri: item.coverImage,
-              }}
-              style={styles.fullWidthProgramImage}
-            >
-              <View style={styles.fullWidthIMageContainer}>
-                <CustomText fontFamily="bold">{item?.title}</CustomText>
-                <View style={styles.tagContainer}>
+        {itemsRender &&
+          itemsRender.map((item, index) => (
+            <Pressable
+              key={item.id.toString()}
+              onPress={() => {
+                dispatch(setActiveNutritionprogramIndex(2));
+                dispatch(setCurrentprogramId(item.id));
+              }}>
+              <ImageBackground
+                key={item.id + index.toString()}
+                source={{
+                  uri: item.coverImage,
+                }}
+                style={styles.fullWidthProgramImage}>
+                <View style={styles.fullWidthIMageContainer}>
+                  <CustomText fontFamily="bold">{item?.title}</CustomText>
+                  {/* <View style={styles.tagContainer}>
                   {item?.tags.map((tag, index) => (
                     <CustomText
                       key={index}
                       style={styles.tag}
                       fontFamily="italicBold"
                       fontSize={12}
-                      color={COLORS.black}
-                    >
+                      color={COLORS.black}>
                       {tag}
                     </CustomText>
                   ))}
+                </View> */}
                 </View>
-              </View>
-            </ImageBackground>
-          </Pressable>
-        ))}
+              </ImageBackground>
+            </Pressable>
+          ))}
         {activeNutritionprogramIndex === 0 && (
           <PrimaryButton
             isFullWidth
@@ -220,9 +209,9 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({ navigation }) => {
               dispatch(setActiveNutritionprogramIndex(1));
               dispatch(
                 setCurrentProgramList({
-                  title: "Lose Weight programs",
-                  data: NutritionProgramData,
-                })
+                  title: 'Lose Weight programs',
+                  data: foodData,
+                }),
               );
             }}
             backgroundColor={COLORS.lightBrown}
@@ -240,31 +229,27 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({ navigation }) => {
           <ScrollView
             nestedScrollEnabled={true}
             contentContainerStyle={styles.scrollViewContent}
-            style={styles.scrollView}
-          >
+            style={styles.scrollView}>
             <View style={styles.mainViewContainer}>
               {renderBanner()}
               <CustomText
                 fontSize={22}
                 fontFamily="extraBold"
-                style={styles.sectionTitle}
-              >
+                style={styles.sectionTitle}>
                 Bulking Programs
               </CustomText>
               {renderBulkingPrograms()}
               <CustomText
                 fontSize={22}
                 fontFamily="extraBold"
-                style={styles.sectionTitle}
-              >
+                style={styles.sectionTitle}>
                 Bulking Meal Ideas
               </CustomText>
               {renderBulkingMealIdeas()}
               <CustomText
                 fontSize={22}
                 fontFamily="extraBold"
-                style={styles.sectionTitle}
-              >
+                style={styles.sectionTitle}>
                 Lose Weight Programs
               </CustomText>
               {renderFullWidthPrograms(NutritionProgramData.slice(0, 3))}
@@ -276,22 +261,19 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({ navigation }) => {
           <ScrollView
             nestedScrollEnabled={true}
             contentContainerStyle={styles.scrollViewContent}
-            style={styles.scrollView}
-          >
+            style={styles.scrollView}>
             <View style={styles.fullWidthView}>
               <View style={styles.headerContainer}>
                 <TouchableOpacity
                   onPress={() => {
                     dispatch(setActiveNutritionprogramIndex(0));
-                  }}
-                >
+                  }}>
                   <CustomIcon Icon={ICONS.BackArrow} />
                 </TouchableOpacity>
                 <CustomText
                   fontSize={22}
                   fontFamily="extraBold"
-                  style={styles.headerTitle}
-                >
+                  style={styles.headerTitle}>
                   {currentProgramList.title}
                 </CustomText>
               </View>
@@ -327,13 +309,13 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   tagContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: horizontalScale(5),
     marginTop: 5,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
   },
   tag: {
     backgroundColor: COLORS.whiteGreenish,
@@ -343,16 +325,16 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     height: hp(35),
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   bannerImageStyle: {
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   bannerContent: {
     flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "flex-start",
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start',
     gap: verticalScale(10),
     paddingBottom: verticalScale(10),
     paddingHorizontal: verticalScale(10),
@@ -360,11 +342,11 @@ const styles = StyleSheet.create({
   recipeTag: {
     paddingVertical: verticalScale(5),
     paddingHorizontal: verticalScale(10),
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 5,
   },
   bannerTitle: {
-    width: "85%",
+    width: '85%',
   },
   sectionContainer: {
     gap: verticalScale(15),
@@ -384,10 +366,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     flex: 1,
     height: hp(12),
-    width: "100%",
+    width: '100%',
   },
   bulkingProgramImageStyle: {
-    resizeMode: "cover",
+    resizeMode: 'cover',
     borderRadius: 10,
   },
   seeAllButton: {
@@ -404,8 +386,8 @@ const styles = StyleSheet.create({
   },
   mealIdeaImage: {
     height: hp(20),
-    width: "100%",
-    resizeMode: "cover",
+    width: '100%',
+    resizeMode: 'cover',
     borderRadius: 10,
   },
   mealIdeaTitle: {
@@ -413,10 +395,10 @@ const styles = StyleSheet.create({
   },
   fullWidthProgramImage: {
     height: hp(25),
-    justifyContent: "flex-end",
-    overflow: "hidden",
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   mainViewContainer: {
     gap: verticalScale(30),
@@ -426,8 +408,8 @@ const styles = StyleSheet.create({
     gap: verticalScale(20),
   },
   headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: horizontalScale(10),
   },
   sectionTitle: {

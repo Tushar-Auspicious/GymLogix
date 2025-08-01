@@ -22,12 +22,28 @@ import STORAGE_KEYS from '../../Utilities/Constants';
 import {LoginResponse} from '../../Typings/ApiResponse/LoginResponse';
 import {UserResponse} from '../../Typings/ApiResponse/UserResponse';
 import {fetchData, postData} from '../../APIServices/api';
-import {useAppDispatch} from '../../Redux/store';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
 import {setUserData} from '../../Redux/slices/UserSlice';
+import {FoodResponse} from '../../Typings/ApiResponse/FoodResponse';
+import {setFoodData} from '../../Redux/slices/foodSlice';
+import {MealResponse} from '../../Typings/ApiResponse/MyMealResponse';
+import {setMeal} from '../../Redux/slices/myMealsSlice';
+import {Data, GetPlanResponse} from '../../Typings/ApiResponse/GetPlanResponse';
+import {setPlanData} from '../../Redux/slices/PlanDataSlice';
+import {setExerciseData} from '../../Redux/slices/ExerciseSlice';
+import {ExerciseResponse} from '../../Typings/ApiResponse/ExerciseResponse';
+import {setIngredients} from '../../Redux/slices/ingredientSlice';
+import {
+  ScheduleAPIData,
+  setScheduleData,
+} from '../../Redux/slices/ScheduleSlice';
+import {setExerciseCatalog} from '../../Redux/slices/exerciseCatalogSlice';
+import {buildExerciseCatalog} from '../Splash';
 
 const SignIn: FC<SignInProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
+
   const [loading, setLoading] = useState(false);
   const [loginDetails, setLoginDetails] = useState({
     email: 'jack@yopmail.com',
@@ -75,13 +91,12 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
     if (!validInputs()) {
       return;
     }
+
     const data = {
       email: loginDetails.email,
       password: loginDetails.password,
     };
-
     setLoading(true);
-
     try {
       const response = await postData<LoginResponse>(
         `${ENDPOINTS.signin}?email=${data.email}&password=${data.password}`,
@@ -92,14 +107,18 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
         const cleanToken = rawToken.replace(/^Bearer\s/, '');
 
         await storeLocalStorageData(STORAGE_KEYS.token, cleanToken);
-        showCustomToast('success', 'Log in Successfully');
 
         if (cleanToken) {
           const response = await fetchData<UserResponse>(ENDPOINTS.getUser);
           if (response.data.user) {
             dispatch(setUserData(response.data.user));
           }
+          await storeAllHashes();
+          await getPlanData();
+          await getFoodData();
+          await getScheduleData();
         }
+        // showCustomToast('success', 'Log in Successfully');
         navigation.replace('mainStack', {
           screen: 'tabs',
           params: {
@@ -112,6 +131,178 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
       showCustomToast('error', error.message || 'Something went wrong');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const storeAllHashes = async () => {
+    const hashResponse = await fetchData<any>(ENDPOINTS.allGet);
+    if (hashResponse.data) {
+      const {foods_hash, exercises_hash, plans_hash} = hashResponse.data;
+      await storeLocalStorageData(STORAGE_KEYS.allHashes, {
+        foods_hash,
+        exercises_hash,
+        plans_hash,
+      });
+    }
+  };
+
+  const getFoodData = async () => {
+    const response = await fetchData<FoodResponse>(ENDPOINTS.foodGet);
+
+    if (response.data.data) {
+      await storeLocalStorageData(
+        STORAGE_KEYS.localFoodData,
+        response.data.data,
+      );
+
+      dispatch(setFoodData(response.data.data));
+
+      dispatch(
+        setIngredients(
+          response.data.data.map(item => ({
+            id: item.id,
+            idFood: Number(item.food_id),
+            title: item.name,
+            percentage: 0,
+            image: item.image_url,
+            calories: [
+              item.calories || 0,
+              item.carbs || 0,
+              item.fat || 0,
+              item.protein || 0,
+            ],
+            quantity: item.serving_size_amount.toString(),
+            measurementUnit: item.serving_size_measurement,
+            size: item.serving_weight_grams,
+          })),
+        ),
+      );
+
+      await getMealData(response.data);
+    }
+  };
+
+  const getMealData = async (foodList: FoodResponse) => {
+    const response = await fetchData<MealResponse>(ENDPOINTS.getMeal);
+
+    if (response.data.data) {
+      await storeLocalStorageData(
+        STORAGE_KEYS.localMealData,
+        response.data.data,
+      );
+
+      dispatch(
+        setMeal(
+          response.data.data.map(item => ({
+            id: item.meal_id,
+            userId: item.user_id,
+            coverImage: {
+              uri: item.image_url,
+            },
+            title: item.name,
+            description: item.description,
+            macros: {
+              calories: item.calories,
+              fat: item.fats,
+              carbs: item.carbs,
+              protein: item.protein,
+            },
+            instructions: item.preparation_instructions,
+            isPublic: item.is_public,
+            ingredients: item.foods.map(food => {
+              const match = foodList.data?.find(
+                f => f.food_id === food.food_id,
+              );
+
+              return {
+                id: food.food_id.toString(),
+                idFood: Number(food.food_id),
+                title: match?.name || 'Unknown',
+                image:
+                  match?.image_url ||
+                  'https://nix-tag-images.s3.amazonaws.com/384_highres.jpg',
+                quantity: match?.serving_size_amount.toString()!,
+                percentage: 0,
+                calories: [
+                  Number(match?.calories) || 0,
+                  Number(match?.carbs) || 0,
+                  Number(match?.fat) || 0,
+                  Number(match?.protein) || 0,
+                ],
+                size: match?.serving_weight_grams || 0,
+                measurementUnit: match?.serving_size_measurement || 'gram',
+              };
+            }),
+            mealImages: [],
+            tags: item.tags,
+          })),
+        ),
+      );
+    }
+  };
+
+  const getPlanData = async () => {
+    const response = await fetchData<GetPlanResponse>(ENDPOINTS.planGet);
+
+    if (response.data.data) {
+      await storeLocalStorageData(
+        STORAGE_KEYS.localWorkoutData,
+        response.data.data,
+      );
+      dispatch(
+        setPlanData(
+          response.data.data
+            .filter(item => item.is_public === true)
+            .map(item => ({
+              id: item._id || '',
+              title: item.name || '',
+              coverImage:
+                item.image_url ||
+                'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+              tags: item.tags,
+              type: item.type === 'workout' ? 'workout' : 'food',
+              allData: item,
+            })),
+        ),
+      );
+
+      await getExerciseData();
+    }
+  };
+
+  const getExerciseData = async () => {
+    const response = await fetchData<ExerciseResponse>(ENDPOINTS.exerciseGet);
+
+    if (response.data.data) {
+      const exerciseList = response.data.data;
+
+      await storeLocalStorageData(STORAGE_KEYS.localExerciseData, exerciseList);
+
+      await storeLocalStorageData(
+        STORAGE_KEYS.localExerciseCatalog,
+        exerciseList,
+      );
+
+      dispatch(setExerciseData(exerciseList));
+
+      const catalog = buildExerciseCatalog(exerciseList);
+      console.log('catalog --->', catalog);
+      dispatch(setExerciseCatalog(catalog));
+    }
+  };
+
+  const getScheduleData = async () => {
+    try {
+      const response = await fetchData<ScheduleAPIData[]>(ENDPOINTS.schedule);
+      if (response.data) {
+        await storeLocalStorageData(
+          STORAGE_KEYS.localScheduleData,
+          response.data,
+        );
+        dispatch(setScheduleData(response.data));
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
     }
   };
 

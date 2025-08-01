@@ -1,4 +1,4 @@
-import React, { Dispatch, FC, SetStateAction, useState } from "react";
+import React, {Dispatch, FC, SetStateAction, useState} from 'react';
 import {
   Animated,
   Dimensions,
@@ -8,16 +8,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-} from "react-native";
-import { StarRatingDisplay } from "react-native-star-rating-widget";
-import ICONS from "../../../Assets/Icons";
-import CustomIcon from "../../../Components/CustomIcon";
-import { CustomText } from "../../../Components/CustomText";
-import ContextMenu from "../../../Components/Modals/ContextMenu";
-import SelectDayColorModal from "../../../Components/Modals/SelectDayColorModal";
-import UpdateDayNameModal from "../../../Components/Modals/UpdateDayNameModal";
-import UpdateDayRestPeriodModal from "../../../Components/Modals/UpdateDayRestPeriodModal";
-import UpdateInstructionforWorkoutModal from "../../../Components/Modals/UpdateInstructionforWorkoutModal";
+} from 'react-native';
+import {StarRatingDisplay} from 'react-native-star-rating-widget';
+import ICONS from '../../../Assets/Icons';
+import CustomIcon from '../../../Components/CustomIcon';
+import {CustomText} from '../../../Components/CustomText';
+import ContextMenu from '../../../Components/Modals/ContextMenu';
+import SelectDayColorModal from '../../../Components/Modals/SelectDayColorModal';
+import UpdateDayNameModal from '../../../Components/Modals/UpdateDayNameModal';
+import UpdateDayRestPeriodModal from '../../../Components/Modals/UpdateDayRestPeriodModal';
+import UpdateInstructionforWorkoutModal from '../../../Components/Modals/UpdateInstructionforWorkoutModal';
 import {
   addDay,
   createSuperset,
@@ -33,12 +33,12 @@ import {
   updateDayName,
   updateDayRestPeriod,
   WorkoutExerciseItem,
-} from "../../../Redux/slices/newWorkoutSlice";
-import { Exercise } from "../../../Seeds/ExerciseCatalog";
-import { useAppDispatch, useAppSelector } from "../../../Redux/store";
-import COLORS from "../../../Utilities/Colors";
-import { getRandomColor } from "../../../Utilities/Helpers";
-import { horizontalScale, hp, verticalScale } from "../../../Utilities/Metrics";
+} from '../../../Redux/slices/newWorkoutSlice';
+import {Exercise} from '../../../Seeds/ExerciseCatalog';
+import {useAppDispatch, useAppSelector} from '../../../Redux/store';
+import COLORS from '../../../Utilities/Colors';
+import {getRandomColor} from '../../../Utilities/Helpers';
+import {horizontalScale, hp, verticalScale} from '../../../Utilities/Metrics';
 // Using Exercise type from Redux slice instead of Seeds
 
 const WorkroutDataScreen: FC<{
@@ -46,9 +46,9 @@ const WorkroutDataScreen: FC<{
     SetStateAction<ExerciseListItem | null>
   >;
   selectedDayForAddExercise: ExerciseListItem | null;
-}> = ({ selectedDayForAddExercise, setSelectedDayForAddExercise }) => {
+}> = ({selectedDayForAddExercise, setSelectedDayForAddExercise}) => {
   const dispatch = useAppDispatch();
-  const { workoutData } = useAppSelector((state) => state.newWorkout);
+  const {workoutData} = useAppSelector(state => state.newWorkout);
   const [activeTab, setActiveTab] = useState(1);
 
   const renderTabs = () => {
@@ -59,10 +59,9 @@ const WorkroutDataScreen: FC<{
           style={[
             styles.tabButton,
             {
-              backgroundColor: activeTab === 1 ? COLORS.yellow : "transparent",
+              backgroundColor: activeTab === 1 ? COLORS.yellow : 'transparent',
             },
-          ]}
-        >
+          ]}>
           <CustomText fontSize={14} fontFamily="medium" color={COLORS.white}>
             Exercise
           </CustomText>
@@ -72,10 +71,9 @@ const WorkroutDataScreen: FC<{
           style={[
             styles.tabButton,
             {
-              backgroundColor: activeTab === 2 ? COLORS.yellow : "transparent",
+              backgroundColor: activeTab === 2 ? COLORS.yellow : 'transparent',
             },
-          ]}
-        >
+          ]}>
           <CustomText fontSize={14} fontFamily="medium" color={COLORS.white}>
             Details
           </CustomText>
@@ -96,16 +94,16 @@ const WorkroutDataScreen: FC<{
   const ExercisesTab = () => {
     const [contextMenu, setContextMenu] = useState({
       isVisible: false,
-      position: { top: 0, right: 100 },
+      position: {top: 0, right: 100},
       selectedDayIndex: -1,
     });
 
     const [exerciseContextMenu, setExerciseContextMenu] = useState({
       isVisible: false,
-      position: { top: 0, right: 100 },
-      selectedExerciseId: "",
-      dayId: "",
-      supersetId: "", // Add supersetId to track if the exercise is part of a superset
+      position: {top: 0, right: 100},
+      selectedExerciseId: '',
+      dayId: '',
+      supersetId: '', // Add supersetId to track if the exercise is part of a superset
       isSuperset: false, // Flag to indicate if this is a superset itself
     });
     const [showColorModal, setShowColorModal] = useState(false);
@@ -118,13 +116,13 @@ const WorkroutDataScreen: FC<{
     const [selectedExercisesByDay, setSelectedExercisesByDay] = useState<{
       [dayId: string]: string[];
     }>({});
-    const fadeAnimsByDay = React.useRef<{ [dayId: string]: Animated.Value }>(
-      {}
+    const fadeAnimsByDay = React.useRef<{[dayId: string]: Animated.Value}>(
+      {},
     ).current;
 
     // Initialize fade animations for each day
     React.useEffect(() => {
-      workoutData.exerciseList.forEach((day) => {
+      workoutData.exerciseList.forEach(day => {
         if (!fadeAnimsByDay[day.id]) {
           fadeAnimsByDay[day.id] = new Animated.Value(0);
         }
@@ -133,7 +131,7 @@ const WorkroutDataScreen: FC<{
 
     // Show/hide the floating action bar when exercises are selected for each day
     React.useEffect(() => {
-      Object.keys(selectedExercisesByDay).forEach((dayId) => {
+      Object.keys(selectedExercisesByDay).forEach(dayId => {
         const selectedCount = selectedExercisesByDay[dayId]?.length || 0;
         if (fadeAnimsByDay[dayId]) {
           Animated.timing(fadeAnimsByDay[dayId], {
@@ -150,7 +148,7 @@ const WorkroutDataScreen: FC<{
         updateDayInstruction({
           id: workoutData.exerciseList[selectedDayForColor].id,
           instruction,
-        })
+        }),
       );
       setShowInstructionModal(false);
     };
@@ -161,7 +159,7 @@ const WorkroutDataScreen: FC<{
         updateDayRestPeriod({
           id: workoutData.exerciseList[selectedDayForColor].id,
           restPeriod: days,
-        })
+        }),
       );
       setShowRestPeriodModal(false);
     };
@@ -171,27 +169,27 @@ const WorkroutDataScreen: FC<{
         updateDayName({
           id: workoutData.exerciseList[selectedDayForColor].id,
           name,
-        })
+        }),
       );
       setShowDayNameModal(false);
     };
 
     const handleColorSelect = (color: string) => {
       const dayId = workoutData.exerciseList[selectedDayForColor].id;
-      dispatch(updateDayColor({ id: dayId, color }));
+      dispatch(updateDayColor({id: dayId, color}));
       setShowColorModal(false);
     };
 
     const handleDayMenuPress = (event: any, dayIndex: number) => {
       // Get the position of the touch
-      const { pageY, pageX } = event.nativeEvent;
+      const {pageY, pageX} = event.nativeEvent;
 
       setSelectedDayForColor(dayIndex);
       setContextMenu({
         isVisible: true,
         position: {
           top: pageY + verticalScale(10),
-          right: Dimensions.get("window").width - pageX,
+          right: Dimensions.get('window').width - pageX,
         },
         selectedDayIndex: dayIndex,
       });
@@ -201,16 +199,16 @@ const WorkroutDataScreen: FC<{
       event: any,
       exercise: Exercise,
       dayId: string,
-      supersetId: string = ""
+      supersetId: string = '',
     ) => {
       // Get the position of the touch
-      const { pageY, pageX } = event.nativeEvent;
+      const {pageY, pageX} = event.nativeEvent;
 
       setExerciseContextMenu({
         isVisible: true,
         position: {
           top: pageY + verticalScale(10),
-          right: Dimensions.get("window").width - pageX,
+          right: Dimensions.get('window').width - pageX,
         },
         selectedExerciseId: exercise.id,
         dayId: dayId,
@@ -223,16 +221,16 @@ const WorkroutDataScreen: FC<{
     const handleSupersetMenuPress = (
       event: any,
       superset: Superset,
-      dayId: string
+      dayId: string,
     ) => {
       // Get the position of the touch
-      const { pageY, pageX } = event.nativeEvent;
+      const {pageY, pageX} = event.nativeEvent;
 
       setExerciseContextMenu({
         isVisible: true,
         position: {
           top: pageY + verticalScale(10),
-          right: Dimensions.get("window").width - pageX,
+          right: Dimensions.get('window').width - pageX,
         },
         selectedExerciseId: superset.id,
         dayId: dayId,
@@ -243,12 +241,12 @@ const WorkroutDataScreen: FC<{
 
     // Handle long press on an exercise to select it
     const handleLongExercisePress = (exercise: Exercise, dayId: string) => {
-      setSelectedExercisesByDay((prev) => {
+      setSelectedExercisesByDay(prev => {
         const currentSelections = prev[dayId] || [];
         if (currentSelections.includes(exercise.id)) {
           // Remove from selection
           const newSelections = currentSelections.filter(
-            (id) => id !== exercise.id
+            id => id !== exercise.id,
           );
           return {
             ...prev,
@@ -281,11 +279,11 @@ const WorkroutDataScreen: FC<{
         createSuperset({
           dayId: dayId,
           exerciseIds: selectedExercises,
-        })
+        }),
       );
 
       // Clear selections for this day
-      setSelectedExercisesByDay((prev) => ({
+      setSelectedExercisesByDay(prev => ({
         ...prev,
         [dayId]: [],
       }));
@@ -293,7 +291,7 @@ const WorkroutDataScreen: FC<{
 
     // Clear selected exercises for a specific day
     const handleClearSelection = (dayId: string) => {
-      setSelectedExercisesByDay((prev) => ({
+      setSelectedExercisesByDay(prev => ({
         ...prev,
         [dayId]: [],
       }));
@@ -308,8 +306,8 @@ const WorkroutDataScreen: FC<{
         <TouchableOpacity
           key={exercise.id}
           style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
+            flexDirection: 'row',
+            justifyContent: 'space-between',
             borderRadius: verticalScale(10),
             backgroundColor: isSelected
               ? COLORS.lighterBrown
@@ -320,29 +318,27 @@ const WorkroutDataScreen: FC<{
           }}
           onPress={() => handleExercisePress(exercise, dayId)}
           onLongPress={() => handleLongExercisePress(exercise, dayId)}
-          delayLongPress={200}
-        >
+          delayLongPress={200}>
           <Image
             source={{
               uri: exercise.coverImage?.uri,
             }}
             style={{
-              height: "100%",
+              height: '100%',
               minHeight: 71,
               width: 66,
               borderRadius: 10,
-              resizeMode: "cover",
+              resizeMode: 'cover',
             }}
           />
           <View
             style={{
               paddingHorizontal: horizontalScale(10),
-              justifyContent: "flex-start",
+              justifyContent: 'flex-start',
               gap: verticalScale(5),
               paddingVertical: verticalScale(4),
               flex: 1,
-            }}
-          >
+            }}>
             <CustomText color={COLORS.yellow} fontFamily="medium" fontSize={12}>
               {exercise.name}
             </CustomText>
@@ -353,9 +349,8 @@ const WorkroutDataScreen: FC<{
             </CustomText>
           </View>
           <TouchableOpacity
-            style={{ justifyContent: "center" }}
-            onPress={(event) => handleExerciseMenuPress(event, exercise, dayId)}
-          >
+            style={{justifyContent: 'center'}}
+            onPress={event => handleExerciseMenuPress(event, exercise, dayId)}>
             <CustomIcon
               Icon={ICONS.SidMultiDotView}
               height={verticalScale(27)}
@@ -378,31 +373,28 @@ const WorkroutDataScreen: FC<{
             borderRadius: 10,
             marginBottom: verticalScale(10),
             flex: 1,
-          }}
-        >
+          }}>
           <View
             style={{
-              width: "100%",
+              width: '100%',
               paddingHorizontal: horizontalScale(10),
               paddingVertical: verticalScale(5),
               borderTopRightRadius: 8,
               borderTopLeftRadius: 8,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
             <CustomText fontFamily="bold" fontSize={14} color={COLORS.white}>
               SUPERSET
             </CustomText>
           </View>
           <View
             style={{
-              width: "98%",
+              width: '98%',
               gap: verticalScale(5),
-              alignSelf: "center",
-            }}
-          >
+              alignSelf: 'center',
+            }}>
             {superset.exercises.map((exercise: Exercise) => {
               const daySelections = selectedExercisesByDay[dayId] || [];
               const isSelected = daySelections.includes(exercise.id);
@@ -411,8 +403,8 @@ const WorkroutDataScreen: FC<{
                 <TouchableOpacity
                   key={exercise.id}
                   style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
                     borderRadius: verticalScale(10),
                     backgroundColor: isSelected
                       ? COLORS.lighterBrown
@@ -421,57 +413,52 @@ const WorkroutDataScreen: FC<{
                   }}
                   onPress={() => handleExercisePress(exercise, dayId)}
                   onLongPress={() => handleLongExercisePress(exercise, dayId)}
-                  delayLongPress={200}
-                >
+                  delayLongPress={200}>
                   <Image
                     source={{
                       uri: exercise.coverImage?.uri,
                     }}
                     style={{
-                      height: "100%",
+                      height: '100%',
                       minHeight: 71,
                       width: 66,
                       borderRadius: 10,
-                      resizeMode: "cover",
+                      resizeMode: 'cover',
                     }}
                   />
                   <View
                     style={{
                       paddingHorizontal: horizontalScale(10),
-                      justifyContent: "flex-start",
+                      justifyContent: 'flex-start',
                       gap: verticalScale(5),
                       paddingVertical: verticalScale(4),
                       flex: 1,
-                    }}
-                  >
+                    }}>
                     <CustomText
                       color={COLORS.yellow}
                       fontFamily="medium"
-                      fontSize={12}
-                    >
+                      fontSize={12}>
                       {exercise.name}
                     </CustomText>
                     <CustomText
                       color={COLORS.white}
                       fontFamily="medium"
-                      fontSize={12}
-                    >
+                      fontSize={12}>
                       {`${exercise.recommendedSets || 3} sets x ${
                         exercise.recommendedReps || 10
                       } reps`}
                     </CustomText>
                   </View>
                   <TouchableOpacity
-                    style={{ justifyContent: "center" }}
-                    onPress={(event) =>
+                    style={{justifyContent: 'center'}}
+                    onPress={event =>
                       handleExerciseMenuPress(
                         event,
                         exercise,
                         dayId,
-                        superset.id
+                        superset.id,
                       )
-                    }
-                  >
+                    }>
                     <CustomIcon
                       Icon={ICONS.SidMultiDotView}
                       height={verticalScale(27)}
@@ -487,20 +474,18 @@ const WorkroutDataScreen: FC<{
 
     // Render exercise card (either a single exercise or a superset)
     const renderExerciseCard = (item: WorkoutExerciseItem, dayId: string) => {
-      if ("type" in item && item.type === "superset") {
+      if ('type' in item && item.type === 'superset') {
         return (
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
+              flexDirection: 'row',
+              alignItems: 'center',
               gap: horizontalScale(5),
-            }}
-          >
+            }}>
             {renderSupersetCard(item, dayId)}
             <TouchableOpacity
-              onPress={(event) => handleSupersetMenuPress(event, item, dayId)}
-              style={{ padding: 5 }}
-            >
+              onPress={event => handleSupersetMenuPress(event, item, dayId)}
+              style={{padding: 5}}>
               <CustomIcon
                 Icon={ICONS.SidMultiDotView}
                 height={verticalScale(37)}
@@ -541,15 +526,13 @@ const WorkroutDataScreen: FC<{
                 fontSize={16}
                 fontFamily="medium"
                 color={COLORS.white}
-                style={{ flex: 0.95 }}
-              >
+                style={{flex: 0.95}}>
                 {workoutData.exerciseList[index].dayName}
               </CustomText>
             </View>
             <TouchableOpacity
               style={styles.dayMenuButton}
-              onPress={(event) => handleDayMenuPress(event, index)}
-            >
+              onPress={event => handleDayMenuPress(event, index)}>
               <CustomIcon
                 Icon={ICONS.HamBurgerMenuIcon}
                 height={15}
@@ -564,20 +547,19 @@ const WorkroutDataScreen: FC<{
           <View style={styles.daySectionContent}>
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: 'row',
+                alignItems: 'center',
                 gap: horizontalScale(5),
                 flex: 1,
-              }}
-            >
+              }}>
               {_day.exercises && _day.exercises.length > 0 ? (
-                <View style={{ flex: 1 }}>
+                <View style={{flex: 1}}>
                   {_day.exercises.map(
                     (exercise: any, exerciseIndex: number) => (
                       <View key={exerciseIndex}>
                         {renderExerciseCard(exercise, dayId)}
                       </View>
-                    )
+                    ),
                   )}
                 </View>
               ) : (
@@ -585,16 +567,14 @@ const WorkroutDataScreen: FC<{
                   <CustomText
                     fontSize={14}
                     fontFamily="medium"
-                    color={COLORS.whiteTail}
-                  >
+                    color={COLORS.whiteTail}>
                     No exercises added yet
                   </CustomText>
                 </View>
               )}
               <TouchableOpacity
-                style={{ justifyContent: "center" }}
-                onPress={(event) => {}}
-              >
+                style={{justifyContent: 'center'}}
+                onPress={event => {}}>
                 <CustomIcon
                   Icon={ICONS.SidMultiDotView}
                   height={verticalScale(40)}
@@ -607,13 +587,11 @@ const WorkroutDataScreen: FC<{
                 setSelectedDayForAddExercise(workoutData.exerciseList[index]);
                 dispatch(setActiveStep(8));
               }}
-              style={styles.addExerciseButton}
-            >
+              style={styles.addExerciseButton}>
               <CustomText
                 fontSize={14}
                 fontFamily="medium"
-                color={COLORS.white}
-              >
+                color={COLORS.white}>
                 Add Exercise
               </CustomText>
             </TouchableOpacity>
@@ -624,11 +602,11 @@ const WorkroutDataScreen: FC<{
 
     // Create an array of days based on daysInWeek
     const days = Array.from(
-      { length: workoutData.exerciseList.length || 1 },
+      {length: workoutData.exerciseList.length || 1},
       (_, i) => ({
         day: `Day ${i + 1}`,
         exercises: workoutData.exerciseList[i]?.exercise || [],
-      })
+      }),
     );
 
     // Render floating action bar for a specific day
@@ -653,13 +631,11 @@ const WorkroutDataScreen: FC<{
                 },
               ],
             },
-          ]}
-        >
-          <View style={{ flexDirection: "row", gap: horizontalScale(20) }}>
+          ]}>
+          <View style={{flexDirection: 'row', gap: horizontalScale(20)}}>
             <TouchableOpacity
               onPress={() => handleClearSelection(dayId)}
-              style={styles.actionButton}
-            >
+              style={styles.actionButton}>
               <CustomIcon Icon={ICONS.DeleteIcon} height={15} width={15} />
               <CustomText fontSize={6} fontFamily="bold">
                 CANCEL
@@ -669,8 +645,7 @@ const WorkroutDataScreen: FC<{
           {daySelections.length > 1 && (
             <TouchableOpacity
               onPress={() => handleCreateSuperset(dayId)}
-              style={styles.actionButton}
-            >
+              style={styles.actionButton}>
               <CustomIcon Icon={ICONS.SuperSetIcon} height={15} width={15} />
               <CustomText fontSize={6} fontFamily="bold">
                 SUPERSET
@@ -687,8 +662,7 @@ const WorkroutDataScreen: FC<{
           style={{
             flex: 1,
             paddingHorizontal: horizontalScale(10),
-          }}
-        >
+          }}>
           {days.map((day, index) => {
             return (
               <View key={index}>
@@ -699,8 +673,7 @@ const WorkroutDataScreen: FC<{
                     <CustomText
                       fontSize={12}
                       fontFamily="medium"
-                      color={COLORS.whiteTail}
-                    >
+                      color={COLORS.whiteTail}>
                       {workoutData.exerciseList[index].restPeriod * 24} hours
                       rest period
                     </CustomText>
@@ -715,8 +688,7 @@ const WorkroutDataScreen: FC<{
             onPress={() => {
               dispatch(addDay(getRandomColor()));
             }}
-            style={styles.addWorkoutsButton}
-          >
+            style={styles.addWorkoutsButton}>
             <CustomText fontSize={14} fontFamily="medium" color={COLORS.white}>
               Add workouts
             </CustomText>
@@ -725,86 +697,86 @@ const WorkroutDataScreen: FC<{
 
         <ContextMenu
           isVisible={contextMenu.isVisible}
-          onClose={() => setContextMenu({ ...contextMenu, isVisible: false })}
+          onClose={() => setContextMenu({...contextMenu, isVisible: false})}
           position={contextMenu.position}
           menuItems={
             workoutData.exerciseList?.length > 1
               ? [
                   {
-                    label: "Rename",
+                    label: 'Rename',
                     onPress: () => {
-                      setContextMenu({ ...contextMenu, isVisible: false });
+                      setContextMenu({...contextMenu, isVisible: false});
                       setSelectedDayForColor(contextMenu.selectedDayIndex);
                       setShowDayNameModal(true);
                     },
                   },
                   {
-                    label: "Color",
+                    label: 'Color',
                     onPress: () => {
-                      setContextMenu({ ...contextMenu, isVisible: false });
+                      setContextMenu({...contextMenu, isVisible: false});
                       setSelectedDayForColor(contextMenu.selectedDayIndex);
                       setShowColorModal(true);
                     },
                   },
                   {
-                    label: "Rest Period",
+                    label: 'Rest Period',
                     onPress: () => {
-                      setContextMenu({ ...contextMenu, isVisible: false });
+                      setContextMenu({...contextMenu, isVisible: false});
                       setSelectedDayForColor(contextMenu.selectedDayIndex);
                       setShowRestPeriodModal(true);
                     },
                   },
                   {
-                    label: "Instructions",
+                    label: 'Instructions',
                     onPress: () => {
-                      setContextMenu({ ...contextMenu, isVisible: false });
+                      setContextMenu({...contextMenu, isVisible: false});
                       setSelectedDayForColor(contextMenu.selectedDayIndex);
                       setShowInstructionModal(true);
                     },
                   },
                   {
-                    label: "Delete",
+                    label: 'Delete',
                     onPress: () => {
                       dispatch(
                         removeDay(
                           workoutData.exerciseList[contextMenu.selectedDayIndex]
-                            .id
-                        )
+                            .id,
+                        ),
                       );
-                      setContextMenu({ ...contextMenu, isVisible: false });
+                      setContextMenu({...contextMenu, isVisible: false});
                     },
-                    textColor: "#E74C3C",
+                    textColor: '#E74C3C',
                   },
                 ]
               : [
                   {
-                    label: "Rename",
+                    label: 'Rename',
                     onPress: () => {
-                      setContextMenu({ ...contextMenu, isVisible: false });
+                      setContextMenu({...contextMenu, isVisible: false});
                       setSelectedDayForColor(contextMenu.selectedDayIndex);
                       setShowDayNameModal(true);
                     },
                   },
                   {
-                    label: "Color",
+                    label: 'Color',
                     onPress: () => {
-                      setContextMenu({ ...contextMenu, isVisible: false });
+                      setContextMenu({...contextMenu, isVisible: false});
                       setSelectedDayForColor(contextMenu.selectedDayIndex);
                       setShowColorModal(true);
                     },
                   },
                   {
-                    label: "Rest Period",
+                    label: 'Rest Period',
                     onPress: () => {
-                      setContextMenu({ ...contextMenu, isVisible: false });
+                      setContextMenu({...contextMenu, isVisible: false});
                       setSelectedDayForColor(contextMenu.selectedDayIndex);
                       setShowRestPeriodModal(true);
                     },
                   },
                   {
-                    label: "Instructions",
+                    label: 'Instructions',
                     onPress: () => {
-                      setContextMenu({ ...contextMenu, isVisible: false });
+                      setContextMenu({...contextMenu, isVisible: false});
                       setSelectedDayForColor(contextMenu.selectedDayIndex);
                       setShowInstructionModal(true);
                     },
@@ -816,7 +788,7 @@ const WorkroutDataScreen: FC<{
         <ContextMenu
           isVisible={exerciseContextMenu.isVisible}
           onClose={() =>
-            setExerciseContextMenu({ ...exerciseContextMenu, isVisible: false })
+            setExerciseContextMenu({...exerciseContextMenu, isVisible: false})
           }
           position={exerciseContextMenu.position}
           menuItems={
@@ -824,57 +796,57 @@ const WorkroutDataScreen: FC<{
               ? [
                   // Superset menu items
                   {
-                    label: "Delete Superset",
+                    label: 'Delete Superset',
                     onPress: () => {
                       dispatch(
                         deleteSuperset({
                           dayId: exerciseContextMenu.dayId,
                           supersetId: exerciseContextMenu.supersetId,
-                        })
+                        }),
                       );
                       setExerciseContextMenu({
                         ...exerciseContextMenu,
                         isVisible: false,
                       });
                     },
-                    textColor: "#E74C3C",
+                    textColor: '#E74C3C',
                   },
                 ]
               : exerciseContextMenu.supersetId
               ? [
                   // Exercise in superset menu items
                   {
-                    label: "Remove from Superset",
+                    label: 'Remove from Superset',
                     onPress: () => {
                       dispatch(
                         removeExerciseFromSuperset({
                           dayId: exerciseContextMenu.dayId,
                           supersetId: exerciseContextMenu.supersetId,
                           exerciseId: exerciseContextMenu.selectedExerciseId,
-                        })
+                        }),
                       );
                       setExerciseContextMenu({
                         ...exerciseContextMenu,
                         isVisible: false,
                       });
                     },
-                    textColor: "#E74C3C",
+                    textColor: '#E74C3C',
                   },
                 ]
               : [
                   // Regular exercise menu items
                   {
-                    label: "Remove",
+                    label: 'Remove',
                     onPress: () => {
                       dispatch(
-                        removeExercise(exerciseContextMenu.selectedExerciseId)
+                        removeExercise(exerciseContextMenu.selectedExerciseId),
                       );
                       setExerciseContextMenu({
                         ...exerciseContextMenu,
                         isVisible: false,
                       });
                     },
-                    textColor: "#E74C3C",
+                    textColor: '#E74C3C',
                   },
                 ]
           }
@@ -885,7 +857,7 @@ const WorkroutDataScreen: FC<{
           closeModal={() => setShowColorModal(false)}
           onSelectColor={handleColorSelect}
           initialColor={
-            workoutData.exerciseList[selectedDayForColor].color || "black"
+            workoutData.exerciseList[selectedDayForColor].color || 'black'
           }
         />
 
@@ -921,17 +893,17 @@ const WorkroutDataScreen: FC<{
   const DetailsTab = () => {
     const workoutGoalIcon = () => {
       switch (workoutData.goal) {
-        case "strength":
+        case 'strength':
           return ICONS.ExerciseGoal1Icon;
-        case "endurance":
+        case 'endurance':
           return ICONS.ExerciseGoal3Icon;
-        case "hypertrophy":
+        case 'hypertrophy':
           return ICONS.ExerciseGoal3Icon;
-        case "Cardio":
+        case 'Cardio':
           return ICONS.ExerciseGoal4Icon;
-        case "Flexibility":
+        case 'Flexibility':
           return ICONS.ExerciseGoal5Icon;
-        case "Functionality":
+        case 'Functionality':
           return ICONS.ExerciseGoal6Icon;
         default:
           return ICONS.ExerciseGoal1Icon;
@@ -940,11 +912,11 @@ const WorkroutDataScreen: FC<{
 
     const workoutLocation = () => {
       switch (workoutData.location!.toLowerCase()) {
-        case "gym":
+        case 'gym':
           return ICONS.ExerciseLocation1Icon;
-        case "home":
+        case 'home':
           return ICONS.ExerciseLocation2Icon;
-        case "outdoor":
+        case 'outdoor':
           return ICONS.ExerciseLocation3Icon;
         default:
           return ICONS.ExerciseLocation1Icon;
@@ -953,29 +925,28 @@ const WorkroutDataScreen: FC<{
 
     const renderLevelWithStars = () => {
       const getDifficultyLevel = (rating: number) => {
-        if (rating <= 1) return "Beginner";
-        if (rating <= 2) return "Intermediate";
-        return "Advanced";
+        if (rating <= 1) return 'Beginner';
+        if (rating <= 2) return 'Intermediate';
+        return 'Advanced';
       };
 
       return (
         <View
           style={{
             flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
+            justifyContent: 'center',
+            alignItems: 'center',
             gap: verticalScale(10),
-          }}
-        >
+          }}>
           <StarRatingDisplay
             rating={workoutData.difficulty}
             maxStars={3}
             starSize={53}
             color={COLORS.yellow}
             emptyColor={COLORS.whiteTail}
-            StarIconComponent={({ type, size }) => {
+            StarIconComponent={({type, size}) => {
               const Icon =
-                type === "full" || type === "half"
+                type === 'full' || type === 'half'
                   ? ICONS.FilledStarIcon
                   : ICONS.EmptyStarIcon;
 
@@ -1024,8 +995,7 @@ const WorkroutDataScreen: FC<{
           style={{
             paddingHorizontal: horizontalScale(20),
             gap: verticalScale(10),
-          }}
-        >
+          }}>
           <CustomText fontSize={22} fontFamily="extraBold">
             Details
           </CustomText>
@@ -1054,31 +1024,31 @@ const styles = StyleSheet.create({
   },
   headerBackground: {
     height: hp(25),
-    width: "100%",
+    width: '100%',
   },
   headerOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
     padding: 16,
   },
   headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   settingsButton: {
     padding: 8,
   },
   tabContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: horizontalScale(30),
     marginVertical: verticalScale(20),
   },
   tabButton: {
-    justifyContent: "center",
+    justifyContent: 'center',
     paddingHorizontal: horizontalScale(30),
     paddingVertical: verticalScale(10),
     borderRadius: 10,
@@ -1088,27 +1058,27 @@ const styles = StyleSheet.create({
     gap: verticalScale(10),
   },
   detailsStatsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginVertical: verticalScale(20),
     paddingHorizontal: horizontalScale(20),
     minHeight: verticalScale(85),
     maxHeight: verticalScale(85),
   },
   statItem: {
-    alignItems: "center",
-    justifyContent: "space-between",
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   levelContainer: {
     gap: verticalScale(20),
-    alignItems: "center",
+    alignItems: 'center',
   },
   starContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(10),
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   detailsText: {
     lineHeight: 22,
@@ -1119,21 +1089,21 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brown,
   },
   daySectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(10),
   },
   dayTitleContainer: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(10),
   },
   dayIndicator: {
     width: 20,
-    alignItems: "center",
+    alignItems: 'center',
   },
   dayDot: {
     width: 8,
@@ -1149,8 +1119,8 @@ const styles = StyleSheet.create({
     gap: verticalScale(5),
   },
   exerciseCard: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.brown,
     borderRadius: 10,
     padding: 10,
@@ -1169,20 +1139,20 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   emptyExercisesContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: verticalScale(20),
     flex: 1,
   },
   addExerciseButton: {
-    backgroundColor: "#DC3639",
+    backgroundColor: '#DC3639',
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(20),
     borderRadius: 8,
-    alignSelf: "flex-end",
+    alignSelf: 'flex-end',
     marginTop: verticalScale(10),
   },
   restPeriodContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingHorizontal: horizontalScale(20),
     gap: verticalScale(5),
   },
@@ -1192,25 +1162,25 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   addWorkoutsButton: {
-    backgroundColor: "#DC3676",
+    backgroundColor: '#DC3676',
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(20),
     borderRadius: 8,
-    alignSelf: "flex-end",
+    alignSelf: 'flex-end',
     marginVertical: verticalScale(20),
   },
   // Styles for superset functionality
   floatingActionBar: {
     backgroundColor: COLORS.brown,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: horizontalScale(20),
     paddingVertical: verticalScale(10),
     borderRadius: verticalScale(10),
     marginHorizontal: horizontalScale(10),
     marginTop: verticalScale(10),
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -1220,8 +1190,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   actionButton: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: verticalScale(2),
     padding: verticalScale(5),
   },

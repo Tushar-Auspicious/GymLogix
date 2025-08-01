@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {useEffect, useState} from 'react';
 import {
   Image,
   ImageBackground,
@@ -8,43 +8,106 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 import {
   Asset,
   launchCamera,
   launchImageLibrary,
-} from "react-native-image-picker";
-import LinearGradient from "react-native-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
-import StarRating from "react-native-star-rating-widget";
-import ICONS from "../../../Assets/Icons";
-import IMAGES from "../../../Assets/Images";
-import SkeletonBack from "../../../Components/Cards/SkeletonBack";
-import SkeletonFront from "../../../Components/Cards/SkeletonFront";
-import CustomIcon from "../../../Components/CustomIcon";
-import { CustomText } from "../../../Components/CustomText";
-import DropdownSelect from "../../../Components/DropdownSelect";
-import { KeyboardAvoidingContainer } from "../../../Components/KeyboardAvoidingComponent";
-import UploadImageOptions from "../../../Components/Modals/UploadImageOptions";
-import PrimaryButton from "../../../Components/PrimaryButton";
-import { addCustomExercise } from "../../../Redux/slices/exerciseCatalogSlice";
+} from 'react-native-image-picker';
+import LinearGradient from 'react-native-linear-gradient';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import StarRating from 'react-native-star-rating-widget';
+import ICONS from '../../../Assets/Icons';
+import IMAGES from '../../../Assets/Images';
+import SkeletonBack from '../../../Components/Cards/SkeletonBack';
+import SkeletonFront from '../../../Components/Cards/SkeletonFront';
+import CustomIcon from '../../../Components/CustomIcon';
+import {CustomText} from '../../../Components/CustomText';
+import DropdownSelect from '../../../Components/DropdownSelect';
+import {KeyboardAvoidingContainer} from '../../../Components/KeyboardAvoidingComponent';
+import UploadImageOptions from '../../../Components/Modals/UploadImageOptions';
+import PrimaryButton from '../../../Components/PrimaryButton';
+import {
+  addCustomExercise,
+  setExerciseCatalog,
+} from '../../../Redux/slices/exerciseCatalogSlice';
 import {
   MuscleSelection,
   SpecificMuscle,
-} from "../../../Redux/slices/muscleSlice";
-import { setActiveStep } from "../../../Redux/slices/newWorkoutSlice";
-import { useAppDispatch, useAppSelector } from "../../../Redux/store";
-import COLORS from "../../../Utilities/Colors";
+} from '../../../Redux/slices/muscleSlice';
+import {setActiveStep} from '../../../Redux/slices/newWorkoutSlice';
+import {useAppDispatch, useAppSelector} from '../../../Redux/store';
+import COLORS from '../../../Utilities/Colors';
 import {
   horizontalScale,
   hp,
   verticalScale,
   wp,
-} from "../../../Utilities/Metrics";
+} from '../../../Utilities/Metrics';
+import {postData, postFormData} from '../../../APIServices/api';
+import ENDPOINTS from '../../../APIServices/endPoints';
+import {Exercise, ExerciseCatalog} from '../../../Seeds/ExerciseCatalog';
+
+function mapLocation(equipment = '') {
+  const eq = equipment.toLowerCase();
+  if (eq.includes('bodyweight') || eq.includes('dumbbell')) return 'home';
+  if (eq.includes('barbell') || eq.includes('machine')) return 'gym';
+  return 'gym';
+}
+
+function mapType(type = '') {
+  const t = type.toLowerCase();
+  if (t.includes('compound')) return 'compound';
+  if (t.includes('isolation')) return 'isolation';
+  return 'other';
+}
+
+function mapForce(force = '') {
+  const f = force.toLowerCase();
+  if (f.includes('pull')) return 'pull';
+  if (f.includes('push')) return 'push';
+  return 'push';
+}
+
+const addExerciseToCatalog = (
+  catalog: ExerciseCatalog,
+  newExercise: Exercise,
+): ExerciseCatalog => {
+  const bodyPart = newExercise.mainMuscle || 'Other';
+
+  const existingCategory = catalog.categories.find(
+    cat => cat.bodyPart.toLowerCase() === bodyPart.toLowerCase(),
+  );
+
+  if (existingCategory) {
+    // Create a deep copy of that category with the new exercise added
+    const updatedCategories = catalog.categories.map(cat =>
+      cat.bodyPart.toLowerCase() === bodyPart.toLowerCase()
+        ? {
+            ...cat,
+            exercises: [...cat.exercises, newExercise],
+          }
+        : cat,
+    );
+
+    return {categories: updatedCategories};
+  } else {
+    // Create a new category
+    return {
+      categories: [
+        ...catalog.categories,
+        {
+          bodyPart,
+          exercises: [newExercise],
+        },
+      ],
+    };
+  }
+};
 
 const AddNewExercise = ({}) => {
   const dispatch = useAppDispatch();
-  const { catalog } = useAppSelector((state) => state.exerciseCatalog);
+  const {catalog} = useAppSelector(state => state.exerciseCatalog);
 
   const [showMainFrontBodyModal, setShowMainFrontBodyModal] = useState(false);
   const [showMainBackBodyModal, setShowMainBackBodyModal] = useState(false);
@@ -57,15 +120,15 @@ const AddNewExercise = ({}) => {
   const [newExerciseStep, setNewExerciseStep] = useState(1);
 
   // State for both steps
-  const [exerciseName, setExerciseName] = useState("");
+  const [exerciseName, setExerciseName] = useState('');
   const [coverImage, setCoverImage] = useState<Asset | null>(null);
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState('');
 
   const [showDescription, setShowDescription] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
 
   // State for step 2
-  const [instructions, setInstructions] = useState("");
+  const [instructions, setInstructions] = useState('');
   const [mainMuscle, setMainMuscle] = useState<MuscleSelection>({
     front: [],
     back: [],
@@ -76,16 +139,18 @@ const AddNewExercise = ({}) => {
   });
 
   const [difficulty, setDifficulty] = useState<number>(1);
-  const [location, setLocation] = useState<"gym" | "home" | "outdoor">("gym");
+  const [location, setLocation] = useState<'gym' | 'home' | 'outdoor'>('gym');
   const [exerciseType, setExerciseType] = useState<
-    "isolation" | "compound" | "other"
-  >("isolation");
+    'isolation' | 'compound' | 'other'
+  >('isolation');
 
-  const [force, setForce] = useState<"pull" | "push">("pull");
-  const [equipment, setEquipment] = useState("");
+  const [force, setForce] = useState<'pull' | 'push'>('pull');
+  const [equipment, setEquipment] = useState('');
 
   // State for multiple exercise images
   const [exerciseImages, setExerciseImages] = useState<Asset[]>([]);
+
+  const [uplaodFileData, setUploadFileData] = useState<any | null>(null);
 
   const [isUploadOptionModal, setIsUploadOptionModal] = useState(false);
   const [isExerciseImagesModal, setIsExerciseImagesModal] = useState(false);
@@ -95,14 +160,40 @@ const AddNewExercise = ({}) => {
   };
 
   const handleImagePick = () => {
-    launchImageLibrary({ mediaType: "photo", quality: 0.8 }, (response) => {
+    launchImageLibrary({mediaType: 'photo', quality: 0.8}, async response => {
       if (response.didCancel) {
-        console.log("User cancelled image picker");
+        console.log('User cancelled image picker');
       } else if (response.errorCode) {
-        console.log("ImagePicker Error: ", response.errorMessage);
+        console.log('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
+        console.log('assets --->', asset);
+
         setCoverImage(asset);
+
+        const formData = new FormData();
+        const assesData = asset;
+        formData.append('asset', {
+          uri: assesData.uri,
+          type: assesData.type,
+          name: assesData.fileName,
+        });
+
+        const apiResponse = await postFormData<any>(
+          ENDPOINTS.uploadFile,
+          formData,
+        );
+        console.log('uplaod file', apiResponse);
+
+        if (apiResponse.data) {
+          const getImageUrl = apiResponse.data.url;
+
+          if (getImageUrl) {
+            console.log('getImageUrl--->', getImageUrl);
+
+            setUploadFileData(getImageUrl);
+          }
+        }
       }
       closeModal();
     });
@@ -112,20 +203,42 @@ const AddNewExercise = ({}) => {
     try {
       const result = await launchCamera({
         quality: 1,
-        mediaType: "photo",
+        mediaType: 'photo',
       });
 
       if (result.didCancel) {
-        console.log("User cancelled camera");
+        console.log('User cancelled camera');
       } else if (result.errorCode) {
-        console.log("Camera error:", result.errorMessage);
+        console.log('Camera error:', result.errorMessage);
       } else if (result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         setCoverImage(asset);
+
+        const formData = new FormData();
+        const assesData = asset;
+        formData.append('asset', {
+          uri: assesData.uri,
+          type: assesData.type,
+          name: assesData.fileName,
+        });
+
+        const response = await postFormData<any>(
+          ENDPOINTS.uploadFile,
+          formData,
+        );
+        console.log('asset camera Pick response --->', response);
+
+        if (response.data) {
+          const get_Image_Url = response.data.url;
+
+          if (get_Image_Url) {
+            setUploadFileData(get_Image_Url);
+          }
+        }
       }
       closeModal();
     } catch (error) {
-      console.log("Camera capture failed:", error);
+      console.log('Camera capture failed:', error);
     }
   };
 
@@ -133,25 +246,25 @@ const AddNewExercise = ({}) => {
   const handleMultipleImagePick = async () => {
     try {
       const result = await launchImageLibrary({
-        mediaType: "photo",
+        mediaType: 'photo',
         quality: 0.8,
         selectionLimit: 0, // 0 means no limit
       });
 
       if (result.didCancel) {
-        console.log("User cancelled image picker");
+        console.log('User cancelled image picker');
       } else if (result.errorCode) {
-        console.log("ImagePicker Error:", result.errorMessage);
+        console.log('ImagePicker Error:', result.errorMessage);
       } else if (result.assets && result.assets.length > 0) {
         // Add new images to existing ones
-        setExerciseImages((prevImages) => [
+        setExerciseImages(prevImages => [
           ...prevImages,
           ...(result.assets as Asset[]),
         ]);
       }
       closeModal();
     } catch (error) {
-      console.log("Multiple image selection failed:", error);
+      console.log('Multiple image selection failed:', error);
     }
   };
 
@@ -160,42 +273,45 @@ const AddNewExercise = ({}) => {
     try {
       const result = await launchCamera({
         quality: 0.8,
-        mediaType: "photo",
+        mediaType: 'photo',
       });
 
       if (result.didCancel) {
-        console.log("User cancelled camera");
+        console.log('User cancelled camera');
       } else if (result.errorCode) {
-        console.log("Camera Error:", result.errorMessage);
+        console.log('Camera Error:', result.errorMessage);
       } else if (result.assets && result.assets.length > 0) {
         // Add new image to existing ones
-        setExerciseImages((prevImages) => [
+        setExerciseImages(prevImages => [
           ...prevImages,
           ...(result.assets as Asset[]),
         ]);
       }
       closeModal();
     } catch (error) {
-      console.log("Camera capture failed:", error);
+      console.log('Camera capture failed:', error);
     }
   };
 
   // Function to remove an image from the list
   const removeImage = (index: number) => {
-    setExerciseImages((prevImages) => prevImages.filter((_, i) => i !== index));
+    setExerciseImages(prevImages => prevImages.filter((_, i) => i !== index));
   };
 
   // Function to save the exercise and go back to exercise selection
-  const handleSaveExercise = () => {
-    // Get primary muscle (first selected muscle from either front or back)
+  const handleSaveExercise = async () => {
+    if (!uplaodFileData) {
+      console.log('Image is not uploaded yet');
+      return;
+    }
     const primaryMuscle =
       mainMuscle.front.length > 0
         ? mainMuscle.front[0]
         : mainMuscle.back.length > 0
         ? mainMuscle.back[0]
-        : "Other";
+        : 'Other';
 
-    // Get secondary muscles as an array (all selected muscles from secondary selection)
+    // Get secondary muscles as an array
     const secondaryMuscleValues = [
       ...secondaryMuscle.front,
       ...secondaryMuscle.back,
@@ -207,31 +323,90 @@ const AddNewExercise = ({}) => {
       ...mainMuscle.back,
       ...secondaryMuscle.front,
       ...secondaryMuscle.back,
-    ].filter(Boolean); // Remove empty values
+    ].filter(Boolean);
 
-    // Create the exercise object with proper structure
-    const newExercise = {
-      id: `custom-${Date.now()}`, // Generate unique ID
-      name: exerciseName,
-      coverImage,
-      images: exerciseImages,
-      instruction: instructions,
-      description,
-      mainMuscle: primaryMuscle,
-      secondaryMuscle: secondaryMuscleValues,
-      difficulty,
-      location,
-      type: exerciseType,
-      force,
-      equipment,
-      targetMuscles: allTargetMuscles,
+    // Validate mainMuscle
+    if (!primaryMuscle || typeof primaryMuscle !== 'string') {
+      console.error('Invalid mainMuscle:', primaryMuscle);
+      return;
+    }
+
+    const difficultyLevels: any = {
+      1: 'beginner',
+      2: 'intermediate',
+      3: 'advance',
     };
 
-    // Dispatch action to add the exercise to the catalog
-    dispatch(addCustomExercise(newExercise));
+    const data = {
+      name: exerciseName,
+      description: description,
+      instruction: instructions,
+      images_urls: [uplaodFileData],
+      main_muscle: primaryMuscle,
+      secondary_muscles: secondaryMuscleValues,
+      mechanics: exerciseType,
+      difficulty: difficultyLevels[difficulty] || 'beginner',
+      type: exerciseType,
+      equipment: equipment,
+      force: force,
+    };
 
-    // Go back to exercise selection
-    dispatch(setActiveStep(8));
+    console.log('data sent --->', data);
+
+    try {
+      const response = await postData<any>(ENDPOINTS.create_update_exercise, {
+        data,
+      });
+      if (response.data.data) {
+        const item = response.data.data;
+
+        const difficultyToIndex = Object.keys(difficultyLevels).reduce(
+          (acc, key) => {
+            acc[difficultyLevels[key]] = parseInt(key);
+            return acc;
+          },
+          {} as Record<string, number>,
+        );
+
+        const difficultyLevel =
+          difficultyToIndex[(item.difficulty || '').toLowerCase()] || 1;
+
+        const newExercise = {
+          id: item._id || item.id,
+          name: item.name,
+          coverImage: item.images_urls?.[0] ? {uri: item.images_urls[0]} : null,
+          images: item.images_urls?.map((url: string) => ({uri: url})) || [],
+          instruction: Array.isArray(item.instruction)
+            ? item.instruction.join('\n')
+            : item.instruction || '',
+          description: item.description || '',
+          mainMuscle: item.main_muscle,
+          secondaryMuscle: item.secondary_muscles || [],
+          difficulty: difficultyLevel,
+          location: mapLocation(item.equipment),
+          type: mapType(item.type),
+          force: mapForce(item.force),
+          equipment: item.equipment || '',
+          targetMuscles: [item.main_muscle, ...(item.secondary_muscles || [])],
+          defaultSets: [],
+          recommendedSets: 10,
+          recommendedReps: 10,
+          exerciseSettings: null,
+        };
+
+        console.log('new exercise --->', newExercise);
+
+        const updatedCatalog = addExerciseToCatalog(catalog, newExercise);
+
+        console.log('djksl', updatedCatalog);
+
+        dispatch(setExerciseCatalog(updatedCatalog));
+        dispatch(setActiveStep(8));
+        // dispatch(addCustomExercise(newExercise));
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
   };
 
   // Function to go back
@@ -247,15 +422,14 @@ const AddNewExercise = ({}) => {
 
   const renderStep1 = () => {
     return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
+      <View style={{flex: 1, justifyContent: 'center'}}>
         <View
           style={{
             flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
+            justifyContent: 'center',
+            alignItems: 'center',
             gap: verticalScale(10),
-          }}
-        >
+          }}>
           <CustomText color={COLORS.yellow} fontFamily="italicBold">
             Give a meanigull name for your exercise
           </CustomText>
@@ -279,9 +453,9 @@ const AddNewExercise = ({}) => {
 
   const renderStep2 = () => {
     const getDifficultyLevel = (rating: number) => {
-      if (rating <= 1) return "Beginner";
-      if (rating <= 2) return "Intermediate";
-      return "Advanced";
+      if (rating <= 1) return 'Beginner';
+      if (rating <= 2) return 'Intermediate';
+      return 'Advanced';
     };
 
     return (
@@ -298,10 +472,9 @@ const AddNewExercise = ({}) => {
                   width: index === 3 ? wp(90) : horizontalScale(100),
                   height: index === 3 ? hp(30) : horizontalScale(100),
                 },
-              ]}
-            >
+              ]}>
               <Image
-                source={{ uri: image.uri }}
+                source={{uri: image.uri}}
                 style={
                   index === 3
                     ? {
@@ -315,8 +488,7 @@ const AddNewExercise = ({}) => {
               />
               <TouchableOpacity
                 style={styles.removeImageButton}
-                onPress={() => removeImage(index)}
-              >
+                onPress={() => removeImage(index)}>
                 <CustomIcon Icon={ICONS.DeleteIcon} height={16} width={16} />
               </TouchableOpacity>
             </View>
@@ -326,8 +498,7 @@ const AddNewExercise = ({}) => {
           {exerciseImages.length < 4 && (
             <TouchableOpacity
               style={styles.addImageButton}
-              onPress={() => setIsExerciseImagesModal(true)}
-            >
+              onPress={() => setIsExerciseImagesModal(true)}>
               <CustomIcon Icon={ICONS.PlusIcon} height={24} width={24} />
             </TouchableOpacity>
           )}
@@ -340,8 +511,7 @@ const AddNewExercise = ({}) => {
               Description
             </CustomText>
             <TouchableOpacity
-              onPress={() => setShowDescription(!showDescription)}
-            >
+              onPress={() => setShowDescription(!showDescription)}>
               <CustomIcon Icon={ICONS.EditIcon} height={24} width={24} />
             </TouchableOpacity>
           </View>
@@ -364,8 +534,7 @@ const AddNewExercise = ({}) => {
               instructions
             </CustomText>
             <TouchableOpacity
-              onPress={() => setShowInstructions(!showInstructions)}
-            >
+              onPress={() => setShowInstructions(!showInstructions)}>
               <CustomIcon Icon={ICONS.EditIcon} height={24} width={24} />
             </TouchableOpacity>
           </View>
@@ -387,22 +556,19 @@ const AddNewExercise = ({}) => {
         <View
           style={{
             marginVertical: verticalScale(20),
-          }}
-        >
+          }}>
           <CustomText
             fontSize={24}
             fontFamily="bold"
             color={COLORS.white}
-            style={styles.title}
-          >
+            style={styles.title}>
             Main Muscle
           </CustomText>
 
           <CustomText
             fontSize={20}
             style={styles.subtitle}
-            color={COLORS.white}
-          >
+            color={COLORS.white}>
             Select a muscle
           </CustomText>
 
@@ -411,8 +577,7 @@ const AddNewExercise = ({}) => {
               onPress={() => {
                 setShowMainFrontBodyModal(true);
               }}
-              style={styles.skeletonWrapper}
-            >
+              style={styles.skeletonWrapper}>
               <View style={styles.skeletonHeader}>
                 <CustomText color={COLORS.white} style={styles.skeletonLabel}>
                   Front
@@ -432,8 +597,7 @@ const AddNewExercise = ({}) => {
               onPress={() => {
                 setShowMainBackBodyModal(true);
               }}
-              style={styles.skeletonWrapper}
-            >
+              style={styles.skeletonWrapper}>
               <View style={styles.skeletonHeader}>
                 <CustomText color={COLORS.white} style={styles.skeletonLabel}>
                   Back
@@ -455,22 +619,19 @@ const AddNewExercise = ({}) => {
         <View
           style={{
             marginVertical: verticalScale(20),
-          }}
-        >
+          }}>
           <CustomText
             fontSize={24}
             fontFamily="bold"
             color={COLORS.white}
-            style={styles.title}
-          >
+            style={styles.title}>
             Secondary Muscle
           </CustomText>
 
           <CustomText
             fontSize={20}
             style={styles.subtitle}
-            color={COLORS.white}
-          >
+            color={COLORS.white}>
             Select the muscles
           </CustomText>
 
@@ -479,8 +640,7 @@ const AddNewExercise = ({}) => {
               onPress={() => {
                 setShowSecondaryFrontBodyModal(true);
               }}
-              style={styles.skeletonWrapper}
-            >
+              style={styles.skeletonWrapper}>
               <View style={styles.skeletonHeader}>
                 <CustomText color={COLORS.white} style={styles.skeletonLabel}>
                   Front
@@ -493,14 +653,14 @@ const AddNewExercise = ({}) => {
                 containerWidth={wp(45)}
                 selectedMuscles={secondaryMuscle.front}
                 onMuscleToggle={(muscle: string) =>
-                  setSecondaryMuscle((prev) => ({
+                  setSecondaryMuscle(prev => ({
                     ...prev,
                     front: [...prev.front, muscle as SpecificMuscle], // Multiple selection for main muscle
                     back: [], // Clear back when selecting front
                   }))
                 }
                 viewBox="0 30 369 70"
-                selectionColor={"#C3FF00"}
+                selectionColor={'#C3FF00'}
               />
             </TouchableOpacity>
 
@@ -508,8 +668,7 @@ const AddNewExercise = ({}) => {
               onPress={() => {
                 setShowSecondaryBackBodyModal(true);
               }}
-              style={styles.skeletonWrapper}
-            >
+              style={styles.skeletonWrapper}>
               <View style={styles.skeletonHeader}>
                 <CustomText color={COLORS.white} style={styles.skeletonLabel}>
                   Back
@@ -522,14 +681,14 @@ const AddNewExercise = ({}) => {
                 containerWidth={wp(45)}
                 selectedMuscles={secondaryMuscle.back}
                 onMuscleToggle={(muscle: string) =>
-                  setSecondaryMuscle((prev) => ({
+                  setSecondaryMuscle(prev => ({
                     ...prev,
                     back: [...prev.back, muscle as SpecificMuscle], // Multiple selection for main muscle
                     front: [], // Clear front when selecting back
                   }))
                 }
                 viewBox="0 30 369 70"
-                selectionColor={"#C3FF00"}
+                selectionColor={'#C3FF00'}
               />
             </TouchableOpacity>
           </View>
@@ -545,17 +704,16 @@ const AddNewExercise = ({}) => {
           <View
             style={{
               flex: 1,
-              justifyContent: "center",
-              alignItems: "center",
+              justifyContent: 'center',
+              alignItems: 'center',
               gap: verticalScale(20),
-            }}
-          >
+            }}>
             <CustomText color={COLORS.white} fontFamily="italicBold">
               Difficulty
             </CustomText>
             <StarRating
               rating={difficulty}
-              onChange={(rating) => {
+              onChange={rating => {
                 setDifficulty(rating);
               }}
               maxStars={3}
@@ -563,9 +721,9 @@ const AddNewExercise = ({}) => {
               color={COLORS.yellow}
               emptyColor={COLORS.whiteTail}
               enableHalfStar={true}
-              StarIconComponent={({ type, size }) => {
+              StarIconComponent={({type, size}) => {
                 const Icon =
-                  type === "full" || type === "half"
+                  type === 'full' || type === 'half'
                     ? ICONS.FilledStarIcon
                     : ICONS.EmptyStarIcon;
 
@@ -577,64 +735,64 @@ const AddNewExercise = ({}) => {
             </CustomText>
           </View>
 
-          <View style={{ flexDirection: "row", gap: horizontalScale(10) }}>
+          <View style={{flexDirection: 'row', gap: horizontalScale(10)}}>
             {/* Location */}
             <DropdownSelect
-              containerStyle={{ flex: 1 }}
+              containerStyle={{flex: 1}}
               label="Location"
               options={[
-                { label: "Gym", value: "gym" },
-                { label: "Home", value: "home" },
-                { label: "Outdoor", value: "outdoor" },
+                {label: 'Gym', value: 'gym'},
+                {label: 'Home', value: 'home'},
+                {label: 'Outdoor', value: 'outdoor'},
               ]}
               selectedValue={location}
-              onSelect={(value) =>
-                setLocation(value as "gym" | "home" | "outdoor")
+              onSelect={value =>
+                setLocation(value as 'gym' | 'home' | 'outdoor')
               }
             />
 
             {/* Type */}
             <DropdownSelect
-              containerStyle={{ flex: 1 }}
+              containerStyle={{flex: 1}}
               label="Type"
               options={[
-                { label: "Compound", value: "compound" },
-                { label: "Isolation", value: "isolation" },
-                { label: "Other", value: "other" },
+                {label: 'Compound', value: 'compound'},
+                {label: 'Isolation', value: 'isolation'},
+                {label: 'Other', value: 'other'},
               ]}
               selectedValue={exerciseType}
-              onSelect={(value) =>
-                setExerciseType(value as "isolation" | "compound" | "other")
+              onSelect={value =>
+                setExerciseType(value as 'isolation' | 'compound' | 'other')
               }
             />
           </View>
 
-          <View style={{ flexDirection: "row", gap: horizontalScale(10) }}>
+          <View style={{flexDirection: 'row', gap: horizontalScale(10)}}>
             {/* Force */}
             <DropdownSelect
-              containerStyle={{ flex: 1 }}
+              containerStyle={{flex: 1}}
               label="Force"
               options={[
-                { label: "Pull", value: "pull" },
-                { label: "Push", value: "push" },
+                {label: 'Pull', value: 'pull'},
+                {label: 'Push', value: 'push'},
               ]}
               selectedValue={force}
-              onSelect={(value) => setForce(value as "pull" | "push")}
+              onSelect={value => setForce(value as 'pull' | 'push')}
             />
 
             {/* Equipment */}
             <DropdownSelect
-              containerStyle={{ flex: 1 }}
+              containerStyle={{flex: 1}}
               label="Equipment"
               options={[
-                { label: "Barbell", value: "barbell" },
-                { label: "Dumbbell", value: "dumbbell" },
-                { label: "Kettlebell", value: "kettlebell" },
-                { label: "Machine", value: "machine" },
-                { label: "Cable", value: "cable" },
-                { label: "Bodyweight", value: "bodyweight" },
-                { label: "Resistance Band", value: "resistance_band" },
-                { label: "Other", value: "other" },
+                {label: 'Barbell', value: 'barbell'},
+                {label: 'Dumbbell', value: 'dumbbell'},
+                {label: 'Kettlebell', value: 'kettlebell'},
+                {label: 'Machine', value: 'machine'},
+                {label: 'Cable', value: 'cable'},
+                {label: 'Bodyweight', value: 'bodyweight'},
+                {label: 'Resistance Band', value: 'resistance_band'},
+                {label: 'Other', value: 'other'},
               ]}
               selectedValue={equipment}
               onSelect={setEquipment}
@@ -649,28 +807,25 @@ const AddNewExercise = ({}) => {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingContainer backgroundColor="transparent">
         <ImageBackground
-          source={coverImage ? { uri: coverImage.uri } : IMAGES.exerciseDummy}
+          source={coverImage ? {uri: coverImage.uri} : IMAGES.exerciseDummy}
           style={styles.coverImage}
-          imageStyle={styles.coverImageStyle}
-        >
+          imageStyle={styles.coverImageStyle}>
           <LinearGradient
-            colors={["rgba(0,0,0,0)", "#1F1A16"]}
+            colors={['rgba(0,0,0,0)', '#1F1A16']}
             style={styles.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-          >
+            start={{x: 0, y: 0}}
+            end={{x: 0, y: 1}}>
             <View style={styles.headerContainer}>
               <CustomIcon onPress={handleBack} Icon={ICONS.BackArrow} />
               <View
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                   width: wp(90),
-                }}
-              >
+                }}>
                 <CustomText color={COLORS.white} fontSize={18}>
-                  {exerciseName ? exerciseName : "New Exercise"}
+                  {exerciseName ? exerciseName : 'New Exercise'}
                 </CustomText>
                 {newExerciseStep === 2 ? (
                   <CustomIcon
@@ -696,7 +851,7 @@ const AddNewExercise = ({}) => {
 
         <View style={styles.buttonContainer}>
           <PrimaryButton
-            title={newExerciseStep === 1 ? "Next" : "Save"}
+            title={newExerciseStep === 1 ? 'Next' : 'Save'}
             onPress={() => {
               if (newExerciseStep === 1) {
                 setNewExerciseStep(2);
@@ -741,38 +896,35 @@ const AddNewExercise = ({}) => {
             transparent
             visible={showMainFrontBodyModal}
             animationType="fade"
-            onRequestClose={() => setShowMainFrontBodyModal(false)}
-          >
+            onRequestClose={() => setShowMainFrontBodyModal(false)}>
             <TouchableOpacity
               activeOpacity={1}
               onPress={() => setShowMainFrontBodyModal(false)}
               style={{
                 flex: 1,
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
               <View
                 onStartShouldSetResponder={() => true} // Capture touch events
-                onResponderRelease={(e) => e.stopPropagation()} // Prevent propagation
+                onResponderRelease={e => e.stopPropagation()} // Prevent propagation
                 style={{
                   backgroundColor: COLORS.brown,
                   borderRadius: 20,
                   width: wp(90),
                   height: hp(55),
-                  alignItems: "center",
-                  justifyContent: "center",
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   borderWidth: 1,
                   borderColor: COLORS.white,
-                }}
-              >
+                }}>
                 <SkeletonFront
                   containerWidth={wp(90)}
                   showLabel
                   selectedMuscles={mainMuscle.front}
-                  onMuscleToggle={(muscle) => {
-                    setMainMuscle((prev) => ({
+                  onMuscleToggle={muscle => {
+                    setMainMuscle(prev => ({
                       ...prev,
                       front: [muscle as SpecificMuscle], // Single selection for main muscle
                       back: [], // Clear back when selecting front
@@ -790,38 +942,35 @@ const AddNewExercise = ({}) => {
             transparent
             visible={showMainBackBodyModal}
             animationType="fade"
-            onRequestClose={() => setShowMainBackBodyModal(false)}
-          >
+            onRequestClose={() => setShowMainBackBodyModal(false)}>
             <TouchableOpacity
               activeOpacity={1}
               onPress={() => setShowMainBackBodyModal(false)}
               style={{
                 flex: 1,
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
               <View
                 onStartShouldSetResponder={() => true} // Capture touch events
-                onResponderRelease={(e) => e.stopPropagation()} // Prevent propagation
+                onResponderRelease={e => e.stopPropagation()} // Prevent propagation
                 style={{
                   backgroundColor: COLORS.brown,
                   borderRadius: 20,
                   width: wp(90),
                   height: hp(55),
-                  alignItems: "center",
-                  justifyContent: "center",
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   borderWidth: 1,
                   borderColor: COLORS.white,
-                }}
-              >
+                }}>
                 <SkeletonBack
                   containerWidth={wp(90)}
                   showLabel
                   selectedMuscles={mainMuscle.back}
-                  onMuscleToggle={(muscle) => {
-                    setMainMuscle((prev) => ({
+                  onMuscleToggle={muscle => {
+                    setMainMuscle(prev => ({
                       ...prev,
                       back: [muscle as SpecificMuscle],
                       front: [], // Clear front when selecting back
@@ -839,46 +988,43 @@ const AddNewExercise = ({}) => {
             transparent
             visible={showSecondaryFrontBodyModal}
             animationType="fade"
-            onRequestClose={() => setShowSecondaryFrontBodyModal(false)}
-          >
+            onRequestClose={() => setShowSecondaryFrontBodyModal(false)}>
             <TouchableOpacity
               activeOpacity={1}
               onPress={() => setShowSecondaryFrontBodyModal(false)}
               style={{
                 flex: 1,
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
               <View
                 onStartShouldSetResponder={() => true} // Capture touch events
-                onResponderRelease={(e) => e.stopPropagation()} // Prevent propagation
+                onResponderRelease={e => e.stopPropagation()} // Prevent propagation
                 style={{
                   backgroundColor: COLORS.brown,
                   borderRadius: 20,
                   width: wp(90),
                   height: hp(55),
-                  alignItems: "center",
-                  justifyContent: "center",
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   borderWidth: 1,
                   borderColor: COLORS.white,
-                }}
-              >
+                }}>
                 <SkeletonFront
                   containerWidth={wp(90)}
                   showLabel
                   selectedMuscles={secondaryMuscle.front}
-                  onMuscleToggle={(muscle) => {
-                    setSecondaryMuscle((prev) => {
+                  onMuscleToggle={muscle => {
+                    setSecondaryMuscle(prev => {
                       const isCurrentlySelected = prev.front.includes(
-                        muscle as SpecificMuscle
+                        muscle as SpecificMuscle,
                       );
                       if (isCurrentlySelected) {
                         // Remove muscle from selection
                         return {
                           ...prev,
-                          front: prev.front.filter((m) => m !== muscle),
+                          front: prev.front.filter(m => m !== muscle),
                         };
                       } else {
                         // Add muscle to selection
@@ -890,7 +1036,7 @@ const AddNewExercise = ({}) => {
                     });
                   }}
                   viewBox="0 30 369 90"
-                  selectionColor={"#C3FF00"}
+                  selectionColor={'#C3FF00'}
                 />
               </View>
             </TouchableOpacity>
@@ -902,46 +1048,43 @@ const AddNewExercise = ({}) => {
             transparent
             visible={showSecondaryBackBodyModal}
             animationType="fade"
-            onRequestClose={() => setShowSecondaryBackBodyModal(false)}
-          >
+            onRequestClose={() => setShowSecondaryBackBodyModal(false)}>
             <TouchableOpacity
               activeOpacity={1}
               onPress={() => setShowSecondaryBackBodyModal(false)}
               style={{
                 flex: 1,
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
               <View
                 onStartShouldSetResponder={() => true} // Capture touch events
-                onResponderRelease={(e) => e.stopPropagation()} // Prevent propagation
+                onResponderRelease={e => e.stopPropagation()} // Prevent propagation
                 style={{
                   backgroundColor: COLORS.brown,
                   borderRadius: 20,
                   width: wp(90),
                   height: hp(55),
-                  alignItems: "center",
-                  justifyContent: "center",
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   borderWidth: 1,
                   borderColor: COLORS.white,
-                }}
-              >
+                }}>
                 <SkeletonBack
                   containerWidth={wp(90)}
                   showLabel
                   selectedMuscles={secondaryMuscle.back}
-                  onMuscleToggle={(muscle) => {
-                    setSecondaryMuscle((prev) => {
+                  onMuscleToggle={muscle => {
+                    setSecondaryMuscle(prev => {
                       const isCurrentlySelected = prev.back.includes(
-                        muscle as SpecificMuscle
+                        muscle as SpecificMuscle,
                       );
                       if (isCurrentlySelected) {
                         // Remove muscle from selection
                         return {
                           ...prev,
-                          back: prev.back.filter((m) => m !== muscle),
+                          back: prev.back.filter(m => m !== muscle),
                         };
                       } else {
                         // Add muscle to selection
@@ -953,7 +1096,7 @@ const AddNewExercise = ({}) => {
                     });
                   }}
                   viewBox="0 30 369 90"
-                  selectionColor={"#C3FF00"}
+                  selectionColor={'#C3FF00'}
                 />
               </View>
             </TouchableOpacity>
@@ -979,20 +1122,20 @@ const styles = StyleSheet.create({
   },
   coverImage: {
     height: hp(20),
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   coverImageStyle: {
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   gradient: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   headerContainer: {
     flex: 1,
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: verticalScale(10),
     paddingVertical: verticalScale(20),
     paddingHorizontal: verticalScale(10),
@@ -1001,9 +1144,9 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(20),
   },
   labelContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: verticalScale(5),
   },
   input: {
@@ -1012,11 +1155,11 @@ const styles = StyleSheet.create({
     padding: horizontalScale(10),
     color: COLORS.white,
     fontSize: 14,
-    fontFamily: "Poppins-Regular",
+    fontFamily: 'Poppins-Regular',
   },
   textArea: {
     height: verticalScale(100),
-    textAlignVertical: "top",
+    textAlignVertical: 'top',
     paddingTop: verticalScale(10),
   },
   buttonContainer: {
@@ -1024,7 +1167,7 @@ const styles = StyleSheet.create({
     gap: verticalScale(10),
   },
   cancelButton: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: verticalScale(10),
   },
   // Styles for step 2
@@ -1037,7 +1180,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(15),
   },
   difficultyContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginTop: verticalScale(8),
     gap: horizontalScale(8),
   },
@@ -1053,7 +1196,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.yellow,
   },
   optionsContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginTop: verticalScale(8),
     gap: horizontalScale(10),
   },
@@ -1063,7 +1206,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.white,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
   activeOptionButton: {
     backgroundColor: COLORS.yellow,
@@ -1074,9 +1217,9 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(20),
   },
   imagesContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: horizontalScale(5),
     marginTop: verticalScale(10),
     width: wp(90),
@@ -1086,16 +1229,16 @@ const styles = StyleSheet.create({
     height: horizontalScale(100),
     borderRadius: 20,
 
-    overflow: "hidden",
-    position: "relative",
+    overflow: 'hidden',
+    position: 'relative',
     marginBottom: verticalScale(10),
   },
   exerciseImage: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
   },
   removeImageButton: {
-    position: "absolute",
+    position: 'absolute',
     top: 5,
     right: 5,
     backgroundColor: COLORS.darkBrown,
@@ -1108,20 +1251,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.whiteTail,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   title: {
     marginBottom: verticalScale(10),
   },
   subtitle: {
-    textAlign: "center",
+    textAlign: 'center',
     marginVertical: verticalScale(10),
   },
   skeletonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: horizontalScale(10),
   },
   skeletonWrapper: {
@@ -1129,18 +1272,18 @@ const styles = StyleSheet.create({
     padding: verticalScale(15),
     borderRadius: 20,
     width: wp(45),
-    alignItems: "center",
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.white,
   },
   skeletonHeader: {
-    width: "100%",
-    alignItems: "center",
+    width: '100%',
+    alignItems: 'center',
     paddingVertical: verticalScale(5),
   },
   skeletonLabel: {
     marginBottom: verticalScale(10),
-    fontFamily: "medium",
+    fontFamily: 'medium',
   },
   selectedMusclesContainer: {
     marginTop: verticalScale(20),
@@ -1149,8 +1292,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   muscleTagsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: horizontalScale(8),
     marginTop: verticalScale(10),
   },

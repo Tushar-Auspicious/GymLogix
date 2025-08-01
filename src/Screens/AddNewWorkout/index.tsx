@@ -1,43 +1,46 @@
-import React, { FC, useState } from "react";
-import { Alert, ImageBackground, StyleSheet, View } from "react-native";
-import { launchCamera, launchImageLibrary } from "react-native-image-picker";
-import LinearGradient from "react-native-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
-import ICONS from "../../Assets/Icons";
-import IMAGES from "../../Assets/Images";
-import CustomIcon from "../../Components/CustomIcon";
-import { CustomText } from "../../Components/CustomText";
-import UploadImageOptions from "../../Components/Modals/UploadImageOptions";
-import PrimaryButton from "../../Components/PrimaryButton";
+import React, {FC, useState} from 'react';
+import {Alert, ImageBackground, StyleSheet, View} from 'react-native';
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import LinearGradient from 'react-native-linear-gradient';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import ICONS from '../../Assets/Icons';
+import IMAGES from '../../Assets/Images';
+import CustomIcon from '../../Components/CustomIcon';
+import {CustomText} from '../../Components/CustomText';
+import UploadImageOptions from '../../Components/Modals/UploadImageOptions';
+import PrimaryButton from '../../Components/PrimaryButton';
 import {
   ExerciseListItem,
   resetNewWorkoutSlice,
   setActiveStep,
   setWorkoutData,
-} from "../../Redux/slices/newWorkoutSlice";
-import { saveWorkout } from "../../Redux/slices/savedWorkoutsSlice";
-import { useAppDispatch, useAppSelector } from "../../Redux/store";
-import { AddNewWorkoutScreenProps } from "../../Typings/route";
-import COLORS from "../../Utilities/Colors";
-import { hp, verticalScale, wp } from "../../Utilities/Metrics";
-import AddNewExercise from "./steps/AddNewExercise";
-import SelectExercise from "./steps/SelectExercise";
-import Step1 from "./steps/Step1";
-import Step2 from "./steps/Step2";
-import Step3 from "./steps/Step3";
-import Step4 from "./steps/Step4";
-import Step5 from "./steps/Step5";
-import Step6 from "./steps/Step6";
-import WorkroutDataScreen from "./steps/WorkroutDataScreen";
-import { KeyboardAvoidingContainer } from "../../Components/KeyboardAvoidingComponent";
-import ExerciseSettings from "./steps/ExerciseSettings";
-import SelectAlternateExercise from "./steps/SelectAlternateExercise";
+} from '../../Redux/slices/newWorkoutSlice';
+import {saveWorkout} from '../../Redux/slices/savedWorkoutsSlice';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
+import {AddNewWorkoutScreenProps} from '../../Typings/route';
+import COLORS from '../../Utilities/Colors';
+import {hp, verticalScale, wp} from '../../Utilities/Metrics';
+import AddNewExercise from './steps/AddNewExercise';
+import SelectExercise from './steps/SelectExercise';
+import Step1 from './steps/Step1';
+import Step2 from './steps/Step2';
+import Step3 from './steps/Step3';
+import Step4 from './steps/Step4';
+import Step5 from './steps/Step5';
+import Step6 from './steps/Step6';
+import WorkroutDataScreen from './steps/WorkroutDataScreen';
+import {KeyboardAvoidingContainer} from '../../Components/KeyboardAvoidingComponent';
+import ExerciseSettings from './steps/ExerciseSettings';
+import SelectAlternateExercise from './steps/SelectAlternateExercise';
+import {postData, postFormData} from '../../APIServices/api';
+import ENDPOINTS from '../../APIServices/endPoints';
 
-const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({ navigation }) => {
+const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
-  const { workoutData, activeStep } = useAppSelector(
-    (state) => state.newWorkout
-  );
+  const {workoutData, activeStep} = useAppSelector(state => state.newWorkout);
+  const [fileData, setFileData] = useState<any | null>(null);
+
+  console.log('wokrout data --->', workoutData);
 
   const [isUploadOptionModal, setIsUploadOptionModal] = useState(false);
 
@@ -52,18 +55,40 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({ navigation }) => {
     useState<string | null>(null);
 
   const handleImagePick = () => {
-    launchImageLibrary({ mediaType: "photo", quality: 0.8 }, (response) => {
+    launchImageLibrary({mediaType: 'photo', quality: 0.8}, async response => {
       if (response.didCancel) {
-        console.log("User cancelled image picker");
+        console.log('User cancelled image picker');
       } else if (response.errorCode) {
-        console.log("ImagePicker Error: ", response.errorMessage);
+        console.log('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
+
+        const formData = new FormData();
+        const imageData = asset;
+        formData.append('asset', {
+          uri: imageData.uri,
+          type: imageData.type,
+          name: imageData.fileName,
+        });
+
+        const image_response = await postFormData<any>(
+          ENDPOINTS.uploadFile,
+          formData,
+        );
+        console.log('image response ---->', image_response);
+
+        if (image_response.data) {
+          const get_Image_Url = image_response.data.url;
+
+          if (get_Image_Url) {
+            setFileData(get_Image_Url);
+          }
+        }
         dispatch(
           setWorkoutData({
             ...workoutData,
-            coverImage: asset,
-          })
+            coverImage: fileData ? fileData : asset,
+          }),
         );
       }
       closeModal();
@@ -74,25 +99,47 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({ navigation }) => {
     try {
       const result = await launchCamera({
         quality: 1,
-        mediaType: "photo",
+        mediaType: 'photo',
       });
 
       if (result.didCancel) {
-        console.log("User cancelled camera");
+        console.log('User cancelled camera');
       } else if (result.errorCode) {
-        console.log("Camera error:", result.errorMessage);
+        console.log('Camera error:', result.errorMessage);
       } else if (result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
+
+        const formData = new FormData();
+        const imageData = asset;
+        formData.append('asset', {
+          uri: imageData.uri,
+          type: imageData.type,
+          name: imageData.fileName,
+        });
+
+        const image_response = await postFormData<any>(
+          ENDPOINTS.uploadFile,
+          formData,
+        );
+        console.log('image response ---->', image_response);
+
+        if (image_response.data) {
+          const get_Image_Url = image_response.data.url;
+
+          if (get_Image_Url) {
+            setFileData(get_Image_Url);
+          }
+        }
         dispatch(
           setWorkoutData({
             ...workoutData,
-            coverImage: asset,
-          })
+            coverImage: fileData ? fileData : asset,
+          }),
         );
       }
       closeModal();
     } catch (error) {
-      console.log("Camera capture failed:", error);
+      console.log('Camera capture failed:', error);
     }
   };
 
@@ -161,6 +208,55 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({ navigation }) => {
     }
   };
 
+  const createNewWorkout = async () => {
+    const difficultyLevels: any = {
+      1: 'beginner',
+      2: 'intermediate',
+      3: 'advance',
+    };
+    const data = {
+      name: workoutData.name, //must be included
+      image_url: fileData,
+      type: 'workout', //must be included, can be food or workout
+      content: {
+        //must be included, can be empty   check the database for full structure of food and workout
+        details: workoutData.instruction,
+        instructions: workoutData.instruction,
+        days_per_week: workoutData.daysInWeek.toString(),
+        type: workoutData.goal,
+        location: workoutData.location,
+        duration: workoutData.durationInWeeks.toString(),
+        difficulty: difficultyLevels[workoutData.difficulty] || 'beginner',
+        workouts: workoutData.exerciseList.map(item => ({
+          workout_id: Number(item.id),
+          name: item.dayName,
+          color: item.color,
+          rest_period: item.restPeriod.toString(),
+          comments: '',
+          exercises: [
+            {
+              type: item.exercise[0]?.type,
+              workout_exercises: item.exercise.map(ex => ({
+                exercise_id: Number(ex.id),
+                sets: ex.recommendedSets || 0,
+                reps: ex.recommendedReps || 0,
+              })),
+            },
+          ],
+        })),
+      },
+    };
+
+    console.log('sent data --->', data);
+
+    try {
+      const response = await postData(ENDPOINTS.create_plan, data);
+      console.log('new workout plan response ---->', response);
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+  };
+
   return (
     <View style={styles.main}>
       <SafeAreaView style={styles.safeArea}>
@@ -168,19 +264,15 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({ navigation }) => {
           {activeStep < 8 && (
             <ImageBackground
               source={
-                workoutData.coverImage
-                  ? { uri: workoutData.coverImage.uri }
-                  : IMAGES.exerciseDummy
+                workoutData.coverImage ? {uri: fileData} : IMAGES.exerciseDummy
               }
               style={styles.coverImage}
-              imageStyle={styles.coverImageStyle}
-            >
+              imageStyle={styles.coverImageStyle}>
               <LinearGradient
-                colors={["rgba(0,0,0,0)", "#1F1A16"]}
+                colors={['rgba(0,0,0,0)', '#1F1A16']}
                 style={styles.gradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-              >
+                start={{x: 0, y: 0}}
+                end={{x: 0, y: 1}}>
                 <View style={styles.headerContainer}>
                   <CustomIcon
                     onPress={() => {
@@ -194,14 +286,13 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({ navigation }) => {
                   />
                   <View
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
                       width: wp(90),
-                    }}
-                  >
+                    }}>
                     <CustomText color={COLORS.white} fontSize={18}>
-                      {workoutData.name ? workoutData.name : "New Exercise"}
+                      {workoutData.name ? workoutData.name : 'New Exercise'}
                     </CustomText>
                     {activeStep === 7 ? (
                       <CustomIcon
@@ -229,35 +320,36 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({ navigation }) => {
             <View
               style={{
                 paddingVertical: verticalScale(20),
-              }}
-            >
+              }}>
               <PrimaryButton
-                title={activeStep === 7 ? "Save Workout" : "Next"}
+                title={activeStep === 7 ? 'Save Workout' : 'Next'}
                 onPress={() => {
                   if (activeStep === 7) {
                     // Save the workout
-                    dispatch(saveWorkout(workoutData));
+                    // dispatch(saveWorkout(workoutData));
+                    createNewWorkout();
 
+                    return;
                     // Show success message
                     Alert.alert(
-                      "Success!",
+                      'Success!',
                       `Workout "${workoutData.name}" has been saved successfully!`,
                       [
                         {
-                          text: "View My Workouts",
+                          text: 'View My Workouts',
                           onPress: () => {
                             dispatch(resetNewWorkoutSlice());
-                            navigation.navigate("savedWorkouts");
+                            navigation.navigate('savedWorkouts');
                           },
                         },
                         {
-                          text: "Create Another",
+                          text: 'Create Another',
                           onPress: () => {
                             dispatch(resetNewWorkoutSlice());
                             dispatch(setActiveStep(1));
                           },
                         },
-                      ]
+                      ],
                     );
                   } else {
                     // Continue to next step
@@ -272,9 +364,9 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({ navigation }) => {
                   onPress={() => {
                     dispatch(setActiveStep(activeStep + 1));
                   }}
-                  backgroundColor={"transparent"}
+                  backgroundColor={'transparent'}
                   textColor={COLORS.white}
-                  style={{ alignSelf: "center" }}
+                  style={{alignSelf: 'center'}}
                 />
               )}
             </View>
@@ -301,23 +393,23 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: verticalScale(5),
   },
-  safeArea: { flex: 1, gap: verticalScale(10) },
+  safeArea: {flex: 1, gap: verticalScale(10)},
   coverImage: {
     height: hp(20),
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   coverImageStyle: {
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   gradient: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   headerContainer: {
     flex: 1,
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: verticalScale(10),
     paddingVertical: verticalScale(20),
     paddingHorizontal: verticalScale(10),

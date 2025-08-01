@@ -1,7 +1,7 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { myMealsList, MyMealsListItem } from "../../Seeds/Plans";
-import { RootState } from "../store";
-import { IngredientItem } from "../../Seeds/MealPlansData";
+import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import {MyMealsListItem} from '../../Seeds/Plans';
+import {RootState} from '../store';
+import {IngredientItem} from '../../Seeds/MealPlansData';
 
 // Interface for the training plans slice state
 interface MyMealsSlice {
@@ -10,19 +10,23 @@ interface MyMealsSlice {
 
 // Define the initial state using that type
 const initialState: MyMealsSlice = {
-  myMealsList: myMealsList,
+  myMealsList: [],
 };
 
 export const MyMealsSlice = createSlice({
-  name: "myMeals",
+  name: 'myMeals',
   initialState,
   reducers: {
     addMeal: (state, action: PayloadAction<MyMealsListItem>) => {
       state.myMealsList.push(action.payload);
     },
+    setMeal: (state, action: PayloadAction<MyMealsListItem[]>) => {
+      state.myMealsList = action.payload;
+    },
+
     updateMeal: (state, action: PayloadAction<MyMealsListItem>) => {
       const index = state.myMealsList.findIndex(
-        (meal) => meal.id === action.payload.id
+        meal => meal.id === action.payload.id,
       );
       if (index !== -1) {
         state.myMealsList[index] = action.payload;
@@ -31,39 +35,40 @@ export const MyMealsSlice = createSlice({
 
     removeIngredientsFromMeal: (
       state,
-      action: PayloadAction<{ mealId: string; ingredientId: string }>
+      action: PayloadAction<{mealId: number; ingredientId: string}>,
     ) => {
       const selectedMeal = state.myMealsList.find(
-        (meal) => meal.id === action.payload.mealId
+        meal => meal.id === action.payload.mealId,
       );
       if (selectedMeal) {
         selectedMeal.ingredients = selectedMeal.ingredients.filter(
-          (ingredient) => ingredient.id !== action.payload.ingredientId
+          ingredient => ingredient.id !== action.payload.ingredientId,
         );
       }
     },
+
     addIngredientsToMeal: (
       state,
-      action: PayloadAction<{ mealId: string; ingredients: IngredientItem[] }>
+      action: PayloadAction<{mealId: number; ingredients: IngredientItem[]}>,
     ) => {
       const selectedMeal = state.myMealsList.find(
-        (meal) => meal.id === action.payload.mealId
+        meal => meal.id === action.payload.mealId,
       );
       if (selectedMeal) {
         const existingIds = new Set(
-          selectedMeal.ingredients.map((item) => item.id)
+          selectedMeal.ingredients.map(item => item.id),
         );
 
         const uniqueItems = action.payload.ingredients.filter(
-          (item) => !existingIds.has(item.id)
+          item => !existingIds.has(item.id),
         );
         selectedMeal.ingredients.push(...uniqueItems);
       }
     },
 
-    deleteMeal: (state, action: PayloadAction<string>) => {
+    deleteMeal: (state, action: PayloadAction<number>) => {
       state.myMealsList = state.myMealsList.filter(
-        (meal) => meal.id !== action.payload
+        meal => meal.id !== action.payload,
       );
     },
   },
@@ -72,6 +77,7 @@ export const MyMealsSlice = createSlice({
 // Export actions
 export const {
   addMeal,
+  setMeal,
   updateMeal,
   removeIngredientsFromMeal,
   deleteMeal,
@@ -80,9 +86,9 @@ export const {
 
 export const selectMealById = (
   state: RootState,
-  id: string
+  id: number,
 ): MyMealsListItem | undefined => {
-  return state.myMeals.myMealsList.find((meal) => meal.id === id);
+  return state.myMeals.myMealsList.find(meal => meal.id === id);
 };
 
 // Export reducer

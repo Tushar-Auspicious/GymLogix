@@ -24,6 +24,9 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
 
   const {userData} = useAppSelector(state => state.userData);
+  const {myMealsList} = useAppSelector(state => state.myMeals);
+
+  // console.log(myMealsList, 'YUTYIIUIUIOU');
 
   const {dates, month, homeActiveIndex, logMealActiveIndex} = useAppSelector(
     state => state.initial,
@@ -32,10 +35,18 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const progressLine = () => {
     let progress = 0;
 
-    if (userData?.email) progress += 25;
+    if (userData?.is_verified) progress += 25;
     if (userData?.first_name && userData?.last_name) progress += 25;
     if (userData?.pic_URL) progress += 25;
-    if (userData?.age) progress += 25;
+
+    const personalSettings = userData?.personal_settings;
+
+    const hasPersonalSettings =
+      personalSettings?.height &&
+      personalSettings.height_measurement &&
+      personalSettings.workout_exp_years;
+
+    if (hasPersonalSettings) progress += 25;
 
     return `${progress}%`;
   };

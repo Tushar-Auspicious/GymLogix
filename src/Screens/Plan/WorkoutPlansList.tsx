@@ -1,5 +1,5 @@
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import React, { FC } from "react";
+import {NativeStackNavigationProp} from '@react-navigation/native-stack';
+import React, {FC} from 'react';
 import {
   FlatList,
   Image,
@@ -9,70 +9,62 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-} from "react-native";
-import LinearGradient from "react-native-linear-gradient";
-import ICONS from "../../Assets/Icons";
-import CustomIcon from "../../Components/CustomIcon";
-import { CustomText } from "../../Components/CustomText";
-import PrimaryButton from "../../Components/PrimaryButton";
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import ICONS from '../../Assets/Icons';
+import CustomIcon from '../../Components/CustomIcon';
+import {CustomText} from '../../Components/CustomText';
+import PrimaryButton from '../../Components/PrimaryButton';
 import {
   setActiveWorkoutprogramIndex,
   setCurrentprogramId,
   setCurrentProgramList,
-} from "../../Redux/slices/initialSlice";
-import { useAppDispatch, useAppSelector } from "../../Redux/store";
-import bulkingPrograms, { trainingPrograms } from "../../Seeds/Plans";
-import { BottomTabParams, MainStackParams } from "../../Typings/route";
-import COLORS from "../../Utilities/Colors";
-import {
-  horizontalScale,
-  hp,
-  verticalScale,
-  wp,
-} from "../../Utilities/Metrics";
-import WorkoutProgramDetails from "./WorkoutProgramDetails";
+} from '../../Redux/slices/initialSlice';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
+import bulkingPrograms, {trainingPrograms} from '../../Seeds/Plans';
+import {BottomTabParams, MainStackParams} from '../../Typings/route';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, hp, verticalScale, wp} from '../../Utilities/Metrics';
+import WorkoutProgramDetails from './WorkoutProgramDetails';
 
 export type WorkoutPlansListProps = {
   navigation: NativeStackNavigationProp<
     MainStackParams & BottomTabParams,
-    "PLAN",
+    'PLAN',
     undefined
   >;
 };
 
-const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
+const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
-  const { activeWorkoutprogramIndex, currentProgramList } = useAppSelector(
-    (state) => state.initial
+  const {activeWorkoutprogramIndex, currentProgramList} = useAppSelector(
+    state => state.initial,
   );
+  const {planData} = useAppSelector(state => state.planData);
 
   const renderBanner = () => {
     return (
       <ImageBackground
         source={{
-          uri: "https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          uri: 'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
         }}
         style={styles.bannerImage}
-        imageStyle={styles.bannerImageStyle}
-      >
+        imageStyle={styles.bannerImageStyle}>
         <LinearGradient
-          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.8)"]}
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.8)']}
           style={styles.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        >
+          start={{x: 0, y: 0}}
+          end={{x: 0, y: 1}}>
           <TouchableOpacity
             onPress={() => {
-              dispatch(setCurrentprogramId("2"));
+              dispatch(setCurrentprogramId('2'));
               dispatch(setActiveWorkoutprogramIndex(2));
             }}
-            style={styles.bannerTouchable}
-          >
+            style={styles.bannerTouchable}>
             <CustomText
               fontSize={24}
               fontFamily="bold"
-              style={styles.bannerText}
-            >
+              style={styles.bannerText}>
               Full Program Hyper Throphy
             </CustomText>
           </TouchableOpacity>
@@ -84,57 +76,55 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
   const renderGymPrograms = () => {
     return (
       <View style={styles.sectionContainer}>
-        {trainingPrograms.slice(4, 6).map((item, index) => {
-          return (
-            <Pressable
-              key={item.id + index.toString()}
-              onPress={() => {
-                dispatch(setCurrentprogramId(item.id));
-                dispatch(setActiveWorkoutprogramIndex(2));
-              }}
-            >
-              <ImageBackground
-                source={{
-                  uri: item.coverImage,
-                }}
-                style={styles.programImage}
-                imageStyle={styles.programImageStyle}
-              >
-                <View style={[styles.gradient, styles.programTextContainer]}>
-                  <CustomText
-                    fontSize={20}
-                    fontFamily="bold"
-                    style={styles.programTitle}
-                  >
-                    {item.title}
-                  </CustomText>
-                  <View style={styles.tagContainer}>
-                    {item.tags.map((tag, index) => (
-                      <CustomText
-                        key={index}
-                        style={styles.tag}
-                        fontFamily="italicBold"
-                        fontSize={12}
-                        color={COLORS.black}
-                      >
-                        {tag}
-                      </CustomText>
-                    ))}
+        {planData
+          ?.filter(item => item.tags.includes('gym'))
+          .map((item, index) => {
+            return (
+              <Pressable
+                key={item.id + index.toString()}
+                onPress={() => {
+                  dispatch(setCurrentprogramId(item.id));
+                  dispatch(setActiveWorkoutprogramIndex(2));
+                }}>
+                <ImageBackground
+                  source={{
+                    uri: item.coverImage,
+                  }}
+                  style={styles.programImage}
+                  imageStyle={styles.programImageStyle}>
+                  <View style={[styles.gradient, styles.programTextContainer]}>
+                    <CustomText
+                      fontSize={20}
+                      fontFamily="bold"
+                      style={styles.programTitle}>
+                      {item.title}
+                    </CustomText>
+                    <View style={styles.tagContainer}>
+                      {item.tags.map((tag, index) => (
+                        <CustomText
+                          key={index}
+                          style={styles.tag}
+                          fontFamily="italicBold"
+                          fontSize={12}
+                          color={COLORS.black}>
+                          {tag}
+                        </CustomText>
+                      ))}
+                    </View>
                   </View>
-                </View>
-              </ImageBackground>
-            </Pressable>
-          );
-        })}
+                </ImageBackground>
+              </Pressable>
+            );
+          })}
         <PrimaryButton
           isFullWidth
           title="See All"
           onPress={() => {
             dispatch(
               setCurrentProgramList({
-                title: "Gym Programs",
+                title: 'Gym Programs',
                 data: trainingPrograms,
-              })
+              }),
             );
             dispatch(setActiveWorkoutprogramIndex(1));
           }}
@@ -146,33 +136,32 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
   };
 
   const renderTrendingPrograms = () => {
+    const trending = planData?.filter(item => item.tags.includes('trending'));
     return (
       <FlatList
-        data={trainingPrograms}
+        data={trending}
         horizontal
-        renderItem={({ item }) => {
+        renderItem={({item}) => {
           return (
             <Pressable
               onPress={() => {
                 dispatch(setActiveWorkoutprogramIndex(2));
                 dispatch(setCurrentprogramId(item.id));
               }}
-              style={styles.trendingProgramItem}
-            >
+              style={styles.trendingProgramItem}>
               <Image
-                source={{ uri: item.coverImage }}
+                source={{uri: item.coverImage}}
                 style={styles.trendingProgramImage}
               />
               <CustomText
                 fontFamily="semiBold"
-                style={styles.trendingProgramTitle}
-              >
+                style={styles.trendingProgramTitle}>
                 {item.title}
               </CustomText>
             </Pressable>
           );
         }}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.trendingProgramsList}
       />
     );
@@ -181,56 +170,54 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
   const renderStrengthPrograms = () => {
     return (
       <View style={styles.sectionContainer}>
-        {trainingPrograms.slice(6, 8).map((item, index) => {
-          return (
-            <ImageBackground
-              key={item.id + index.toString()}
-              source={{
-                uri: item.coverImage,
-              }}
-              style={styles.programImage}
-              imageStyle={styles.programImageStyle}
-            >
-              <Pressable
-                onPress={() => {
-                  dispatch(setCurrentprogramId(item.id));
-                  dispatch(setActiveWorkoutprogramIndex(2));
+        {planData
+          ?.filter(item => item.tags.includes('strength'))
+          .map((item, index) => {
+            return (
+              <ImageBackground
+                key={item.id + index.toString()}
+                source={{
+                  uri: item.coverImage,
                 }}
-                style={[styles.gradient, styles.programTextContainer]}
-              >
-                <CustomText
-                  fontSize={20}
-                  fontFamily="bold"
-                  style={styles.programTitle}
-                >
-                  Full Program Hyper Throphy
-                </CustomText>
-                <View style={styles.tagContainer}>
-                  {item.tags.map((tag, index) => (
-                    <CustomText
-                      key={index}
-                      style={styles.tag}
-                      fontFamily="italicBold"
-                      fontSize={12}
-                      color={COLORS.black}
-                    >
-                      {tag}
-                    </CustomText>
-                  ))}
-                </View>
-              </Pressable>
-            </ImageBackground>
-          );
-        })}
+                style={styles.programImage}
+                imageStyle={styles.programImageStyle}>
+                <Pressable
+                  onPress={() => {
+                    dispatch(setCurrentprogramId(item.id));
+                    dispatch(setActiveWorkoutprogramIndex(2));
+                  }}
+                  style={[styles.gradient, styles.programTextContainer]}>
+                  <CustomText
+                    fontSize={20}
+                    fontFamily="bold"
+                    style={styles.programTitle}>
+                    Full Program Hyper Throphy
+                  </CustomText>
+                  <View style={styles.tagContainer}>
+                    {item.tags.map((tag, index) => (
+                      <CustomText
+                        key={index}
+                        style={styles.tag}
+                        fontFamily="italicBold"
+                        fontSize={12}
+                        color={COLORS.black}>
+                        {tag}
+                      </CustomText>
+                    ))}
+                  </View>
+                </Pressable>
+              </ImageBackground>
+            );
+          })}
         <PrimaryButton
           isFullWidth
           title="See All"
           onPress={() => {
             dispatch(
               setCurrentProgramList({
-                title: "Strength Programs",
+                title: 'Strength Programs',
                 data: trainingPrograms,
-              })
+              }),
             );
             dispatch(setActiveWorkoutprogramIndex(1));
           }}
@@ -252,8 +239,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
                 uri: item.coverImage,
               }}
               style={styles.fullWidthProgramImage}
-              imageStyle={styles.programImageStyle}
-            >
+              imageStyle={styles.programImageStyle}>
               <Pressable
                 onPress={() => {
                   dispatch(setCurrentprogramId(item.id));
@@ -262,12 +248,11 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
                 style={[
                   styles.gradient,
                   {
-                    justifyContent: "flex-end",
+                    justifyContent: 'flex-end',
                     paddingVertical: verticalScale(10),
                     paddingHorizontal: horizontalScale(10),
                   },
-                ]}
-              >
+                ]}>
                 <CustomText fontFamily="bold">{item?.title}</CustomText>
                 <View style={styles.tagContainer}>
                   {item?.tags.map((tag: string, index: number) => (
@@ -276,8 +261,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
                       style={styles.tag}
                       fontFamily="italicBold"
                       fontSize={12}
-                      color={COLORS.black}
-                    >
+                      color={COLORS.black}>
                       {tag}
                     </CustomText>
                   ))}
@@ -292,7 +276,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
             title="See All"
             onPress={() => {
               setCurrentProgramList({
-                title: "Lose Weight programs",
+                title: 'Lose Weight programs',
                 data: bulkingPrograms,
               });
               dispatch(setActiveWorkoutprogramIndex(1));
@@ -312,34 +296,51 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
           <ScrollView
             contentContainerStyle={styles.scrollViewContent}
             nestedScrollEnabled={true}
-            style={styles.scrollView}
-          >
-            {" "}
+            style={styles.scrollView}>
+            {' '}
             {renderBanner()}
-            <CustomText
-              fontSize={22}
-              fontFamily="extraBold"
-              style={styles.sectionTitle}
-            >
-              Gym programs
-            </CustomText>
-            {renderGymPrograms()}
-            <CustomText
-              fontSize={22}
-              fontFamily="extraBold"
-              style={styles.sectionTitle}
-            >
-              Trending Programs
-            </CustomText>
-            {renderTrendingPrograms()}
-            <CustomText
-              fontSize={22}
-              fontFamily="extraBold"
-              style={styles.sectionTitle}
-            >
-              Strength Programs
-            </CustomText>
-            {renderStrengthPrograms()}
+            {/* Gym program -----> */}
+            {planData &&
+              planData?.filter(item => item.tags.includes('gym')).length >
+                0 && (
+                <>
+                  <CustomText
+                    fontSize={22}
+                    fontFamily="extraBold"
+                    style={styles.sectionTitle}>
+                    Gym programs
+                  </CustomText>
+                  {renderGymPrograms()}
+                </>
+              )}
+            {/* Trending program -----> */}
+            {planData &&
+              planData?.filter(item => item.tags.includes('trending')).length >
+                0 && (
+                <>
+                  <CustomText
+                    fontSize={22}
+                    fontFamily="extraBold"
+                    style={styles.sectionTitle}>
+                    Trending Programs
+                  </CustomText>
+                  {renderTrendingPrograms()}
+                </>
+              )}
+            {/* strength program -----> */}
+            {planData &&
+              planData?.filter(item => item.tags.includes('strength')).length >
+                0 && (
+                <>
+                  <CustomText
+                    fontSize={22}
+                    fontFamily="extraBold"
+                    style={styles.sectionTitle}>
+                    Strength Programs
+                  </CustomText>
+                  {renderStrengthPrograms()}
+                </>
+              )}
           </ScrollView>
         );
       case 1:
@@ -349,15 +350,13 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
               <TouchableOpacity
                 onPress={() => {
                   dispatch(setActiveWorkoutprogramIndex(0));
-                }}
-              >
+                }}>
                 <CustomIcon Icon={ICONS.BackArrow} />
               </TouchableOpacity>
               <CustomText
                 fontSize={22}
                 fontFamily="extraBold"
-                style={styles.headerTitle}
-              >
+                style={styles.headerTitle}>
                 {currentProgramList.title}
               </CustomText>
             </View>
@@ -375,7 +374,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({ navigation }) => {
     }
   };
 
-  return <View style={{ flex: 1 }}>{renderMainView()}</View>;
+  return <View style={{flex: 1}}>{renderMainView()}</View>;
 };
 
 export default WorkoutPlansList;
@@ -394,10 +393,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tagContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: horizontalScale(5),
     marginTop: 5,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
   },
   tag: {
     backgroundColor: COLORS.whiteGreenish,
@@ -407,20 +406,20 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     height: hp(35),
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   bannerImageStyle: {
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   bannerTouchable: {
     paddingHorizontal: verticalScale(10),
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
     paddingVertical: verticalScale(10),
   },
   bannerText: {
-    width: "70%",
+    width: '70%',
     paddingBottom: verticalScale(10),
   },
   sectionContainer: {
@@ -430,19 +429,19 @@ const styles = StyleSheet.create({
   },
   programImage: {
     height: hp(25),
-    overflow: "hidden",
+    overflow: 'hidden',
     borderRadius: 10,
   },
   programImageStyle: {
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   programTextContainer: {
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(10),
   },
   programTitle: {
-    width: "100%",
+    width: '100%',
   },
   seeAllButton: {
     borderRadius: 100,
@@ -458,8 +457,8 @@ const styles = StyleSheet.create({
   },
   trendingProgramImage: {
     height: hp(20),
-    width: "100%",
-    resizeMode: "cover",
+    width: '100%',
+    resizeMode: 'cover',
     borderRadius: 10,
   },
   trendingProgramTitle: {
@@ -467,8 +466,8 @@ const styles = StyleSheet.create({
   },
   fullWidthProgramImage: {
     height: hp(25),
-    justifyContent: "flex-end",
-    overflow: "hidden",
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
     borderRadius: 10,
   },
   fullWidthView: {
@@ -476,8 +475,8 @@ const styles = StyleSheet.create({
     gap: verticalScale(20),
   },
   headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: horizontalScale(10),
   },
   sectionTitle: {

@@ -1,60 +1,58 @@
-import React, { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { CustomText } from "../../Components/CustomText";
-import CustomDropdown from "../../Components/Modals/DropDownModal";
-import RangeSlider from "../../Components/RangeSlider/RangeSlider";
-import COLORS from "../../Utilities/Colors";
-import { horizontalScale, verticalScale, wp } from "../../Utilities/Metrics";
-import MeasurementTab from "./MeasurementTab";
-import NutritionTab from "./NutritionTab";
-import TrainingTab from "./TrainingTab";
+import React, {useState} from 'react';
+import {Pressable, ScrollView, StyleSheet, View} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {CustomText} from '../../Components/CustomText';
+import CustomDropdown from '../../Components/Modals/DropDownModal';
+import RangeSlider from '../../Components/RangeSlider/RangeSlider';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
+import MeasurementTab from './MeasurementTab';
+import NutritionTab from './NutritionTab';
+import TrainingTab from './TrainingTab';
 
 const STATS = () => {
   const [statsTab, setStatsTab] = useState(1);
-  const [plan, setPlan] = useState<any>("Select");
-  const [workout, setWorkout] = useState<any>("Select");
-  const [exercise, setExercise] = useState<any>("Select");
+  const [plan, setPlan] = useState<any>('Select');
+  const [workout, setWorkout] = useState<any>('Select');
+  const [exercise, setExercise] = useState<any>('Select');
   const [dateRange, setDateRange] = useState([0, 100]);
 
   const plans = [
-    { label: "Plan 1", value: "Plan 1" },
-    { label: "Plan 2", value: "Plan 2" },
-    { label: "Plan 3", value: "Plan 3" },
+    {label: 'Plan 1', value: 'Plan 1'},
+    {label: 'Plan 2', value: 'Plan 2'},
+    {label: 'Plan 3', value: 'Plan 3'},
   ];
 
   const workouts = [
-    { label: "Workout 1", value: "Workout 1" },
-    { label: "Workout 2", value: "Workout 2" },
-    { label: "Workout 3", value: "Workout 3" },
+    {label: 'Workout 1', value: 'Workout 1'},
+    {label: 'Workout 2', value: 'Workout 2'},
+    {label: 'Workout 3', value: 'Workout 3'},
   ];
 
   const exercises = [
-    { label: "Exercise 1", value: "Exercise 1" },
-    { label: "Exercise 2", value: "Exercise 2" },
-    { label: "Exercise 3", value: "Exercise 3" },
+    {label: 'Exercise 1', value: 'Exercise 1'},
+    {label: 'Exercise 2', value: 'Exercise 2'},
+    {label: 'Exercise 3', value: 'Exercise 3'},
   ];
 
   const topTabsData = [
-    { label: "Training", value: 1, onClick: () => setStatsTab(1) },
-    { label: "Nutrition", value: 2, onClick: () => setStatsTab(2) },
-    { label: "Measurements", value: 3, onClick: () => setStatsTab(3) },
+    {label: 'Training', value: 1, onClick: () => setStatsTab(1)},
+    {label: 'Nutrition', value: 2, onClick: () => setStatsTab(2)},
+    {label: 'Measurements', value: 3, onClick: () => setStatsTab(3)},
   ];
 
   const renderTopTabs = () => {
     return (
       <View style={styles.topTabsContainer}>
-        {topTabsData.map((tab) => (
+        {topTabsData.map(tab => (
           <Pressable
             key={tab.value}
             style={[styles.tab, statsTab === tab.value && styles.activeTab]}
-            onPress={tab.onClick}
-          >
+            onPress={tab.onClick}>
             <CustomText
               fontSize={13}
               fontFamily="medium"
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               {tab.label}
             </CustomText>
           </Pressable>
@@ -109,7 +107,7 @@ const STATS = () => {
 
   return (
     <View style={styles.main}>
-      <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
         <View
           style={{
             width: wp(100),
@@ -117,16 +115,14 @@ const STATS = () => {
             paddingHorizontal: horizontalScale(20),
             paddingVertical: verticalScale(10),
             gap: verticalScale(20),
-          }}
-        >
+          }}>
           {renderTopTabs()}
           {renderDropDowns()}
           <RangeSlider />
         </View>
         <ScrollView
           contentContainerStyle={styles.contentContainer}
-          style={styles.scrollView}
-        >
+          style={styles.scrollView}>
           {renderMainView()}
         </ScrollView>
       </SafeAreaView>
@@ -146,15 +142,15 @@ const styles = StyleSheet.create({
     gap: verticalScale(10),
   },
   topTabsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   tab: {
     paddingVertical: verticalScale(8),
     borderRadius: 10,
     width: wp(30),
-    alignItems: "center",
+    alignItems: 'center',
   },
   activeTab: {
     backgroundColor: COLORS.yellow,
@@ -167,8 +163,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdownContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: horizontalScale(5),
   },
   dropdownWrapper: {
@@ -179,8 +175,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.whiteTail,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "#CECECE",
-    overflow: "hidden",
+    borderColor: '#CECECE',
+    overflow: 'hidden',
   },
   sliderContainer: {
     backgroundColor: COLORS.brown,

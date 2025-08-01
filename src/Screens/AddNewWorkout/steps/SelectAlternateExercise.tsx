@@ -1,4 +1,4 @@
-import React, { FC, memo, useCallback, useState } from "react";
+import React, {FC, memo, useCallback, useState} from 'react';
 import {
   FlatList,
   Image,
@@ -7,44 +7,44 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import ICONS from "../../../Assets/Icons";
-import CustomIcon from "../../../Components/CustomIcon";
-import { CustomText } from "../../../Components/CustomText";
-import PrimaryButton from "../../../Components/PrimaryButton";
+} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import ICONS from '../../../Assets/Icons';
+import CustomIcon from '../../../Components/CustomIcon';
+import {CustomText} from '../../../Components/CustomText';
+import PrimaryButton from '../../../Components/PrimaryButton';
 import {
   selectAllExercises,
   selectExercisesByCategory,
   updateAlternateExerciseInSettings,
   updateExerciseSettings,
-} from "../../../Redux/slices/exerciseCatalogSlice";
-import { setActiveStep } from "../../../Redux/slices/newWorkoutSlice";
-import { useAppDispatch, useAppSelector } from "../../../Redux/store";
-import { Exercise } from "../../../Seeds/ExerciseCatalog";
-import COLORS from "../../../Utilities/Colors";
-import { horizontalScale, verticalScale, wp } from "../../../Utilities/Metrics";
+} from '../../../Redux/slices/exerciseCatalogSlice';
+import {setActiveStep} from '../../../Redux/slices/newWorkoutSlice';
+import {useAppDispatch, useAppSelector} from '../../../Redux/store';
+import {Exercise} from '../../../Seeds/ExerciseCatalog';
+import COLORS from '../../../Utilities/Colors';
+import {horizontalScale, verticalScale, wp} from '../../../Utilities/Metrics';
 
 const tabData = [
-  { label: "Category", value: 1 },
-  { label: "History", value: 2 },
-  { label: "List", value: 3 },
+  {label: 'Category', value: 1},
+  {label: 'History', value: 2},
+  {label: 'List', value: 3},
 ];
 
 const SelectAlternateExercise: FC<{
   selectedExercise: string | null;
-}> = ({ selectedExercise }) => {
+}> = ({selectedExercise}) => {
   const dispatch = useAppDispatch();
-  const { activeStep } = useAppSelector((state) => state.newWorkout);
+  const {activeStep} = useAppSelector(state => state.newWorkout);
 
   // Get exercises from Redux store
   const exerciseCategories = useAppSelector(selectExercisesByCategory);
   const allExercises = useAppSelector(selectAllExercises);
 
-  const [searchedWord, setSearchedWord] = useState("");
+  const [searchedWord, setSearchedWord] = useState('');
   const [activeTab, setActiveTab] = useState(1);
   const [expandedCategories, setExpandedCategories] = useState(
-    exerciseCategories.map((item) => item.bodyPart)
+    exerciseCategories.map(item => item.bodyPart),
   );
 
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]); // Single state for all selected exercises
@@ -56,23 +56,23 @@ const SelectAlternateExercise: FC<{
 
   // Toggle exercise selection in the single state
   const toggleExerciseSelection = useCallback((exerciseId: string) => {
-    setSelectedExercises((prev) =>
+    setSelectedExercises(prev =>
       prev.includes(exerciseId)
-        ? prev.filter((id) => id !== exerciseId)
-        : [...prev, exerciseId]
+        ? prev.filter(id => id !== exerciseId)
+        : [...prev, exerciseId],
     );
   }, []);
 
   const toggleCategory = useCallback((bodyPart: string) => {
-    setExpandedCategories((prev) =>
+    setExpandedCategories(prev =>
       prev.includes(bodyPart)
-        ? prev.filter((category) => category !== bodyPart)
-        : [...prev, bodyPart]
+        ? prev.filter(category => category !== bodyPart)
+        : [...prev, bodyPart],
     );
   }, []);
 
   const ExerciseItem = memo(
-    ({ exercise }: { exercise: Exercise; index: number }) => {
+    ({exercise}: {exercise: Exercise; index: number}) => {
       const isSelected = selectedExercises.includes(exercise.id);
 
       return (
@@ -81,7 +81,7 @@ const SelectAlternateExercise: FC<{
             source={{
               uri:
                 exercise.coverImage?.uri ??
-                "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8",
+                'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
             }}
             style={styles.exerciseImage}
           />
@@ -90,24 +90,21 @@ const SelectAlternateExercise: FC<{
               <CustomText
                 color={COLORS.yellow}
                 fontFamily="medium"
-                fontSize={12}
-              >
+                fontSize={12}>
                 {exercise.name}
               </CustomText>
               {isSelected ? (
                 <View style={styles.selectedActions}>
                   <TouchableOpacity
                     onPress={() => toggleExerciseSelection(exercise.id)}
-                    style={[styles.actionButton, styles.selectedButton]}
-                  >
+                    style={[styles.actionButton, styles.selectedButton]}>
                     <CustomText>V</CustomText>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity
                   onPress={() => toggleExerciseSelection(exercise.id)}
-                  style={styles.actionButton}
-                >
+                  style={styles.actionButton}>
                   <CustomIcon Icon={ICONS.PlusIcon} height={12} width={12} />
                 </TouchableOpacity>
               )}
@@ -123,8 +120,7 @@ const SelectAlternateExercise: FC<{
                   key={`${exercise.id}-${idx}`}
                   style={styles.tag}
                   fontSize={10}
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   {tag}
                 </CustomText>
               ))}
@@ -132,18 +128,17 @@ const SelectAlternateExercise: FC<{
           </View>
         </View>
       );
-    }
+    },
   );
 
-  const CategoryItem = memo(({ item }: { item: any }) => {
+  const CategoryItem = memo(({item}: {item: any}) => {
     const isExpanded = expandedCategories.includes(item.bodyPart);
     return (
       <View style={styles.categoryContainer}>
         <View style={styles.categoryHeader}>
           <Pressable
             onPress={() => toggleCategory(item.bodyPart)}
-            style={styles.categoryPressable}
-          >
+            style={styles.categoryPressable}>
             <CustomIcon Icon={ICONS.ArrowDownIcon} height={7} width={18} />
             <CustomText color={COLORS.whiteTail} fontFamily="medium">
               {item.bodyPart}
@@ -153,7 +148,7 @@ const SelectAlternateExercise: FC<{
             <CustomText>{item.exercises.length}</CustomText>
             <Image
               source={{
-                uri: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8",
+                uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
               }}
               style={styles.categoryImage}
             />
@@ -162,8 +157,8 @@ const SelectAlternateExercise: FC<{
         {isExpanded && (
           <FlatList
             data={item.exercises}
-            keyExtractor={(exercise) => exercise.name}
-            renderItem={({ item: exercise, index }) => (
+            keyExtractor={exercise => exercise.name}
+            renderItem={({item: exercise, index}) => (
               <ExerciseItem exercise={exercise} index={index} />
             )}
           />
@@ -175,7 +170,7 @@ const SelectAlternateExercise: FC<{
   const renderTabs = useCallback(
     () => (
       <View style={styles.tabContainer}>
-        {tabData.map((tab) => (
+        {tabData.map(tab => (
           <Pressable
             key={tab.value}
             onPress={() => setActiveTab(tab.value)}
@@ -183,10 +178,9 @@ const SelectAlternateExercise: FC<{
               styles.tabButton,
               {
                 backgroundColor:
-                  activeTab === tab.value ? COLORS.yellow : "transparent",
+                  activeTab === tab.value ? COLORS.yellow : 'transparent',
               },
-            ]}
-          >
+            ]}>
             <CustomText fontSize={14} fontFamily="medium">
               {tab.label}
             </CustomText>
@@ -194,7 +188,7 @@ const SelectAlternateExercise: FC<{
         ))}
       </View>
     ),
-    [activeTab]
+    [activeTab],
   );
 
   const renderMainView = useCallback(() => {
@@ -203,8 +197,8 @@ const SelectAlternateExercise: FC<{
         return (
           <FlatList
             data={exerciseCategories}
-            keyExtractor={(item) => item.bodyPart}
-            renderItem={({ item }) => <CategoryItem item={item} />}
+            keyExtractor={item => item.bodyPart}
+            renderItem={({item}) => <CategoryItem item={item} />}
             contentContainerStyle={styles.mainListContent}
           />
         );
@@ -212,8 +206,8 @@ const SelectAlternateExercise: FC<{
         return (
           <FlatList
             data={historyExercises}
-            keyExtractor={(exercise) => exercise.id}
-            renderItem={({ item: exercise, index }) => (
+            keyExtractor={exercise => exercise.id}
+            renderItem={({item: exercise, index}) => (
               <ExerciseItem exercise={exercise} index={index} />
             )}
             contentContainerStyle={styles.listContent}
@@ -223,8 +217,8 @@ const SelectAlternateExercise: FC<{
         return (
           <FlatList
             data={listExercises}
-            keyExtractor={(exercise) => exercise.id}
-            renderItem={({ item: exercise, index }) => (
+            keyExtractor={exercise => exercise.id}
+            renderItem={({item: exercise, index}) => (
               <ExerciseItem exercise={exercise} index={index} />
             )}
             contentContainerStyle={styles.listContent}
@@ -268,12 +262,11 @@ const SelectAlternateExercise: FC<{
         <PrimaryButton
           title="Add Alternate Exercises"
           onPress={() => {
-
             dispatch(
               updateAlternateExerciseInSettings({
                 id: selectedExercise!,
                 alternateExercise: selectedExercises[0],
-              })
+              }),
             );
             dispatch(setActiveStep(activeStep - 1));
           }}
@@ -292,11 +285,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: verticalScale(5),
   },
-  safeArea: { flex: 1, gap: verticalScale(10) },
+  safeArea: {flex: 1, gap: verticalScale(10)},
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(15),
     width: wp(100),
@@ -308,13 +301,13 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     paddingHorizontal: verticalScale(10),
     paddingVertical: verticalScale(5),
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(10),
     flex: 1,
   },
-  searchInput: { width: "100%", color: COLORS.white },
-  newButton: { alignItems: "center", gap: verticalScale(5) },
+  searchInput: {width: '100%', color: COLORS.white},
+  newButton: {alignItems: 'center', gap: verticalScale(5)},
   newIconContainer: {
     borderWidth: 1,
     borderColor: COLORS.white,
@@ -322,20 +315,20 @@ const styles = StyleSheet.create({
     padding: verticalScale(10),
   },
   tabContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-evenly",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
     paddingHorizontal: horizontalScale(15),
   },
   tabButton: {
-    justifyContent: "center",
+    justifyContent: 'center',
     paddingHorizontal: horizontalScale(10),
     paddingVertical: verticalScale(5),
     borderRadius: 10,
-    alignItems: "center",
+    alignItems: 'center',
     flex: 1,
   },
-  selectedText: { paddingHorizontal: horizontalScale(15) },
+  selectedText: {paddingHorizontal: horizontalScale(15)},
   mainListContent: {
     paddingHorizontal: horizontalScale(15),
     gap: verticalScale(20),
@@ -344,8 +337,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: horizontalScale(15),
   },
   exerciseItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     borderRadius: verticalScale(10),
     backgroundColor: COLORS.lightBrown,
     padding: verticalScale(5),
@@ -355,26 +348,26 @@ const styles = StyleSheet.create({
     marginVertical: verticalScale(5),
   },
   exerciseImage: {
-    height: "100%",
+    height: '100%',
     minHeight: 71,
     width: 66,
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   exerciseContent: {
     flex: 1,
-    justifyContent: "center",
+    justifyContent: 'center',
     gap: verticalScale(15),
   },
   exerciseHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     paddingRight: horizontalScale(20),
   },
   selectedActions: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(5),
   },
   actionButton: {
@@ -383,34 +376,34 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     height: verticalScale(28),
     width: verticalScale(28),
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selectedButton: {
     backgroundColor: COLORS.yellow,
   },
   tagsContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: horizontalScale(5),
   },
   tag: {
-    backgroundColor: "#403633",
+    backgroundColor: '#403633',
     paddingHorizontal: horizontalScale(5),
   },
-  categoryContainer: { gap: verticalScale(10) },
+  categoryContainer: {gap: verticalScale(10)},
   categoryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   categoryPressable: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(10),
   },
   categoryInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(20),
   },
   categoryImage: {

@@ -1,7 +1,10 @@
-import type { PayloadAction } from "@reduxjs/toolkit";
-import { createSelector, createSlice } from "@reduxjs/toolkit";
-import { Exercise } from "../../Seeds/ExerciseCatalog";
-import TrainingPlansData, { TrainingPlan, WeeklyStructure } from "../../Seeds/TrainingPLans";
+import type {PayloadAction} from '@reduxjs/toolkit';
+import {createSelector, createSlice} from '@reduxjs/toolkit';
+import {Exercise} from '../../Seeds/ExerciseCatalog';
+import TrainingPlansData, {
+  TrainingPlan,
+  WeeklyStructure,
+} from '../../Seeds/TrainingPLans';
 
 // Interface for the training plans slice state
 interface TrainingPlansSlice {
@@ -17,14 +20,14 @@ interface TrainingPlansSlice {
 const initialState: TrainingPlansSlice = {
   plans: TrainingPlansData, // Load initial training plans from seed data
   activePlanId: null,
-  searchQuery: "",
+  searchQuery: '',
   selectedTags: [],
   isLoading: false,
   lastUpdated: null,
 };
 
 export const trainingPlansSlice = createSlice({
-  name: "trainingPlans",
+  name: 'trainingPlans',
   initialState,
   reducers: {
     // Add a new training plan
@@ -36,7 +39,7 @@ export const trainingPlansSlice = createSlice({
     // Update an existing training plan
     updateTrainingPlan: (state, action: PayloadAction<TrainingPlan>) => {
       const index = state.plans.findIndex(
-        (plan) => plan.id === action.payload.id
+        plan => plan.id === action.payload.id,
       );
       if (index !== -1) {
         state.plans[index] = action.payload;
@@ -46,7 +49,7 @@ export const trainingPlansSlice = createSlice({
 
     // Delete a training plan
     deleteTrainingPlan: (state, action: PayloadAction<string>) => {
-      state.plans = state.plans.filter((plan) => plan.id !== action.payload);
+      state.plans = state.plans.filter(plan => plan.id !== action.payload);
       if (state.activePlanId === action.payload) {
         state.activePlanId = null;
       }
@@ -59,7 +62,7 @@ export const trainingPlansSlice = createSlice({
     },
 
     // Clear active training plan
-    clearActivePlan: (state) => {
+    clearActivePlan: state => {
       state.activePlanId = null;
     },
 
@@ -67,18 +70,20 @@ export const trainingPlansSlice = createSlice({
     addExercisesToDay: (
       state,
       action: PayloadAction<{
-        planId: string;
+        planId: any;
         dayId: string;
         exercises: Exercise[];
-      }>
+      }>,
     ) => {
-      const { planId, dayId, exercises } = action.payload;
-      const planIndex = state.plans.findIndex((plan) => plan.id === planId);
-      
+      const {planId, dayId, exercises} = action.payload;
+      const planIndex = state.plans.findIndex(plan => plan.id === planId);
+
       if (planIndex !== -1) {
         const plan = state.plans[planIndex];
-        const dayIndex = plan.weeklyStructure.findIndex((day) => day.day === dayId);
-        
+        const dayIndex = plan.weeklyStructure.findIndex(
+          day => day.day === dayId,
+        );
+
         if (dayIndex !== -1) {
           // Add exercises to the existing exercises array
           plan.weeklyStructure[dayIndex].exercises.push(...exercises);
@@ -94,19 +99,21 @@ export const trainingPlansSlice = createSlice({
         planId: string;
         dayId: string;
         exerciseId: string;
-      }>
+      }>,
     ) => {
-      const { planId, dayId, exerciseId } = action.payload;
-      const planIndex = state.plans.findIndex((plan) => plan.id === planId);
-      
+      const {planId, dayId, exerciseId} = action.payload;
+      const planIndex = state.plans.findIndex(plan => plan.id === planId);
+
       if (planIndex !== -1) {
         const plan = state.plans[planIndex];
-        const dayIndex = plan.weeklyStructure.findIndex((day) => day.day === dayId);
-        
+        const dayIndex = plan.weeklyStructure.findIndex(
+          day => day.day === dayId,
+        );
+
         if (dayIndex !== -1) {
-          plan.weeklyStructure[dayIndex].exercises = plan.weeklyStructure[dayIndex].exercises.filter(
-            (exercise) => exercise.id !== exerciseId
-          );
+          plan.weeklyStructure[dayIndex].exercises = plan.weeklyStructure[
+            dayIndex
+          ].exercises.filter(exercise => exercise.id !== exerciseId);
           state.lastUpdated = new Date().toISOString();
         }
       }
@@ -119,15 +126,17 @@ export const trainingPlansSlice = createSlice({
         planId: string;
         dayId: string;
         updates: Partial<WeeklyStructure>;
-      }>
+      }>,
     ) => {
-      const { planId, dayId, updates } = action.payload;
-      const planIndex = state.plans.findIndex((plan) => plan.id === planId);
-      
+      const {planId, dayId, updates} = action.payload;
+      const planIndex = state.plans.findIndex(plan => plan.id === planId);
+
       if (planIndex !== -1) {
         const plan = state.plans[planIndex];
-        const dayIndex = plan.weeklyStructure.findIndex((day) => day.day === dayId);
-        
+        const dayIndex = plan.weeklyStructure.findIndex(
+          day => day.day === dayId,
+        );
+
         if (dayIndex !== -1) {
           plan.weeklyStructure[dayIndex] = {
             ...plan.weeklyStructure[dayIndex],
@@ -144,11 +153,11 @@ export const trainingPlansSlice = createSlice({
       action: PayloadAction<{
         planId: string;
         day: WeeklyStructure;
-      }>
+      }>,
     ) => {
-      const { planId, day } = action.payload;
-      const planIndex = state.plans.findIndex((plan) => plan.id === planId);
-      
+      const {planId, day} = action.payload;
+      const planIndex = state.plans.findIndex(plan => plan.id === planId);
+
       if (planIndex !== -1) {
         state.plans[planIndex].weeklyStructure.push(day);
         state.lastUpdated = new Date().toISOString();
@@ -161,15 +170,15 @@ export const trainingPlansSlice = createSlice({
       action: PayloadAction<{
         planId: string;
         dayId: string;
-      }>
+      }>,
     ) => {
-      const { planId, dayId } = action.payload;
-      const planIndex = state.plans.findIndex((plan) => plan.id === planId);
-      
+      const {planId, dayId} = action.payload;
+      const planIndex = state.plans.findIndex(plan => plan.id === planId);
+
       if (planIndex !== -1) {
-        state.plans[planIndex].weeklyStructure = state.plans[planIndex].weeklyStructure.filter(
-          (day) => day.day !== dayId
-        );
+        state.plans[planIndex].weeklyStructure = state.plans[
+          planIndex
+        ].weeklyStructure.filter(day => day.day !== dayId);
         state.lastUpdated = new Date().toISOString();
       }
     },
@@ -183,8 +192,8 @@ export const trainingPlansSlice = createSlice({
       state.selectedTags = action.payload;
     },
 
-    clearFilters: (state) => {
-      state.searchQuery = "";
+    clearFilters: state => {
+      state.searchQuery = '';
       state.selectedTags = [];
     },
 
@@ -194,10 +203,10 @@ export const trainingPlansSlice = createSlice({
     },
 
     // Reset all training plans to initial state
-    resetTrainingPlans: (state) => {
+    resetTrainingPlans: state => {
       state.plans = TrainingPlansData;
       state.activePlanId = null;
-      state.searchQuery = "";
+      state.searchQuery = '';
       state.selectedTags = [];
       state.lastUpdated = new Date().toISOString();
     },
@@ -225,39 +234,39 @@ export const {
 export default trainingPlansSlice.reducer;
 
 // Base selectors for accessing state
-const selectTrainingPlans = (state: { trainingPlans: TrainingPlansSlice }) =>
+const selectTrainingPlans = (state: {trainingPlans: TrainingPlansSlice}) =>
   state.trainingPlans.plans;
 
-const selectActivePlanId = (state: { trainingPlans: TrainingPlansSlice }) =>
+const selectActivePlanId = (state: {trainingPlans: TrainingPlansSlice}) =>
   state.trainingPlans.activePlanId;
 
-const selectSearchQuery = (state: { trainingPlans: TrainingPlansSlice }) =>
+const selectSearchQuery = (state: {trainingPlans: TrainingPlansSlice}) =>
   state.trainingPlans.searchQuery;
 
-const selectSelectedTags = (state: { trainingPlans: TrainingPlansSlice }) =>
+const selectSelectedTags = (state: {trainingPlans: TrainingPlansSlice}) =>
   state.trainingPlans.selectedTags;
 
-const selectIsLoading = (state: { trainingPlans: TrainingPlansSlice }) =>
+const selectIsLoading = (state: {trainingPlans: TrainingPlansSlice}) =>
   state.trainingPlans.isLoading;
 
-const selectLastUpdated = (state: { trainingPlans: TrainingPlansSlice }) =>
+const selectLastUpdated = (state: {trainingPlans: TrainingPlansSlice}) =>
   state.trainingPlans.lastUpdated;
 
 // Memoized selectors for better performance
 export const selectAllTrainingPlans = createSelector(
   [selectTrainingPlans],
-  (plans) => plans
+  plans => plans,
 );
 
 export const selectActivePlan = createSelector(
   [selectTrainingPlans, selectActivePlanId],
-  (plans, activePlanId) => 
-    activePlanId ? plans.find((plan) => plan.id === activePlanId) : null
+  (plans, activePlanId) =>
+    activePlanId ? plans.find(plan => plan.id === activePlanId) : null,
 );
 
 export const selectPlanById = createSelector(
   [selectTrainingPlans, (state: any, planId: string) => planId],
-  (plans, planId) => plans.find((plan) => plan.id === planId)
+  (plans, planId) => plans.find(plan => plan.id === planId),
 );
 
 export const selectFilteredTrainingPlans = createSelector(
@@ -269,43 +278,40 @@ export const selectFilteredTrainingPlans = createSelector(
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filteredPlans = filteredPlans.filter(
-        (plan) =>
+        plan =>
           plan.name.toLowerCase().includes(query) ||
           plan.goal.toLowerCase().includes(query) ||
           plan.targetAudience.toLowerCase().includes(query) ||
-          plan.tags.some((tag) => tag.toLowerCase().includes(query))
+          plan.tags.some(tag => tag.toLowerCase().includes(query)),
       );
     }
 
     // Filter by selected tags
     if (selectedTags.length > 0) {
-      filteredPlans = filteredPlans.filter((plan) =>
-        selectedTags.every((tag) => plan.tags.includes(tag))
+      filteredPlans = filteredPlans.filter(plan =>
+        selectedTags.every(tag => plan.tags.includes(tag)),
       );
     }
 
     return filteredPlans;
-  }
+  },
 );
 
-export const selectAllTags = createSelector(
-  [selectTrainingPlans],
-  (plans) => {
-    const allTags = plans.flatMap((plan) => plan.tags);
-    return Array.from(new Set(allTags)).sort();
-  }
-);
+export const selectAllTags = createSelector([selectTrainingPlans], plans => {
+  const allTags = plans.flatMap(plan => plan.tags);
+  return Array.from(new Set(allTags)).sort();
+});
 
 export const selectPlansByGoal = createSelector(
   [selectTrainingPlans],
-  (plans) => {
-    const plansByGoal: { [key: string]: TrainingPlan[] } = {};
-    plans.forEach((plan) => {
+  plans => {
+    const plansByGoal: {[key: string]: TrainingPlan[]} = {};
+    plans.forEach(plan => {
       if (!plansByGoal[plan.goal]) {
         plansByGoal[plan.goal] = [];
       }
       plansByGoal[plan.goal].push(plan);
     });
     return plansByGoal;
-  }
+  },
 );
