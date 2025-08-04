@@ -34,6 +34,7 @@ import ExerciseSettings from './steps/ExerciseSettings';
 import SelectAlternateExercise from './steps/SelectAlternateExercise';
 import {postData, postFormData} from '../../APIServices/api';
 import ENDPOINTS from '../../APIServices/endPoints';
+import {setPlanData} from '../../Redux/slices/PlanDataSlice';
 
 const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
@@ -231,7 +232,7 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
           workout_id: Number(item.id),
           name: item.dayName,
           color: item.color,
-          rest_period: item.restPeriod.toString(),
+          rest_period: item.restPeriod,
           comments: '',
           exercises: [
             {
@@ -250,8 +251,11 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
     console.log('sent data --->', data);
 
     try {
-      const response = await postData(ENDPOINTS.create_plan, data);
+      const response = await postData<any>(ENDPOINTS.create_plan, {data});
       console.log('new workout plan response ---->', response);
+      if (response.data.data) {
+        // dispatch(setPlanData(response.data.data));
+      }
     } catch (error) {
       console.log(error, 'Something went wrong');
     }
@@ -326,7 +330,6 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
                 onPress={() => {
                   if (activeStep === 7) {
                     // Save the workout
-                    // dispatch(saveWorkout(workoutData));
                     createNewWorkout();
 
                     return;
