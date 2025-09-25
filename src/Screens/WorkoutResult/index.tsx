@@ -1,45 +1,49 @@
-import React, { FC } from "react";
-import { Image, ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import ICONS from "../../Assets/Icons";
-import CustomIcon from "../../Components/CustomIcon";
-import { CustomText } from "../../Components/CustomText";
-import { WorkoutResultScreenProps } from "../../Typings/route";
-import COLORS from "../../Utilities/Colors";
-import { horizontalScale, verticalScale, wp } from "../../Utilities/Metrics";
+import React, {FC} from 'react';
+import {Image, ScrollView, StyleSheet, View} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import ICONS from '../../Assets/Icons';
+import CustomIcon from '../../Components/CustomIcon';
+import {CustomText} from '../../Components/CustomText';
+import {WorkoutResultScreenProps} from '../../Typings/route';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
+import SkeletonBack from '../../Components/Cards/SkeletonBack';
+import SkeletonFront from '../../Components/Cards/SkeletonFront';
+import {useAppSelector} from '../../Redux/store';
 
-const WorkoutResult: FC<WorkoutResultScreenProps> = ({ navigation, route }) => {
-  const { workoutData } = route.params;
+const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
+  const {workoutData} = route.params;
+
+  console.log('WWWWW', workoutData);
+
+  // console.log('workout', workoutData);
 
   const renderCards = () => {
     return (
       <View
         style={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
           rowGap: verticalScale(10),
           paddingHorizontal: horizontalScale(10),
-        }}
-      >
+        }}>
         {Object.entries(workoutData.overallSummary).map(([key, value]: any) => {
           return (
             <View
               key={key}
               style={{
-                width: "48%", // Two columns with space between
+                width: '48%', // Two columns with space between
                 backgroundColor: COLORS.brown,
                 borderRadius: 100,
                 padding: 10,
-                alignItems: "center",
+                alignItems: 'center',
                 gap: verticalScale(5),
-              }}
-            >
+              }}>
               <CustomText
                 fontFamily="medium"
                 fontSize={12}
-                color={COLORS.yellow}
-              >
+                color={COLORS.yellow}>
                 {key}
               </CustomText>
               <CustomText fontFamily="italic" fontSize={22}>
@@ -48,8 +52,7 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({ navigation, route }) => {
               <CustomText
                 fontFamily="medium"
                 fontSize={12}
-                color={COLORS.sparkleGreen}
-              >
+                color={COLORS.sparkleGreen}>
                 {value.previous}
               </CustomText>
             </View>
@@ -67,10 +70,9 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({ navigation, route }) => {
           backgroundColor: COLORS.brown,
           borderRadius: 20,
           padding: 10,
-          alignItems: "center",
+          alignItems: 'center',
           gap: verticalScale(30),
-        }}
-      >
+        }}>
         <CustomText fontFamily="italicBold" fontSize={24} color={COLORS.yellow}>
           BEST RECORD
         </CustomText>
@@ -79,16 +81,14 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({ navigation, route }) => {
             <View
               key={key}
               style={{
-                width: "90%",
+                width: '90%',
                 gap: verticalScale(10),
-              }}
-            >
+              }}>
               <CustomText
                 fontFamily="italicBold"
                 fontSize={14}
-                color={COLORS.whiteTail}
-              >
-                {key.split("_").join(" ")}
+                color={COLORS.whiteTail}>
+                {key.split('_').join(' ')}
               </CustomText>
 
               <View style={styles.ExerciseItem}>
@@ -102,15 +102,13 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({ navigation, route }) => {
                   <CustomText
                     color={COLORS.yellow}
                     fontFamily="medium"
-                    fontSize={15}
-                  >
+                    fontSize={15}>
                     {value.exerciseName}
                   </CustomText>
                   <CustomText
                     color={COLORS.whiteTail}
                     fontFamily="italic"
-                    fontSize={15}
-                  >
+                    fontSize={15}>
                     {value?.details}
                   </CustomText>
                 </View>
@@ -131,14 +129,50 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({ navigation, route }) => {
           borderRadius: 20,
           paddingHorizontal: horizontalScale(10),
           paddingVertical: verticalScale(20),
-          alignItems: "center",
+          alignItems: 'center',
           gap: verticalScale(30),
-        }}
-      >
+        }}>
         <CustomText fontFamily="italicBold" fontSize={24} color={COLORS.yellow}>
           Targeted Muscles
         </CustomText>
-        <CustomIcon Icon={ICONS.dummyTargetMuscle} height={300} width={300} />
+
+        <View style={styles.skeletonContainer}>
+          <View style={styles.skeletonWrapper}>
+            <View style={styles.skeletonHeader}>
+              <CustomText color={COLORS.white} style={styles.skeletonLabel}>
+                Front
+              </CustomText>
+            </View>
+            <SkeletonFront
+              showLabel={false}
+              width={wp(45)}
+              height={verticalScale(230)}
+              containerWidth={wp(45)}
+              selectedMuscles={workoutData.targetedMuscles}
+              viewBox="0 30 369 70"
+              bodyChart={() => {}}
+              frontMusclesData={() => {}}
+            />
+          </View>
+
+          <View style={styles.skeletonWrapper}>
+            <View style={styles.skeletonHeader}>
+              <CustomText color={COLORS.white} style={styles.skeletonLabel}>
+                Back
+              </CustomText>
+            </View>
+            <SkeletonBack
+              showLabel={false}
+              width={wp(45)}
+              height={verticalScale(230)}
+              containerWidth={wp(45)}
+              selectedMuscles={workoutData.targetedMuscles}
+              viewBox="0 30 369 70"
+              bodyChart={() => {}}
+              backMusclesData={() => {}}
+            />
+          </View>
+        </View>
       </View>
     );
   };
@@ -149,25 +183,21 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({ navigation, route }) => {
         backgroundColor: COLORS.darkBrown,
         flex: 1,
         paddingBottom: verticalScale(5),
-      }}
-    >
+      }}>
       <SafeAreaView
         style={{
           flex: 1,
-        }}
-      >
+        }}>
         <ScrollView
           contentContainerStyle={{
-            alignItems: "center",
+            alignItems: 'center',
             paddingVertical: verticalScale(5),
             gap: verticalScale(20),
-          }}
-        >
+          }}>
           <CustomText
             fontFamily="italicBold"
             color={COLORS.yellow}
-            fontSize={24}
-          >
+            fontSize={24}>
             Workout Result
           </CustomText>
           {renderCards()}
@@ -183,9 +213,9 @@ export default WorkoutResult;
 
 const styles = StyleSheet.create({
   ExerciseItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderWidth: 1,
     borderRadius: verticalScale(10),
     borderColor: COLORS.whiteTail,
@@ -196,16 +226,40 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.skinColor,
   },
   ExerciseImage: {
-    height: "100%",
+    height: '100%',
     width: 66,
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   ExerciseDetails: {
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(10),
-    justifyContent: "flex-start",
+    justifyContent: 'flex-start',
     flex: 1,
     gap: verticalScale(10),
+  },
+
+  skeletonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: horizontalScale(10),
+  },
+  skeletonWrapper: {
+    backgroundColor: COLORS.brown,
+    padding: verticalScale(15),
+    borderRadius: 20,
+    width: wp(45),
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.white,
+  },
+  skeletonHeader: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: verticalScale(5),
+  },
+  skeletonLabel: {
+    marginBottom: verticalScale(10),
+    fontFamily: 'medium',
   },
 });

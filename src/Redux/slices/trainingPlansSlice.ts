@@ -18,7 +18,7 @@ interface TrainingPlansSlice {
 
 // Define the initial state using that type
 const initialState: TrainingPlansSlice = {
-  plans: TrainingPlansData, // Load initial training plans from seed data
+  plans: [], // Load initial training plans from seed data
   activePlanId: null,
   searchQuery: '',
   selectedTags: [],
@@ -76,7 +76,12 @@ export const trainingPlansSlice = createSlice({
       }>,
     ) => {
       const {planId, dayId, exercises} = action.payload;
+
+      console.log(planId, dayId, exercises, 'JJJJJ');
+
       const planIndex = state.plans.findIndex(plan => plan.id === planId);
+
+      console.log(planIndex, 'LLLLL');
 
       if (planIndex !== -1) {
         const plan = state.plans[planIndex];

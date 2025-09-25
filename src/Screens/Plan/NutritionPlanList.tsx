@@ -24,7 +24,7 @@ import {useAppDispatch, useAppSelector} from '../../Redux/store';
 import NutritionProgramData, {
   NutritionPlanItem,
 } from '../../Seeds/NutritionPrograms';
-import {myMealsList} from '../../Seeds/Plans';
+import {myMealsList, MyMealsListItem} from '../../Seeds/Plans';
 import {BottomTabParams, MainStackParams} from '../../Typings/route';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, hp, verticalScale, wp} from '../../Utilities/Metrics';
@@ -43,20 +43,24 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
   const {activeNutritionprogramIndex, currentProgramList} = useAppSelector(
     state => state.initial,
   );
-  const {foodData} = useAppSelector(state => state.foodData);
+  const {myMealsList} = useAppSelector(state => state.myMeals);
+
+  const {planData} = useAppSelector(state => state.planData);
+
+  // console.log('shjsj', planData);
 
   const renderBanner = () => {
     return (
       <Pressable
         onPress={() => {
           navigation.navigate('mealDetails', {
-            mealId: myMealsList[8].id,
+            mealId: myMealsList[0].id,
             isFromMyMeal: false,
           });
         }}>
         <ImageBackground
           source={{
-            uri: myMealsList[8].coverImage?.uri,
+            uri: myMealsList[0].coverImage?.uri,
           }}
           style={styles.bannerImage}
           imageStyle={styles.bannerImageStyle}>
@@ -77,7 +81,7 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
                 fontSize={24}
                 fontFamily="bold"
                 style={styles.bannerTitle}>
-                {myMealsList[8].title}
+                {myMealsList[0].title}
               </CustomText>
             </View>
           </LinearGradient>
@@ -86,11 +90,15 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
     );
   };
 
-  const renderBulkingPrograms = () => {
+  const renderBulkingPrograms = (data: []) => {
+    const itemsRender =
+      activeNutritionprogramIndex === 0
+        ? planData?.filter(item => item.type === 'food').slice(0, 6)
+        : data;
     return (
       <View style={styles.sectionContainer}>
         <FlatList
-          data={NutritionProgramData.slice(0, 6)}
+          data={itemsRender}
           numColumns={3}
           contentContainerStyle={styles.bulkingProgramsList}
           columnWrapperStyle={styles.bulkingProgramsColumn}
@@ -98,7 +106,7 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
             return (
               <Pressable
                 onPress={() => {
-                  dispatch(setCurrentprogramId(item.id));
+                  dispatch(setCurrentprogramId(item.allData?.plan_id!));
                   dispatch(setActiveNutritionprogramIndex(2));
                 }}
                 style={styles.bulkingProgramItem}>
@@ -122,7 +130,7 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
             dispatch(
               setCurrentProgramList({
                 title: 'Bulking programs',
-                data: NutritionProgramData,
+                data: planData?.filter(item => item.type === 'food'),
               }),
             );
           }}
@@ -164,9 +172,11 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
     );
   };
 
-  const renderFullWidthPrograms = (data: NutritionPlanItem[]) => {
+  const renderFullWidthPrograms = (data: []) => {
     const itemsRender =
-      activeNutritionprogramIndex === 0 ? foodData?.slice(0, 5) : data;
+      activeNutritionprogramIndex === 0
+        ? planData?.filter(item => item.type === 'food')
+        : data;
     return (
       <View style={styles.sectionContainer}>
         {itemsRender &&
@@ -175,7 +185,7 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
               key={item.id.toString()}
               onPress={() => {
                 dispatch(setActiveNutritionprogramIndex(2));
-                dispatch(setCurrentprogramId(item.id));
+                dispatch(setCurrentprogramId(item.allData?.plan_id!));
               }}>
               <ImageBackground
                 key={item.id + index.toString()}
@@ -185,18 +195,18 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
                 style={styles.fullWidthProgramImage}>
                 <View style={styles.fullWidthIMageContainer}>
                   <CustomText fontFamily="bold">{item?.title}</CustomText>
-                  {/* <View style={styles.tagContainer}>
-                  {item?.tags.map((tag, index) => (
-                    <CustomText
-                      key={index}
-                      style={styles.tag}
-                      fontFamily="italicBold"
-                      fontSize={12}
-                      color={COLORS.black}>
-                      {tag}
-                    </CustomText>
-                  ))}
-                </View> */}
+                  <View style={styles.tagContainer}>
+                    {item?.tags?.map((tag, index) => (
+                      <CustomText
+                        key={index}
+                        style={styles.tag}
+                        fontFamily="italicBold"
+                        fontSize={12}
+                        color={COLORS.black}>
+                        {tag}
+                      </CustomText>
+                    ))}
+                  </View>
                 </View>
               </ImageBackground>
             </Pressable>
@@ -210,7 +220,7 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
               dispatch(
                 setCurrentProgramList({
                   title: 'Lose Weight programs',
-                  data: foodData,
+                  data: planData?.filter(item => item.type === 'food'),
                 }),
               );
             }}

@@ -1,8 +1,8 @@
-import type { PayloadAction } from "@reduxjs/toolkit";
-import { createSlice } from "@reduxjs/toolkit";
-import { IngredientItem, Ingredients } from "../../Seeds/MealPlansData";
-import { Asset } from "react-native-image-picker";
-import { CapturedPhoto } from "../../Screens/AddNewMeal";
+import type {PayloadAction} from '@reduxjs/toolkit';
+import {createSlice} from '@reduxjs/toolkit';
+import {IngredientItem, Ingredients} from '../../Seeds/MealPlansData';
+import {Asset} from 'react-native-image-picker';
+import {CapturedPhoto} from '../../Screens/AddNewMeal';
 
 // Interface for the training plans slice state
 interface MealSlice {
@@ -16,6 +16,7 @@ interface MealSlice {
     protein: string;
   };
   instructions: string;
+  fileData: null;
   ingredients: IngredientItem[];
   mealImages: Asset[];
 }
@@ -23,21 +24,22 @@ interface MealSlice {
 // Define the initial state using that type
 const initialState: MealSlice = {
   coverImage: null,
-  title: "",
-  description: "",
+  title: '',
+  description: '',
   macros: {
-    calories: "512",
-    fat: "12",
-    carbs: "9",
-    protein: "30",
+    calories: '512',
+    fat: '12',
+    carbs: '9',
+    protein: '30',
   },
-  instructions: "",
+  instructions: '',
+  fileData: null,
   ingredients: [],
   mealImages: [],
 };
 
 export const MealSlice = createSlice({
-  name: "newmeal",
+  name: 'newmeal',
   initialState,
   reducers: {
     // Action to set the cover image
@@ -68,7 +70,7 @@ export const MealSlice = createSlice({
         fat?: string;
         carbs?: string;
         protein?: string;
-      }>
+      }>,
     ) => {
       state.macros = {
         ...state.macros,
@@ -82,10 +84,10 @@ export const MealSlice = createSlice({
     },
     // Action to set ingredients
     setIngredient: (state, action: PayloadAction<IngredientItem[]>) => {
-      const existingIds = new Set(state.ingredients.map((item) => item.id));
+      const existingIds = new Set(state.ingredients.map(item => item.id));
 
       const uniqueItems = action.payload.filter(
-        (item) => !existingIds.has(item.id)
+        item => !existingIds.has(item.id),
       );
       state.ingredients.push(...uniqueItems);
     },
@@ -93,7 +95,7 @@ export const MealSlice = createSlice({
     // Action to remove an ingredient by ID
     removeIngredient: (state, action: PayloadAction<string>) => {
       state.ingredients = state.ingredients.filter(
-        (ingredient) => ingredient.id !== action.payload
+        ingredient => ingredient.id !== action.payload,
       );
     },
 
@@ -109,8 +111,12 @@ export const MealSlice = createSlice({
     // Action to remove a meal image
     removeMealImage: (state, action: PayloadAction<number>) => {
       state.mealImages = state.mealImages.filter(
-        (_, index) => index !== action.payload
+        (_, index) => index !== action.payload,
       );
+    },
+
+    setFileData: (state, action) => {
+      state.fileData = action.payload;
     },
 
     // Action to add a complete meal
@@ -128,7 +134,7 @@ export const MealSlice = createSlice({
         };
         ingredients: IngredientItem[];
         mealImages: Asset[];
-      }>
+      }>,
     ) => {
       state.coverImage = action.payload.coverImage;
       state.title = action.payload.title;
@@ -139,7 +145,7 @@ export const MealSlice = createSlice({
     },
 
     // Action to reset the meal state
-    resetMeal: (state) => {
+    resetMeal: state => {
       return initialState;
     },
   },
@@ -160,6 +166,7 @@ export const {
   removeMealImage,
   addNewMeal,
   resetMeal,
+  setFileData,
 } = MealSlice.actions;
 
 // Export reducer

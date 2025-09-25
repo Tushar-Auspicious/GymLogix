@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     marginVertical: verticalScale(5),
     width: wp(90),
     alignSelf: 'center',
-    height: 50,
+    // height: 50,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {useState} from 'react';
 import {
   View,
   StyleSheet,
@@ -7,38 +7,38 @@ import {
   ImageBackground,
   TouchableOpacity,
   Image,
-} from "react-native";
-import { CustomText } from "../../../Components/CustomText";
-import COLORS from "../../../Utilities/Colors";
+} from 'react-native';
+import {CustomText} from '../../../Components/CustomText';
+import COLORS from '../../../Utilities/Colors';
 import {
   horizontalScale,
   verticalScale,
   wp,
   hp,
-} from "../../../Utilities/Metrics";
-import CustomIcon from "../../../Components/CustomIcon";
-import ICONS from "../../../Assets/Icons";
+} from '../../../Utilities/Metrics';
+import CustomIcon from '../../../Components/CustomIcon';
+import ICONS from '../../../Assets/Icons';
 
 // Mock data for the workout program
 const workoutProgramData = {
-  title: "New Training Program",
+  title: 'New Training Program',
   coverImage:
-    "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   days: [
     {
-      day: "Day 1",
+      day: 'Day 1',
       exercises: [
         {
-          name: "Smith machine shrug",
+          name: 'Smith machine shrug',
           sets: 3,
           reps: 3,
           image:
-            "https://images.unsplash.com/photo-1613845205719-8c87760ab728?q=80&w=1635&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+            'https://images.unsplash.com/photo-1613845205719-8c87760ab728?q=80&w=1635&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
         },
       ],
     },
     {
-      day: "Day 2",
+      day: 'Day 2',
       exercises: [],
     },
   ],
@@ -50,7 +50,7 @@ const WorkoutDataScreen = () => {
 
   const toggleDayExpansion = (dayIndex: number) => {
     if (expandedDays.includes(dayIndex)) {
-      setExpandedDays(expandedDays.filter((index) => index !== dayIndex));
+      setExpandedDays(expandedDays.filter(index => index !== dayIndex));
     } else {
       setExpandedDays([...expandedDays, dayIndex]);
     }
@@ -64,15 +64,13 @@ const WorkoutDataScreen = () => {
           style={[
             styles.tabButton,
             {
-              backgroundColor: activeTab === 1 ? COLORS.orange : "transparent",
+              backgroundColor: activeTab === 1 ? COLORS.orange : 'transparent',
             },
-          ]}
-        >
+          ]}>
           <CustomText
             fontSize={14}
             fontFamily="medium"
-            color={activeTab === 1 ? COLORS.white : COLORS.white}
-          >
+            color={activeTab === 1 ? COLORS.white : COLORS.white}>
             Exercise
           </CustomText>
         </Pressable>
@@ -81,15 +79,13 @@ const WorkoutDataScreen = () => {
           style={[
             styles.tabButton,
             {
-              backgroundColor: activeTab === 2 ? COLORS.orange : "transparent",
+              backgroundColor: activeTab === 2 ? COLORS.orange : 'transparent',
             },
-          ]}
-        >
+          ]}>
           <CustomText
             fontSize={14}
             fontFamily="medium"
-            color={activeTab === 2 ? COLORS.white : COLORS.white}
-          >
+            color={activeTab === 2 ? COLORS.white : COLORS.white}>
             Details
           </CustomText>
         </Pressable>
@@ -100,7 +96,7 @@ const WorkoutDataScreen = () => {
   const renderExerciseCard = (exercise: any) => {
     return (
       <View style={styles.exerciseCard}>
-        <Image source={{ uri: exercise.image }} style={styles.exerciseImage} />
+        <Image source={{uri: exercise.image}} style={styles.exerciseImage} />
         <View style={styles.exerciseInfo}>
           <CustomText color={COLORS.yellow} fontSize={15} fontFamily="medium">
             {exercise.name}
@@ -123,14 +119,13 @@ const WorkoutDataScreen = () => {
       <View key={index} style={styles.daySection}>
         <TouchableOpacity
           style={styles.daySectionHeader}
-          onPress={() => toggleDayExpansion(index)}
-        >
+          onPress={() => toggleDayExpansion(index)}>
           <View style={styles.dayTitleContainer}>
             <View style={styles.dayIndicator}>
               <View
                 style={[
                   styles.dayDot,
-                  { backgroundColor: index === 0 ? "red" : "green" },
+                  {backgroundColor: index === 0 ? 'red' : 'green'},
                 ]}
               />
             </View>
@@ -154,8 +149,7 @@ const WorkoutDataScreen = () => {
                 <CustomText
                   fontSize={14}
                   fontFamily="medium"
-                  color={COLORS.whiteTail}
-                >
+                  color={COLORS.whiteTail}>
                   No exercises added yet
                 </CustomText>
               </View>
@@ -165,8 +159,7 @@ const WorkoutDataScreen = () => {
               <CustomText
                 fontSize={14}
                 fontFamily="medium"
-                color={COLORS.white}
-              >
+                color={COLORS.white}>
                 Add Exercise
               </CustomText>
             </TouchableOpacity>
@@ -179,8 +172,7 @@ const WorkoutDataScreen = () => {
             <CustomText
               fontSize={12}
               fontFamily="medium"
-              color={COLORS.whiteTail}
-            >
+              color={COLORS.whiteTail}>
               24 hours rest period
             </CustomText>
             <View style={styles.restPeriodLine} />
@@ -194,7 +186,7 @@ const WorkoutDataScreen = () => {
     return (
       <ScrollView style={styles.tabContent}>
         {workoutProgramData.days.map((day, index) =>
-          renderDaySection(day, index)
+          renderDaySection(day, index),
         )}
 
         <TouchableOpacity style={styles.addWorkoutsButton}>
@@ -219,9 +211,8 @@ const WorkoutDataScreen = () => {
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={{ uri: workoutProgramData.coverImage }}
-        style={styles.headerBackground}
-      >
+        source={{uri: workoutProgramData.coverImage}}
+        style={styles.headerBackground}>
         <View style={styles.headerOverlay}>
           <View style={styles.headerContent}>
             <CustomText fontSize={18} fontFamily="bold" color={COLORS.white}>
@@ -248,24 +239,24 @@ const styles = StyleSheet.create({
   },
   headerBackground: {
     height: hp(25),
-    width: "100%",
+    width: '100%',
   },
   headerOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
     padding: 16,
   },
   headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   settingsButton: {
     padding: 8,
   },
   tabContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     paddingHorizontal: horizontalScale(20),
     paddingVertical: verticalScale(10),
     gap: horizontalScale(10),
@@ -283,20 +274,20 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   daySectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(10),
   },
   dayTitleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(10),
   },
   dayIndicator: {
     width: 20,
-    alignItems: "center",
+    alignItems: 'center',
   },
   dayDot: {
     width: 8,
@@ -311,8 +302,8 @@ const styles = StyleSheet.create({
     paddingBottom: verticalScale(10),
   },
   exerciseCard: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.brown,
     borderRadius: 10,
     padding: 10,
@@ -331,20 +322,20 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   emptyExercisesContainer: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: verticalScale(20),
   },
   addExerciseButton: {
-    backgroundColor: "#E74C3C",
+    backgroundColor: '#E74C3C',
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(20),
     borderRadius: 8,
-    alignSelf: "flex-end",
+    alignSelf: 'flex-end',
     marginTop: verticalScale(10),
   },
   restPeriodContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(20),
   },
@@ -354,11 +345,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.whiteTail,
   },
   addWorkoutsButton: {
-    backgroundColor: "#E83E8C",
+    backgroundColor: '#E83E8C',
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(20),
     borderRadius: 8,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginVertical: verticalScale(20),
   },
 });

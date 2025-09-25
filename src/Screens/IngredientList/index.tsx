@@ -1,5 +1,6 @@
 import React, {FC, memo, useCallback, useEffect, useState} from 'react';
 import {
+  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -29,10 +30,15 @@ import {IngredientScreenProps} from '../../Typings/route';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, hp, verticalScale, wp} from '../../Utilities/Metrics';
 import {CapturedPhoto} from '../AddNewMeal';
-import {postData} from '../../APIServices/api';
+import {postData, postFormData} from '../../APIServices/api';
 import ENDPOINTS from '../../APIServices/endPoints';
-import {getLocalStorageData} from '../../Utilities/Storage';
+import {
+  getLocalStorageData,
+  storeLocalStorageData,
+} from '../../Utilities/Storage';
 import STORAGE_KEYS from '../../Utilities/Constants';
+import {showCustomToast} from '../../Utilities/Helpers';
+import {setQuickMeals, setSource} from '../../Redux/slices/QuickMeals';
 
 const tabData = [
   {label: 'Category', value: 1},
@@ -81,6 +87,8 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
   const [showDescriptionInput, setShowDescriptionInput] = useState(false);
   const [showTitleInput, setShowTitleInput] = useState(false);
 
+  const [fileData, setFileData] = useState<string | null>(null);
+
   const [showServingMeasurementType, setShowServingMeasurementType] =
     useState(false);
   const [serving, setServing] = useState('');
@@ -89,6 +97,17 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
   const [measurementTypePosition, setMeasurementTypePosition] = useState({
     top: 0,
     right: 0,
+  });
+
+  const [errors, setErrors] = useState({
+    title: '',
+    fileData: '',
+    serving: '',
+    calories: '',
+    fat: '',
+    carbs: '',
+    protein: '',
+    description: '',
   });
 
   // Search functionality
@@ -297,13 +316,80 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
     },
   );
 
+  const validInputs = () => {
+    let valid = true;
+    let newErrors = {
+      title: '',
+      fileData: '',
+      serving: '',
+      calories: '',
+      fat: '',
+      carbs: '',
+      protein: '',
+      description: '',
+    };
+    if (!title.trim()) {
+      valid = false;
+      newErrors.title = 'Title is required.';
+      showCustomToast('error', newErrors.title);
+      return;
+    }
+    if (!fileData) {
+      valid = false;
+      newErrors.fileData = 'CoverImage is required.';
+      showCustomToast('error', newErrors.fileData);
+      return;
+    }
+    if (!serving.trim()) {
+      valid = false;
+      newErrors.serving = 'Serving Size is required.';
+      showCustomToast('error', newErrors.serving);
+      return;
+    }
+    if (!calories.trim()) {
+      valid = false;
+      newErrors.calories = 'Calories is required.';
+      showCustomToast('error', newErrors.calories);
+      return;
+    }
+    if (!fat.trim()) {
+      valid = false;
+      newErrors.fat = 'Fat is required.';
+      showCustomToast('error', newErrors.fat);
+      return;
+    }
+    if (!carbs.trim()) {
+      valid = false;
+      newErrors.carbs = 'Crabs is required.';
+      showCustomToast('error', newErrors.carbs);
+      return;
+    }
+    if (!protein.trim()) {
+      valid = false;
+      newErrors.protein = 'Protien is required.';
+      showCustomToast('error', newErrors.protein);
+      return;
+    }
+    if (!description.trim()) {
+      valid = false;
+      newErrors.description = 'Description required.';
+      showCustomToast('error', newErrors.description);
+      return;
+    }
+    setErrors(newErrors);
+    return valid;
+  };
+
   const renderAddNewIngredientUi = () => {
     // ... (Your existing renderAddNewIngredientUi logic, no changes needed here)
     const handleSave = async () => {
+      if (!validInputs()) {
+        return;
+      }
       const data = {
         name: title, //must include
         category: '',
-        image_url: 'https://nix-tag-images.s3.amazonaws.com/384_highres.jpg',
+        image_url: fileData ? fileData : '',
         description: description,
         image_urls: ['https://nix-tag-images.s3.amazonaws.com/384_highres.jpg'],
         serving_size_amount: 1,
@@ -324,42 +410,74 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
         is_kosher: false,
         is_public: true,
       };
-      const getToken = await getLocalStorageData(STORAGE_KEYS.token);
       try {
-        if (getToken) {
-          const response = await postData(ENDPOINTS.foodCreate, {data});
-          if (response?.data) {
-            const getFood_id = await response.data.data.food_id;
-            const id = await response.data.data.id;
+        const response = await postData<any>(ENDPOINTS.foodCreate, {data});
+        if (response?.data) {
+          const getFood_id = await response.data.data.food_id;
+          const id = await response.data.data.id;
 
-            dispatch(
-              addnewIngredient({
-                id: id,
-                idFood: Number(getFood_id),
-                title: title,
-                percentage: 0,
-                image:
-                  'https://nix-tag-images.s3.amazonaws.com/384_highres.jpg',
-                calories: [
-                  Number(calories),
-                  Number(fat),
-                  Number(carbs),
-                  Number(protein),
-                ],
-                quantity: '1',
-                measurementUnit: selectedServingMeasurement,
-                size: serving,
-              }),
-            );
-            setCarbs('0');
-            setFat('0');
-            setProtein('0');
-            setCalories('0');
-            setDescription('');
-            setTitle('');
-            setServing('100');
-            setShowAddNewIngredientUI(false);
-          }
+          dispatch(
+            addnewIngredient({
+              id: id,
+              idFood: Number(getFood_id),
+              title: title,
+              percentage: 0,
+              image: fileData ? fileData : '',
+              calories: [
+                Number(calories),
+                Number(fat),
+                Number(carbs),
+                Number(protein),
+              ],
+              quantity: '1',
+              measurementUnit: selectedServingMeasurement,
+              size: Number(serving),
+            }),
+          );
+
+          //  Save to local storage
+          const localFoodList =
+            (await getLocalStorageData(STORAGE_KEYS.localFoodData)) || [];
+
+          const newFoodItem = {
+            id: id,
+            food_id: getFood_id,
+            name: title,
+            image_url: fileData || '',
+            description: description,
+            calories: Number(calories),
+            carbs: Number(carbs),
+            fat: Number(fat),
+            protein: Number(protein),
+            serving_size_amount: 1,
+            serving_size_measurement: selectedServingMeasurement,
+            serving_weight_grams: Number(serving),
+            gluten_free: false,
+            dairy_free: false,
+            nut_free: false,
+            soy_free: false,
+            egg_free: false,
+            is_vegan: false,
+            is_paleo: false,
+            is_halal: false,
+            is_kosher: false,
+            is_public: true,
+          };
+
+          const updatedFoodList = [...localFoodList, newFoodItem];
+          await storeLocalStorageData(
+            STORAGE_KEYS.localFoodData,
+            updatedFoodList,
+          );
+          setCarbs('0');
+          setFat('0');
+          setProtein('0');
+          setCalories('0');
+          setDescription('');
+          setTitle('');
+          setServing('');
+          setFileData(null);
+          setShowAddNewIngredientUI(false);
         }
       } catch (error) {
         console.log(error, 'Something wnet wrong');
@@ -376,7 +494,7 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
     };
 
     const handleImagePick = () => {
-      launchImageLibrary({mediaType: 'photo', quality: 0.8}, response => {
+      launchImageLibrary({mediaType: 'photo', quality: 0.8}, async response => {
         if (response.didCancel) {
           console.log('User cancelled image picker');
         } else if (response.errorCode) {
@@ -392,6 +510,30 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
 
           if (currentImageType === 'cover') {
             setImage(imageData);
+          }
+
+          const formData = new FormData();
+          const assesData = asset;
+          formData.append('asset', {
+            uri: assesData.uri,
+            name: assesData.fileName,
+            type: assesData.type,
+          });
+
+          try {
+            const api_response = await postFormData<any>(
+              ENDPOINTS.uploadFile,
+              formData,
+            );
+            console.log('nfkfdkk', api_response.data);
+            if (api_response.data) {
+              const get_Image_Url = api_response.data.url;
+              if (get_Image_Url) {
+                setFileData(get_Image_Url);
+              }
+            }
+          } catch (error) {
+            console.log(error, 'Something went wrong');
           }
         }
         closeModal();
@@ -421,6 +563,30 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
           if (currentImageType === 'cover') {
             setImage(imageData);
           }
+
+          const formData = new FormData();
+          const assesData = asset;
+          formData.append('asset', {
+            uri: assesData.uri,
+            name: assesData.fileName,
+            type: assesData.type,
+          });
+
+          try {
+            const api_response = await postFormData<any>(
+              ENDPOINTS.uploadFile,
+              formData,
+            );
+            console.log('nfkfdkk', api_response.data);
+            if (api_response.data) {
+              const get_Image_Url = api_response.data.url;
+              if (get_Image_Url) {
+                setFileData(get_Image_Url);
+              }
+            }
+          } catch (error) {
+            console.log(error, 'Something went wrong');
+          }
         }
 
         closeModal();
@@ -434,7 +600,7 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
         {/* Cover Image Section */}
         <ImageBackground
           source={{
-            uri: image?.uri,
+            uri: fileData ? fileData : '',
           }}
           style={styles.coverImage}
           imageStyle={styles.coverImageStyle}>
@@ -452,8 +618,18 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
                   justifyContent: 'space-between',
                 }}>
                 <CustomIcon
-                  onPress={() => setShowAddNewIngredientUI(false)}
                   Icon={ICONS.BackArrow}
+                  onPress={() => {
+                    setShowAddNewIngredientUI(false);
+                    setTitle(''),
+                      setServing(''),
+                      setFileData(null),
+                      setCalories(''),
+                      setFat(''),
+                      setCarbs(''),
+                      setProtein(''),
+                      setDescription('');
+                  }}
                 />
                 <View style={styles.headerTextContainer}>
                   <CustomIcon
@@ -740,7 +916,7 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
           title="Add"
           onPress={handleSave}
           style={styles.saveButton}
-          disabled={!title || !description || !serving}
+          // disabled={!title || !description || !serving}
         />
 
         {isUploadImageOptionModal && (
@@ -806,13 +982,19 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
 
     // The rest of your dispatch logic
     if (isFrom === 'addNewMeal') {
-      console.log('new ingredinets --->', ingredientsToAdd);
-
-      dispatch(setIngredient(ingredientsToAdd));
+      // dispatch(setIngredient(ingredientsToAdd));
+      dispatch(setQuickMeals(ingredientsToAdd));
+      dispatch(setSource('addNewMeal'));
       navigation.goBack();
     } else if (isFrom === 'editMeal') {
-      console.log('edit ingredinets --->', ingredientsToAdd);
-
+      dispatch(
+        addIngredientsToMeal({
+          mealId: mealId!,
+          ingredients: ingredientsToAdd,
+        }),
+      );
+      navigation.goBack();
+    } else if (isFrom === 'Logmeal') {
       dispatch(
         addIngredientsToMeal({
           mealId: mealId!,

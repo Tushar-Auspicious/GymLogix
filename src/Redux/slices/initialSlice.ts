@@ -1,6 +1,6 @@
-import type { PayloadAction } from "@reduxjs/toolkit";
-import { createSlice } from "@reduxjs/toolkit";
-import { DayItem } from "../../Components/CalendarList";
+import type {PayloadAction} from '@reduxjs/toolkit';
+import {createSlice} from '@reduxjs/toolkit';
+import {DayItem} from '../../Components/CalendarList';
 
 // Define a type for the slice state
 interface initialSlice {
@@ -17,7 +17,7 @@ interface initialSlice {
   activeNutritionprogramIndex: number;
   activeWorkoutprogramIndex: number;
 
-  currentProgramId: string | null;
+  currentProgramId: number | null;
   currentProgramList: {
     title: string;
     data: any[];
@@ -31,7 +31,7 @@ interface initialSlice {
 // Define the initial state using that type
 const initialState: initialSlice = {
   dates: [],
-  month: "",
+  month: '',
   datesLoading: false,
   initialIndex: -1,
   currentRoute: null,
@@ -44,7 +44,7 @@ const initialState: initialSlice = {
   activeNutritionprogramIndex: 0,
   currentProgramId: null,
   currentProgramList: {
-    title: "",
+    title: '',
     data: [],
   },
 
@@ -54,7 +54,7 @@ const initialState: initialSlice = {
 };
 
 export const initialSlice = createSlice({
-  name: "initial",
+  name: 'initial',
   initialState,
   reducers: {
     setDates: (state, action: PayloadAction<DayItem[]>) => {
@@ -86,7 +86,7 @@ export const initialSlice = createSlice({
     setCurrentRoute: (state, action: PayloadAction<string | null>) => {
       state.currentRoute = action.payload;
     },
-    setCurrentprogramId: (state, action: PayloadAction<string | null>) => {
+    setCurrentprogramId: (state, action: PayloadAction<number | null>) => {
       state.currentProgramId = action.payload;
     },
     setHomeActiveIndex: (state, action: PayloadAction<number>) => {
@@ -94,7 +94,7 @@ export const initialSlice = createSlice({
     },
     setCurrentProgramList: (
       state,
-      action: PayloadAction<{ title: string; data: any }>
+      action: PayloadAction<{title: string; data: any}>,
     ) => {
       state.currentProgramList = action.payload;
     },

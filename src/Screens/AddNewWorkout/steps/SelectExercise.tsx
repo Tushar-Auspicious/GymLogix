@@ -59,6 +59,18 @@ const SelectExercise: FC<{
     (exerciseCategories ?? []).map(item => item.bodyPart),
   );
 
+  // Utility: filter by search
+  // simple filter function (no useCallback needed)
+  const filterExercises = (exercises: Exercise[]) => {
+    if (!searchedWord.trim()) return exercises;
+
+    console.log('EEEEE', exercises);
+
+    return exercises.filter(ex =>
+      ex.name.toLowerCase().includes(searchedWord.toLowerCase()),
+    );
+  };
+
   // Helper function to get all exercise IDs from a day (including exercises in supersets)
   const getExerciseIdsFromDay = useCallback(
     (day: ExerciseListItem | null): string[] => {
@@ -261,30 +273,39 @@ const SelectExercise: FC<{
           <FlatList
             data={exerciseCategories}
             keyExtractor={item => item.bodyPart}
-            renderItem={({item}) => <CategoryItem item={item} />}
+            renderItem={({item}) => {
+              const filteredExercises = filterExercises(item.exercises);
+              if (filteredExercises.length === 0) return null; // hide empty categories
+              return (
+                <CategoryItem item={{...item, exercises: filteredExercises}} />
+              );
+            }}
             contentContainerStyle={styles.mainListContent}
+            extraData={searchedWord}
           />
         );
       case 2:
         return (
           <FlatList
-            data={historyExercises}
+            data={filterExercises(historyExercises)}
             keyExtractor={exercise => exercise.id}
             renderItem={({item: exercise, index}) => (
               <ExerciseItem exercise={exercise} index={index} />
             )}
             contentContainerStyle={styles.listContent}
+            extraData={searchedWord}
           />
         );
       case 3:
         return (
           <FlatList
-            data={listExercises}
+            data={filterExercises(listExercises)}
             keyExtractor={exercise => exercise.id}
             renderItem={({item: exercise, index}) => (
               <ExerciseItem exercise={exercise} index={index} />
             )}
             contentContainerStyle={styles.listContent}
+            extraData={searchedWord}
           />
         );
       default:

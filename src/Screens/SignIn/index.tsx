@@ -39,6 +39,7 @@ import {
 } from '../../Redux/slices/ScheduleSlice';
 import {setExerciseCatalog} from '../../Redux/slices/exerciseCatalogSlice';
 import {buildExerciseCatalog} from '../Splash';
+import {setInsightData} from '../../Redux/slices/InsightSlice';
 
 const SignIn: FC<SignInProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
@@ -110,6 +111,7 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
 
         if (cleanToken) {
           const response = await fetchData<UserResponse>(ENDPOINTS.getUser);
+
           if (response.data.user) {
             dispatch(setUserData(response.data.user));
           }
@@ -117,6 +119,7 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
           await getPlanData();
           await getFoodData();
           await getScheduleData();
+          await getInsight();
         }
         // showCustomToast('success', 'Log in Successfully');
         navigation.replace('mainStack', {
@@ -127,8 +130,8 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
         });
       }
     } catch (error: any) {
-      console.log(error);
-      showCustomToast('error', error.message || 'Something went wrong');
+      console.log(error.reason);
+      showCustomToast('error', error.reason || 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -156,6 +159,8 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
       );
 
       dispatch(setFoodData(response.data.data));
+
+      // console.log('bsfn', response.data.data);
 
       dispatch(
         setIngredients(
@@ -249,20 +254,19 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
         STORAGE_KEYS.localWorkoutData,
         response.data.data,
       );
+
       dispatch(
         setPlanData(
-          response.data.data
-            .filter(item => item.is_public === true)
-            .map(item => ({
-              id: item._id || '',
-              title: item.name || '',
-              coverImage:
-                item.image_url ||
-                'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-              tags: item.tags,
-              type: item.type === 'workout' ? 'workout' : 'food',
-              allData: item,
-            })),
+          response.data.data.map(item => ({
+            id: item._id ? item._id : item.id ? item.id : item.plan_id,
+            title: item.name || '',
+            coverImage:
+              item.image_url ||
+              'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+            tags: item.tags,
+            type: item.type === 'workout' ? 'workout' : 'food',
+            allData: item,
+          })),
         ),
       );
 
@@ -286,20 +290,40 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
       dispatch(setExerciseData(exerciseList));
 
       const catalog = buildExerciseCatalog(exerciseList);
-      console.log('catalog --->', catalog);
+      // console.log('catalog --->', catalog);
       dispatch(setExerciseCatalog(catalog));
     }
   };
 
   const getScheduleData = async () => {
     try {
-      const response = await fetchData<ScheduleAPIData[]>(ENDPOINTS.schedule);
+      const response = await fetchData<ScheduleAPIData[] | any>(
+        ENDPOINTS.schedule,
+      );
       if (response.data) {
         await storeLocalStorageData(
           STORAGE_KEYS.localScheduleData,
           response.data,
         );
-        dispatch(setScheduleData(response.data));
+
+        // console.log('response -snfks', response.data.data);
+
+        dispatch(setScheduleData(response.data.data));
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+  };
+
+  const getInsight = async () => {
+    try {
+      const response = await fetchData<any>(ENDPOINTS.get_insight);
+      if (response.data.data) {
+        await storeLocalStorageData(
+          STORAGE_KEYS.localInsight,
+          response.data.data,
+        );
+        dispatch(setInsightData(response.data.data));
       }
     } catch (error) {
       console.log(error, 'Something went wrong');

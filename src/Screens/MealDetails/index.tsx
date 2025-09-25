@@ -23,7 +23,6 @@ import {postData} from '../../APIServices/api';
 import ENDPOINTS from '../../APIServices/endPoints';
 import {addSchedule, ScheduleAPIData} from '../../Redux/slices/ScheduleSlice';
 import Toast from 'react-native-toast-message';
-import {myMealsList} from '../../Seeds/Plans';
 
 const MACROS = [
   {label: 'Calories', key: 'calories'},
@@ -40,8 +39,14 @@ const MealDetails: FC<MealDetailScreenProps> = ({navigation, route}) => {
   const {mealId, isFromMyMeal} = route.params;
   const meal = useAppSelector(state => selectMealById(state, mealId));
   const {userData} = useAppSelector(state => state.userData);
+  const {myMealsList} = useAppSelector(state => state.myMeals);
+  const {planData} = useAppSelector(state => state.planData);
 
-  console.log(mealId);
+  const findPlan = planData
+    ?.filter(item => item.type === 'food')
+    .find(plan =>
+      plan.allData?.content?.meals?.some(meal => meal.meal_id === mealId),
+    );
 
   const logMeal = async () => {
     const macroCalorieData = meal?.ingredients.reduce(
@@ -68,17 +73,24 @@ const MealDetails: FC<MealDetailScreenProps> = ({navigation, route}) => {
         now.getUTCFullYear(),
         now.getUTCMonth(),
         now.getUTCDate(),
-        12,
-        0,
-        0,
-        0, // Set time to 12:00 PM UTC
+        now.getUTCHours(),
+        now.getUTCMinutes(),
+        now.getUTCSeconds(),
+        now.getUTCMilliseconds(),
       ),
     );
+
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
     const data = {
       type: 'food',
       status: 'done',
-      schedule_at: scheduleDate.toISOString(),
+      schedule_at: yesterday.toISOString(),
       content: {
+        plan_id: findPlan?.allData?.plan_id ? findPlan?.allData?.plan_id : '',
+        name: meal?.title,
         meal_id: Number(mealId),
         calories: macroCalorieData,
         carbs: macroCrabsData,
@@ -92,12 +104,10 @@ const MealDetails: FC<MealDetailScreenProps> = ({navigation, route}) => {
     };
 
     try {
-      const response = await postData<ScheduleAPIData[]>(
-        ENDPOINTS.createSchedule,
-        {data},
-      );
+      const response = await postData<any>(ENDPOINTS.createSchedule, {data});
+
       if (response.data) {
-        dispatch(addSchedule(response.data));
+        dispatch(addSchedule(response.data.data));
         navigation.goBack();
         Toast.show({
           type: 'success',
@@ -113,7 +123,7 @@ const MealDetails: FC<MealDetailScreenProps> = ({navigation, route}) => {
   const renderBanner = () => (
     <ImageBackground
       source={{
-        uri: meal?.coverImage?.uri,
+        uri: meal?.coverImage?.uri || meal?.coverImage,
       }}
       style={styles.banner}
       imageStyle={{resizeMode: 'cover'}}>
@@ -239,18 +249,24 @@ const MealDetails: FC<MealDetailScreenProps> = ({navigation, route}) => {
   // Get tags from current meal
   const currentTags = meal?.tags || [];
 
+  // console.log('tags', currentTags);
+
   // Find related meals based on 2+ matching tags (excluding current meal)
   const relatedMeals = myMealsList
     .filter(m => {
       if (m.id === meal?.id) return false;
       const matchedTags =
         m.tags?.filter(tag => currentTags.includes(tag)) || [];
-      return matchedTags.length >= 1;
+
+      return matchedTags.length >= 2;
     })
     .slice(0, 4);
 
+  // console.log('matchetgas', relatedMeals);
+
   const renderRelatedMeals = () => {
     if (!relatedMeals.length) return null;
+
     return (
       <FlatList
         horizontal
@@ -323,7 +339,6 @@ const MealDetails: FC<MealDetailScreenProps> = ({navigation, route}) => {
         </CustomText>
       </View>
       {renderSectionDivider()}
-
       {renderRelatedMeals()}
       {renderSectionDivider()}
 

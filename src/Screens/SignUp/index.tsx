@@ -99,6 +99,8 @@ const SignUp: FC<SignUpProps> = ({navigation}) => {
       return;
     }
     const data = {
+      first_name: loginDetails.firstName,
+      last_name: loginDetails.lastName,
       email: loginDetails.email,
       password: loginDetails.password,
       password_confirmation: loginDetails.repassword,
@@ -111,14 +113,14 @@ const SignUp: FC<SignUpProps> = ({navigation}) => {
 
     try {
       const response = await postData(
-        `${ENDPOINTS.signup}?email=${data.email}&password=${data.password}&password_confirmation=${data.password_confirmation}&locale=${data.locale}&platform=${data.platform}&device_id=${data.device_id}`,
+        `${ENDPOINTS.signup}?email=${data.email}&password=${data.password}&password_confirmation=${data.password_confirmation}&locale=${data.locale}&platform=${data.platform}&device_id=${data.device_id}&first_name=${data.first_name}&last_name=${data.last_name}`,
       );
       if (response.status === 200) {
         showCustomToast('success', 'User successfully registered');
         navigation.navigate('signIn');
       }
     } catch (error: any) {
-      showCustomToast('error', error.message || 'Something went wrong');
+      showCustomToast('error', error.reason || 'Something went wrong');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,12 @@
-import React, {FC, useCallback, useMemo} from 'react';
-import {ScrollView, StyleSheet, View} from 'react-native';
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {ScrollView, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import ICONS from '../../Assets/Icons';
 import AddLogButton from '../../Components/AddLogButton';
@@ -19,18 +26,50 @@ import MealLogmenu from './LogMenus/MealLogmenu';
 import NotesLogMenu from './LogMenus/NotesLogMenu';
 import MeasurementlogMenu from './LogMenus/MeasurementlogMenu';
 import WorkoutMenu from './LogMenus/WorkoutMenu';
+import {fetchData} from '../../APIServices/api';
+import ENDPOINTS from '../../APIServices/endPoints';
+import {setScheduleData} from '../../Redux/slices/ScheduleSlice';
+import LottieView from 'lottie-react-native';
 
 const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
+  const animationRef = useRef<LottieView>(null);
+
+  const workoutInTime = useAppSelector(
+    state => state.logWorkoutData.workoutTime,
+  );
+  const workoutInProgress = useAppSelector(
+    state => state.logWorkoutData.workoutProgress,
+  );
+
+  const workoutInProgressName = useAppSelector(
+    state => state.logWorkoutData.currentWorkout,
+  );
 
   const {userData} = useAppSelector(state => state.userData);
-  const {myMealsList} = useAppSelector(state => state.myMeals);
+  const {totalMacros} = useAppSelector(state => state.macros);
 
-  // console.log(myMealsList, 'YUTYIIUIUIOU');
+  const {scheduleData} = useAppSelector(state => state.scheduleData);
+  const [selectedItem, setSelectedItem] = useState<string[]>([]);
+  const {exerciseData} = useAppSelector(state => state.exerciseData);
 
   const {dates, month, homeActiveIndex, logMealActiveIndex} = useAppSelector(
     state => state.initial,
   );
+
+  // Format seconds into hh:mm:ss
+  const formatTime = (totalSeconds: number): string => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    // If you want always hh:mm:ss
+    return [
+      hours.toString().padStart(2, '0'),
+      minutes.toString().padStart(2, '0'),
+      seconds.toString().padStart(2, '0'),
+    ].join(':');
+  };
 
   const progressLine = () => {
     let progress = 0;
@@ -131,14 +170,29 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
               Workout in progress
             </CustomText>
             <CustomText fontSize={12} fontFamily="italic">
-              Push pull Day 1: 00:40:14
+              {`${workoutInProgressName.workoutName} ${
+                workoutInProgressName.dayName
+              } : ${formatTime(workoutInTime ?? 0)}`}
             </CustomText>
           </View>
-          <CustomIcon Icon={ICONS.SandGlassIcon} height={45} width={28} />
+
+          <LottieView
+            ref={animationRef}
+            source={require('../../Assets/animation.json')}
+            autoPlay
+            loop={workoutInProgress === 'inprogress' ? true : false}
+            style={{
+              width: verticalScale(35),
+              height: verticalScale(55),
+            }}
+            resizeMode="cover"
+          />
         </View>
         <PrimaryButton
           title="Continue"
-          onPress={() => {}}
+          onPress={() => {
+            dispatch(setHomeActiveIndex(1));
+          }}
           style={{
             alignSelf: 'flex-end',
             width: 'auto',
@@ -153,7 +207,63 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
     );
   };
 
+  const REMOVE_SCHEDULE = async () => {
+    const ids = selectedItem.join(',');
+
+    try {
+      const response = await fetchData<any>(
+        `${ENDPOINTS.remove_Schedule}schedule_id=${ids}`,
+      );
+
+      if (response.data.data === 'Schedule successfully removed.') {
+        setSelectedItem([]);
+        dispatch(
+          setScheduleData(
+            scheduleData?.filter(
+              item => !selectedItem.includes(item.id || item._id),
+            ) || [],
+          ),
+        );
+      }
+      console.log('removed response', response);
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+  };
+
   const renderHistory = () => {
+    // Flatten scheduleData so that exercises & parts each become their own row
+    const flattenedData = scheduleData?.flatMap((item: any) => {
+      if (item.type === 'workout') {
+        return item.content?.Exercises?.content?.map((ex: any) => {
+          const match = exerciseData?.find(
+            (e: any) => e.exercise_id === ex.Exercise_id,
+          );
+          return {
+            ...item,
+            _parentId: item.id || item._id, // keep reference to parent
+            displayName: match?.name || `Exercise ${ex.Exercise_id}`,
+          };
+        });
+      }
+
+      if (item.type === 'measurement') {
+        return item.content?.list?.map((p: any) => ({
+          ...item,
+          _parentId: item.id || item._id,
+          displayName: p.part,
+        }));
+      }
+
+      // for food/notes etc just keep as is
+      return [
+        {
+          ...item,
+          _parentId: item.id || item._id,
+          displayName: item.content?.name,
+        },
+      ];
+    });
     return (
       <View
         style={{
@@ -161,55 +271,107 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
           paddingBottom: verticalScale(10),
         }}>
         <CustomText fontFamily="bold">History</CustomText>
-        {[1, 2, 3, 4].map((item, index) => {
-          return (
-            <View
-              key={item + index.toString()}
-              style={{
-                backgroundColor: COLORS.lightBrown,
-                padding: 10,
-                borderRadius: 10,
-                flexDirection: 'row',
-                gap: verticalScale(10),
-              }}>
-              <View
-                style={{
-                  backgroundColor: COLORS.whiteTail,
-                  paddingVertical: verticalScale(10),
-                  paddingHorizontal: horizontalScale(10),
-                  borderRadius: 10,
-                }}>
-                <View
+        {flattenedData && flattenedData.length > 0 ? (
+          <>
+            {selectedItem.length > 0 && (
+              <TouchableOpacity
+                onPress={REMOVE_SCHEDULE}
+                style={styles.actionButton}>
+                <CustomIcon Icon={ICONS.DeleteIcon} height={15} width={15} />
+                <CustomText fontSize={6} fontFamily="bold">
+                  DELETE
+                </CustomText>
+              </TouchableOpacity>
+            )}
+
+            {flattenedData.map((item: any) => {
+              const itemId = item._parentId; // always use parent id for selection
+              const isSelected = selectedItem.includes(itemId);
+
+              return (
+                <TouchableOpacity
+                  delayLongPress={200} // optional: makes long press feel snappier
+                  onLongPress={() => {
+                    setSelectedItem(
+                      prev =>
+                        prev.includes(itemId)
+                          ? prev.filter(id => id !== itemId) // unselect
+                          : [...prev, itemId], // select
+                    );
+                  }}
+                  onPress={() => {}}
+                  key={itemId}
                   style={{
-                    width: 35,
-                    height: 35,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: COLORS.sharpBlue,
-                    borderRadius: 100,
+                    padding: 10,
+                    borderRadius: 10,
+                    flexDirection: 'row',
+                    gap: verticalScale(10),
+                    backgroundColor: isSelected
+                      ? COLORS.lighterBrown
+                      : COLORS.lightBrown,
                   }}>
-                  <CustomIcon
-                    Icon={ICONS.DumbellWhiteIcon}
-                    height={18}
-                    width={18}
-                  />
-                </View>
-              </View>
-              <View
-                style={{
-                  gap: verticalScale(5),
-                  paddingVertical: verticalScale(2),
-                }}>
-                <CustomText fontFamily="medium" fontSize={15}>
-                  Legs Day 1
-                </CustomText>
-                <CustomText fontFamily="italic" fontSize={14}>
-                  Tue Aug 24, 2024 15:18
-                </CustomText>
-              </View>
-            </View>
-          );
-        })}
+                  <View
+                    style={{
+                      backgroundColor: COLORS.whiteTail,
+                      paddingVertical: verticalScale(10),
+                      paddingHorizontal: horizontalScale(10),
+                      borderRadius: 10,
+                    }}>
+                    <View
+                      style={{
+                        width: 35,
+                        height: 35,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        backgroundColor:
+                          item.type === 'food'
+                            ? COLORS.darkPink
+                            : COLORS.sharpBlue,
+                        borderRadius: 100,
+                      }}>
+                      <CustomIcon
+                        Icon={
+                          item.type === 'food'
+                            ? ICONS.CalendarWithDumbellIcon
+                            : ICONS.DumbellWhiteIcon
+                        }
+                        height={18}
+                        width={18}
+                      />
+                    </View>
+                  </View>
+                  <View
+                    style={{
+                      gap: verticalScale(5),
+                      paddingVertical: verticalScale(2),
+                      flex: 1,
+                    }}>
+                    <CustomText
+                      fontFamily="medium"
+                      fontSize={15}
+                      numberOfLines={2}>
+                      {item.displayName}
+                    </CustomText>
+                    <CustomText fontFamily="italic" fontSize={14}>
+                      {new Date(item.schedule_at).toLocaleString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </CustomText>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        ) : (
+          <CustomText style={styles.NoScheduleText} fontSize={12}>
+            No scheduled items. Your scheduled items will appear here.
+          </CustomText>
+        )}
       </View>
     );
   };
@@ -259,7 +421,7 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
             style={styles.scrollViewStyle}
             contentContainerStyle={styles.scrollViewContainer}>
             {renderCompleteProfileCard()}
-            {renderWorkoutInProgress()}
+            {workoutInProgress === 'inprogress' && renderWorkoutInProgress()}
             {renderHistory()}
           </ScrollView>
         );
@@ -275,7 +437,7 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
       default:
         return <></>;
     }
-  }, [homeActiveIndex]);
+  }, [homeActiveIndex, selectedItem, workoutInTime]);
 
   return (
     <View style={styles.main}>
@@ -312,10 +474,10 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
                 width: wp(100),
               }}>
               {[
-                {title: 'Calories', value: 1500},
-                {title: 'Fat', value: 1500},
-                {title: 'Protein', value: 1500},
-                {title: 'Carbs', value: 1500},
+                {title: 'Calories', value: totalMacros.calories.toFixed(1)},
+                {title: 'Fat', value: totalMacros.fat.toFixed(1)},
+                {title: 'Protein', value: totalMacros.protein.toFixed(1)},
+                {title: 'Carbs', value: totalMacros.carbs.toFixed(1)},
               ].map((item, index) => (
                 <View
                   style={{alignItems: 'center', gap: verticalScale(5)}}
@@ -385,5 +547,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.brown,
     gap: verticalScale(5),
+  },
+  deleteBtn: {
+    justifyContent: 'center',
+    borderRadius: 20,
+    borderColor: COLORS.white,
+    borderWidth: 0.9,
+    alignSelf: 'flex-start',
+  },
+  actionButton: {
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.whiteTail,
+    borderRadius: 100,
+    justifyContent: 'center',
+    height: 40,
+    width: 40,
+  },
+  NoScheduleText: {
+    color: COLORS.whiteGreenish,
+    textAlign: 'center',
+    width: '70%',
+    alignSelf: 'center',
+    marginTop: verticalScale(20),
   },
 });

@@ -24,6 +24,7 @@ import {Exercise} from '../../Seeds/ExerciseCatalog';
 import {ExerciseListScreenProps} from '../../Typings/route';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
+import {updateExerciseInaPlan} from '../../Redux/slices/PlanDataSlice';
 
 const tabData = [
   {label: 'Category', value: 1},
@@ -42,6 +43,15 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
       item.exercises.map(item => item.id),
     ),
   );
+
+  const {plans} = useAppSelector(state => state.trainingPlans);
+
+  const filterExercises = (exercises: Exercise[]) => {
+    if (!searchedWord.trim()) return exercises;
+    return exercises.filter(ex =>
+      ex.name.toLowerCase().includes(searchedWord.toLowerCase()),
+    );
+  };
 
   // Get training plan context from route params
   const fromTrainingPlan = route.params?.fromTrainingPlan;
@@ -83,13 +93,84 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
       selectedExercises.includes(exercise.id),
     );
 
+    const toMinutesDecimal = (seconds: number): number => {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return parseFloat((minutes + remainingSeconds / 60).toFixed(2));
+    };
+
+    // Existing function to convert MM:SS string to seconds
+    const toSeconds = (timeStr: string | undefined) => {
+      if (!timeStr) return 0;
+      const [min, sec] = timeStr.split(':').map(Number);
+      return min * 60 + sec;
+    };
+
+    // console.log(
+    //   'JJJJ',
+    //   updateExerciseInaPlan({
+    //     planId: fromTrainingPlan.programId,
+    //     dayId: fromTrainingPlan.dayId,
+    //     exercise: selectedExerciseObjects.map((exe: any) => ({
+    //       exercise_id: exe.id,
+    //       sets: exe.exerciseSettings?.sets,
+    //       reps: exe.exerciseSettings?.reps,
+    //       timing_warmup:
+    //         toMinutesDecimal(toSeconds(exe.exerciseSettings?.timing?.warmUp)) ||
+    //         0,
+    //       timing_workset:
+    //         toMinutesDecimal(
+    //           toSeconds(exe.exerciseSettings?.timing?.workingSet),
+    //         ) || 0,
+    //       timing_finish:
+    //         toMinutesDecimal(
+    //           toSeconds(exe.exerciseSettings?.timing?.finishExercise),
+    //         ) || 0,
+    //       Is_time: exe.exerciseSettings?.loggingType === 'Time' ? true : false,
+    //       is_weight:
+    //         exe.exerciseSettings?.loggingType === 'Weight' ? true : false,
+    //       Is_distance:
+    //         exe.exerciseSettings?.loggingType === 'Distance' ? true : false,
+    //       alternate_exercise_id: exe.exerciseSettings?.alternateExercise || [],
+    //     })),
+    //   }),
+    // );
+
     dispatch(
-      addExercisesToDay({
-        planId: catalog,
+      updateExerciseInaPlan({
+        planId: Number(fromTrainingPlan.programId),
         dayId: fromTrainingPlan.dayId,
-        exercises: selectedExerciseObjects,
+        exercise: selectedExerciseObjects.map((exe: any) => ({
+          exercise_id: exe.id,
+          sets: exe.exerciseSettings?.sets || 0,
+          reps: exe.exerciseSettings?.reps || 0,
+          timing_warmup:
+            toMinutesDecimal(toSeconds(exe.exerciseSettings?.timing?.warmUp)) ||
+            0,
+          timing_workset:
+            toMinutesDecimal(
+              toSeconds(exe.exerciseSettings?.timing?.workingSet),
+            ) || 0,
+          timing_finish:
+            toMinutesDecimal(
+              toSeconds(exe.exerciseSettings?.timing?.finishExercise),
+            ) || 0,
+          Is_time: exe.exerciseSettings?.loggingType === 'Time' ? true : false,
+          is_weight:
+            exe.exerciseSettings?.loggingType === 'Weight' ? true : false,
+          Is_distance:
+            exe.exerciseSettings?.loggingType === 'Distance' ? true : false,
+          alternate_exercise_id: exe.exerciseSettings?.alternateExercise || [],
+        })),
       }),
     );
+    // dispatch(
+    //   addExercisesToDay({
+    //     planId: fromTrainingPlan.programId,
+    //     dayId: fromTrainingPlan.dayId,
+    //     exercises: selectedExerciseObjects,
+    //   }),
+    // );
 
     setSelectedExercises([]);
     navigation.goBack();
@@ -235,30 +316,39 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
           <FlatList
             data={exerciseCategories}
             keyExtractor={item => item.bodyPart}
-            renderItem={({item}) => <CategoryItem item={item} />}
+            renderItem={({item}) => {
+              const filteredExercises = filterExercises(item.exercises);
+              if (filteredExercises.length === 0) return null;
+              return (
+                <CategoryItem item={{...item, exercises: filteredExercises}} />
+              );
+            }}
             contentContainerStyle={styles.mainListContent}
+            extraData={searchedWord}
           />
         );
       case 2:
         return (
           <FlatList
-            data={historyExercises}
+            data={filterExercises(historyExercises)}
             keyExtractor={exercise => exercise.id}
             renderItem={({item: exercise}) => (
               <ExerciseItem exercise={exercise} />
             )}
             contentContainerStyle={styles.listContent}
+            extraData={searchedWord}
           />
         );
       case 3:
         return (
           <FlatList
-            data={listExercises}
+            data={filterExercises(listExercises)}
             keyExtractor={exercise => exercise.id}
             renderItem={({item: exercise}) => (
               <ExerciseItem exercise={exercise} />
             )}
             contentContainerStyle={styles.listContent}
+            extraData={searchedWord}
           />
         );
       default:

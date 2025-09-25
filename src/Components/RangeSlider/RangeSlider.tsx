@@ -1,30 +1,28 @@
-import moment, { Moment } from "moment";
-import React, { useCallback, useMemo } from "react";
-import { StyleSheet, TextStyle, View, ViewStyle } from "react-native";
-import RangeSlider from "rn-range-slider";
-import COLORS from "../../Utilities/Colors";
-import { verticalScale } from "../../Utilities/Metrics";
-import { CustomText } from "../CustomText";
-import Label from "./Label";
-import Rail from "./Rail";
-import RailSelected from "./RailSelected";
-import Thumb from "./Thumb";
+import moment, {Moment} from 'moment';
+import React, {useCallback, useMemo} from 'react';
+import {StyleSheet, View, ViewStyle, TextStyle} from 'react-native';
+import RangeSlider from 'rn-range-slider';
+import {debounce} from 'lodash'; // Optional: if using debounce
+import COLORS from '../../Utilities/Colors';
+import {verticalScale} from '../../Utilities/Metrics';
+import {CustomText} from '../CustomText';
+import Label from './Label';
+import Rail from './Rail';
+import RailSelected from './RailSelected';
+import Thumb from './Thumb';
 
-// Define prop types
 interface DateRangeSliderProps {
   minDate?: string;
   maxDate?: string;
-  onDateRangeChange?: (range: { from: string; to: string }) => void;
+  onDateRangeChange?: (range: {from: string; to: string}) => void;
 }
 
-// Define type for date range calculations
 interface DateRange {
   startDate: Moment;
   endDate: Moment;
   totalDays: number;
 }
 
-// Define type for selected dates
 interface SelectedDates {
   fromFormatted: string;
   toFormatted: string;
@@ -33,8 +31,8 @@ interface SelectedDates {
 }
 
 const DateRangeSlider: React.FC<DateRangeSliderProps> = ({
-  minDate = "2025-01-01",
-  maxDate = "2025-12-31",
+  minDate = '2025-01-01',
+  maxDate = '2025-12-31',
   onDateRangeChange,
 }) => {
   const dateRange = useMemo<DateRange>(() => {
@@ -43,7 +41,7 @@ const DateRangeSlider: React.FC<DateRangeSliderProps> = ({
     return {
       startDate: start,
       endDate: end,
-      totalDays: end.diff(start, "days"),
+      totalDays: end.diff(start, 'days'),
     };
   }, [minDate, maxDate]);
 
@@ -52,40 +50,38 @@ const DateRangeSlider: React.FC<DateRangeSliderProps> = ({
   const calculateDate = useCallback(
     (value: number): Moment => {
       const daysToAdd = Math.round((value / 100) * dateRange.totalDays);
-      return dateRange.startDate.clone().add(daysToAdd, "days");
+      return dateRange.startDate.clone().add(daysToAdd, 'days');
     },
-    [dateRange]
+    [dateRange],
   );
 
   const selectedDates = useMemo<SelectedDates>(() => {
     const from = calculateDate(sliderValues[0]);
     const to = calculateDate(sliderValues[1]);
     return {
-      fromFormatted: from.format("MMM D, YYYY"),
-      toFormatted: to.format("MMM D, YYYY"),
-      fromISO: from.format("YYYY-MM-DD"),
-      toISO: to.format("YYYY-MM-DD"),
+      fromFormatted: from.format('MMM D, YYYY'),
+      toFormatted: to.format('MMM D, YYYY'),
+      fromISO: from.format('YYYY-MM-DD'),
+      toISO: to.format('YYYY-MM-DD'),
     };
   }, [sliderValues, calculateDate]);
 
   const handleSliderChange = useCallback(
-    (low: number, high: number) => {
+    debounce((low: number, high: number) => {
       setSliderValues([low, high]);
+      const from = calculateDate(low);
+      const to = calculateDate(high);
       onDateRangeChange?.({
-        from: selectedDates.fromISO,
-        to: selectedDates.toISO,
+        from: from.format('YYYY-MM-DD'),
+        to: to.format('YYYY-MM-DD'),
       });
-    },
-    [onDateRangeChange, selectedDates]
+    }, 100),
+    [calculateDate, onDateRangeChange],
   );
 
   const renderThumb = useCallback(() => <Thumb />, []);
   const renderRail = useCallback(() => <Rail />, []);
   const renderRailSelected = useCallback(() => <RailSelected />, []);
-  const renderLabel = useCallback(
-    (value: number) => <Label text={value} />,
-    []
-  );
 
   return (
     <View style={styles.container}>
@@ -112,7 +108,6 @@ const DateRangeSlider: React.FC<DateRangeSliderProps> = ({
   );
 };
 
-// Define style types
 interface Styles {
   container: ViewStyle;
   dateContainer: ViewStyle;
@@ -123,17 +118,17 @@ interface Styles {
 const styles = StyleSheet.create<Styles>({
   container: {},
   dateContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: verticalScale(10),
   },
   dateText: {
     color: COLORS.white,
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   slider: {
-    width: "100%",
+    width: '100%',
   },
 });
 

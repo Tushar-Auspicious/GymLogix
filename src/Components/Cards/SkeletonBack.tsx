@@ -1,8 +1,8 @@
-import React, { FC } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-import Svg, { Circle, G, Line, Path, Rect, Text } from "react-native-svg";
-import COLORS from "../../Utilities/Colors";
-import { hp, responsiveFontSize, wp } from "../../Utilities/Metrics";
+import React, {FC} from 'react';
+import {StyleSheet, TouchableOpacity, View} from 'react-native';
+import Svg, {Circle, G, Line, Path, Rect, Text} from 'react-native-svg';
+import COLORS from '../../Utilities/Colors';
+import {hp, responsiveFontSize, wp} from '../../Utilities/Metrics';
 
 type SkeletonBackProps = {
   showLabel?: boolean;
@@ -13,6 +13,8 @@ type SkeletonBackProps = {
   onMuscleToggle?: (muscle: string) => void;
   viewBox?: string;
   selectionColor?: string;
+  backMusclesData: any;
+  bodyChart: any;
 };
 
 const SkeletonBack: FC<SkeletonBackProps> = ({
@@ -22,22 +24,48 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
   containerWidth,
   selectedMuscles,
   onMuscleToggle,
-  viewBox = "0 30 369 260",
+  viewBox = '0 30 369 260',
   selectionColor = COLORS.red,
+  backMusclesData,
+  bodyChart,
 }) => {
   // SVG dimensions and scaling
   const svgWidth = width;
   const svgHeight = height;
+
+  const backMuscles = {
+    back: 'Back',
+    triceps: 'Triceps',
+    hamstrings: 'Hamstr..',
+    calf: 'Calf',
+    glutes: 'Glutes',
+    lats: 'Lats',
+    rhomboids: 'Rhomboids',
+    erectorSpinae: 'Erector Spinae',
+  };
+
+  function getAvgOneRM(muscleData: any) {
+    if (!muscleData || !muscleData.weights || !muscleData.reps) return 0;
+
+    const oneRMValues = muscleData.weights.map((w: number, i: number) => {
+      const r = muscleData.reps[i] ?? 0;
+      return w * (1 + r / 30);
+    });
+
+    if (oneRMValues.length === 0) return 0;
+
+    const total = oneRMValues.reduce((sum: any, v: any) => sum + v, 0);
+    return Number((total / oneRMValues.length).toFixed(2));
+  }
 
   return (
     <View
       style={[
         styles.container,
         {
-          width: containerWidth ? containerWidth : "100%",
+          width: containerWidth ? containerWidth : '100%',
         },
-      ]}
-    >
+      ]}>
       <Svg width={svgWidth} height={svgHeight} viewBox={viewBox} fill="none">
         <G>
           <Path
@@ -78,9 +106,9 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M156.969 214.38C156.879 210.794 156.429 207.208 154.361 204.01C153.461 202.556 152.202 201.296 150.493 200.715C148.425 200.036 147.165 200.618 146.896 202.653C146.356 206.336 145.906 210.019 145.636 213.701C145.367 218.257 145.187 222.909 145.277 227.561C145.457 234.635 145.546 241.71 146.266 248.785C147.076 257.411 148.515 265.94 149.684 274.565C149.774 275.437 150.044 276.31 150.134 277.182L151.932 287.843C151.932 288.037 151.932 288.23 151.932 288.424C151.842 292.786 151.393 297.147 151.303 301.508C151.213 303.64 151.573 305.869 151.842 308.001C151.932 308.971 152.382 309.843 152.652 310.715C152.742 310.715 152.922 310.715 153.012 310.715C153.102 310.521 153.192 310.327 153.281 310.134C154.811 306.354 156.16 302.574 157.958 298.891C161.376 291.816 163.085 284.354 163.445 276.503C163.715 270.301 163.895 264.195 164.164 257.992C164.254 256.151 164.614 254.213 164.704 252.371C165.064 247.622 165.424 242.873 165.514 238.124C165.604 235.411 165.424 232.697 165.154 229.983C165.064 228.53 164.524 228.142 163.085 228.627C162.186 228.917 161.286 229.208 160.387 229.596C158.858 230.177 155.17 231.146 155.08 228.724C156.16 224.072 157.059 219.323 156.969 214.38Z"
             fill={
-              selectedMuscles?.includes("hamstrings")
+              selectedMuscles?.includes('hamstrings')
                 ? selectionColor
-                : "#C1C1C1"
+                : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -117,9 +145,9 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M213.363 229.596C212.464 229.208 211.565 228.917 210.665 228.627C209.226 228.142 208.686 228.53 208.596 229.983C208.417 232.697 208.147 235.411 208.237 238.124C208.417 242.873 208.776 247.622 209.046 252.371C209.136 254.213 209.496 256.151 209.586 257.992C209.856 264.098 210.125 270.301 210.305 276.503C210.575 284.354 212.284 291.816 215.792 298.891C217.591 302.574 218.94 306.354 220.469 310.134C220.559 310.327 220.649 310.521 220.739 310.715C220.829 310.715 221.008 310.715 221.098 310.715C221.368 309.843 221.818 308.971 221.908 308.001C222.178 305.869 222.448 303.64 222.448 301.508C222.358 297.147 221.908 292.786 221.818 288.424C221.818 288.23 221.818 288.037 221.818 287.843L223.617 277.182C223.797 276.31 223.977 275.437 224.066 274.565C225.236 266.036 226.585 257.411 227.484 248.785C228.204 241.71 228.294 234.635 228.474 227.561C228.564 222.909 228.384 218.353 228.114 213.701C227.844 210.019 227.394 206.336 226.855 202.653C226.585 200.618 225.326 200.036 223.257 200.715C221.548 201.296 220.289 202.556 219.39 204.01C217.411 207.208 216.871 210.697 216.781 214.38C216.601 219.226 217.591 223.975 218.67 228.724C218.58 231.243 214.892 230.177 213.363 229.596Z"
             fill={
-              selectedMuscles?.includes("hamstrings")
+              selectedMuscles?.includes('hamstrings')
                 ? selectionColor
-                : "#C1C1C1"
+                : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -156,9 +184,9 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M202.391 321.57C202.57 321.57 202.84 321.473 203.02 321.473L203.11 311.587C203.11 310.618 203.2 309.746 203.2 308.777C203.2 307.42 203.65 306.451 204.549 305.385C207.427 301.993 209.496 298.213 210.216 293.948C210.395 292.785 210.305 291.622 209.946 290.556L208.327 273.111C208.327 272.724 208.327 272.336 208.327 271.948C208.327 267.587 207.967 263.226 207.697 258.865C207.337 253.922 206.978 248.882 206.528 243.939C206.168 239.772 205.808 235.605 205.179 231.437C204.639 227.851 202.93 224.847 199.153 223.296C196.904 222.327 194.656 221.358 192.947 219.516C192.317 218.838 191.328 219.226 191.238 220.195C191.238 220.389 191.238 220.486 191.238 220.679V223.878C191.238 225.234 190.068 242.001 190.158 243.358C190.698 253.05 190.788 266.23 191.238 275.825C191.508 281.155 192.947 289.49 194.656 296.565C196.634 304.803 197.354 309.94 201.131 319.438C201.671 320.019 202.031 320.794 202.391 321.57Z"
             fill={
-              selectedMuscles?.includes("hamstrings")
+              selectedMuscles?.includes('hamstrings')
                 ? selectionColor
-                : "#C1C1C1"
+                : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -202,7 +230,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M172.889 179.393C172.44 177.648 171.54 177.067 169.561 177.357C165.424 177.939 162.006 179.683 159.128 182.3C154.811 186.177 152.113 191.023 150.134 196.256C149.594 197.71 149.864 198.388 151.483 199.164C154.091 200.521 155.71 202.459 156.52 205.076C157.689 208.952 158.409 212.829 158.229 216.803C158.139 219.71 157.689 222.618 157.419 225.525C157.149 227.56 158.139 228.336 160.207 227.657C165.604 226.107 170.731 223.974 175.408 220.97C179.635 218.256 183.323 215.058 185.481 210.6C186.65 208.274 186.56 206.336 184.941 204.01C179.455 196.45 175.228 188.309 172.889 179.393Z"
             fill={
-              selectedMuscles?.includes("glutes") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('glutes') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -211,7 +239,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M198.342 220.97C203.019 223.974 208.146 226.107 213.542 227.657C215.611 228.239 216.69 227.463 216.33 225.525C216.061 222.618 215.611 219.71 215.521 216.803C215.341 212.829 215.971 208.855 217.23 205.076C218.039 202.556 219.748 200.521 222.267 199.164C223.886 198.388 224.155 197.71 223.616 196.256C221.637 191.023 219.029 186.177 214.622 182.3C211.743 179.683 208.236 177.842 204.188 177.357C202.21 177.067 201.31 177.648 200.86 179.393C198.522 188.309 194.295 196.45 188.808 204.106C187.189 206.432 187.099 208.371 188.269 210.697C190.427 215.058 194.025 218.256 198.342 220.97Z"
             fill={
-              selectedMuscles?.includes("glutes") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('glutes') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -241,7 +269,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M179.994 130.159C181.793 127.736 181.973 126.767 180.444 124.15C178.105 120.177 175.677 116.397 173.339 112.52L171.54 109.128H171.36C171.27 108.838 171.09 108.644 170.91 108.353C169.741 106.512 168.482 104.864 167.402 102.926C165.244 99.2428 163.895 95.1723 163.265 90.811C162.995 89.1634 162.186 88.7757 160.837 89.648C160.297 90.0357 159.757 90.4233 159.218 90.811C154.99 94.4938 152.202 99.2428 150.763 104.864C150.673 105.349 150.583 105.736 150.583 106.027L150.403 110.291C150.313 111.939 150.223 113.683 150.134 115.331C150.223 116.979 150.223 118.529 150.403 120.177C150.853 125.798 152.472 131.031 155.62 135.587C157.509 138.397 160.117 140.335 163.265 141.111C166.323 141.983 169.021 140.82 171.54 138.979C174.778 136.653 177.476 133.551 179.994 130.159Z"
             fill={
-              selectedMuscles?.includes("back") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('back') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -250,7 +278,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M182.873 77.5333C181.704 74.6258 179.995 72.3968 176.757 71.8153C172.799 71.1368 168.842 70.8461 164.974 71.5245C161.826 72.106 158.678 73.1721 155.53 74.0443C155.53 74.2382 155.53 74.3351 155.53 74.5289C160.207 75.9827 162.006 79.9563 163.086 84.5113C163.535 86.2558 163.805 88.0004 164.165 89.7449C164.974 93.4277 165.694 97.2074 167.673 100.406C170.821 105.542 174.148 110.679 177.476 115.719C180.444 120.274 183.592 124.635 185.121 130.062C185.481 131.225 185.661 132.388 186.021 133.745C186.111 131.904 186.291 130.256 186.291 128.705C186.201 116.591 186.021 104.573 185.931 92.4585C185.931 87.225 184.762 82.2823 182.873 77.5333Z"
             fill={
-              selectedMuscles?.includes("back") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('back') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -259,7 +287,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M223.526 110.291L223.346 106.027C223.346 105.736 223.256 105.445 223.166 105.155C222.897 104.186 222.627 103.216 222.267 102.247C220.558 97.2075 217.59 93.0401 213.543 89.9387C211.744 88.5819 210.934 88.9696 210.575 91.2956C210.035 94.6877 209.136 97.9828 207.517 100.987C206.077 103.604 204.459 106.027 202.84 108.45L200.591 112.423C198.073 116.591 195.554 120.758 192.946 124.926C192.047 126.379 192.047 127.833 193.036 129.19C195.914 133.454 199.332 137.137 203.559 139.948C206.707 141.983 209.945 141.886 213.183 140.239C216.691 138.397 218.849 135.199 220.558 131.516C222.897 126.476 223.616 121.146 223.616 114.749C223.706 113.78 223.616 112.036 223.526 110.291Z"
             fill={
-              selectedMuscles?.includes("back") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('back') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -268,7 +296,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M198.703 71.5248C195.825 71.8156 193.216 72.7847 191.687 75.7891C189.978 79.1812 188.719 82.8641 188.359 86.7407C187.73 92.5557 187.64 98.3708 187.55 104.186C187.46 112.521 187.55 120.952 187.55 129.287C187.55 130.644 187.64 132.001 187.73 133.261C188.899 126.38 192.677 120.952 196.364 115.622C198.703 112.23 200.951 108.935 203.2 105.446C205.538 101.86 207.607 98.08 208.596 93.8157C209.316 90.5205 209.945 87.1284 210.755 83.8332C211.564 80.5381 212.914 77.5336 215.792 75.6922C216.511 75.2076 217.321 74.9169 218.13 74.4323C218.13 74.3354 218.13 74.2385 218.13 74.1416C215.702 73.3662 213.273 72.5909 210.755 71.9125C206.887 70.9433 202.84 71.1371 198.703 71.5248Z"
             fill={
-              selectedMuscles?.includes("back") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('back') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -278,7 +306,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M161.916 361.403C160.387 359.949 159.577 358.107 158.948 356.169C158.768 355.684 158.678 355.394 157.958 355.394C156.879 355.491 155.8 355.491 154.721 355.297C153.551 355.103 152.382 354.618 151.033 354.231C151.573 356.751 152.022 359.077 152.562 361.306C153.102 363.632 153.551 365.958 154.091 368.381C154.541 370.707 154.99 373.033 155.44 375.359C155.89 377.685 156.16 380.011 156.519 382.337C156.25 382.24 156.16 382.143 156.16 381.949C154.451 372.936 152.382 363.922 149.954 355.103C149.324 352.971 147.345 351.032 145.816 349.094C145.816 352.583 147.076 355.975 147.975 359.077C150.583 367.799 152.472 376.619 154.451 385.438C155.26 389.315 155.62 393.191 154.9 397.165C154.541 399.297 154.361 401.429 154.091 403.658C154.091 404.046 154.181 404.434 154.181 404.821C154.271 404.821 154.361 404.821 154.451 404.821C154.541 404.434 154.631 403.949 154.721 403.561C155.17 401.138 155.89 398.812 157.509 396.971C159.757 394.354 163.445 393.579 166.053 395.226C166.503 395.517 166.863 395.808 167.492 396.293C167.402 395.614 167.312 395.13 167.223 394.645C166.863 393.482 166.413 392.222 166.143 391.059C165.424 388.345 165.334 384.081 165.873 381.27C166.953 375.843 167.402 372.063 168.572 366.636C168.931 364.988 169.291 363.341 169.651 361.499C166.593 364.213 164.794 364.116 161.916 361.403Z"
             fill={
-              selectedMuscles?.includes("calf") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('calf') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -287,7 +315,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M168.931 320.019C168.931 318.081 169.021 314.883 169.111 312.944C169.201 311.587 169.201 310.231 169.111 308.874C169.111 308.098 168.482 307.711 167.672 308.098C166.773 308.486 165.783 308.971 165.064 309.552C163.175 311.2 162.096 313.429 161.556 315.658C160.027 321.861 159.218 328.16 158.768 334.46C158.678 337.852 158.408 341.244 158.408 344.636C158.408 348.222 158.858 351.808 160.027 355.297C160.927 358.011 162.366 360.337 165.064 361.984C166.233 362.663 167.312 362.662 168.302 361.79C168.841 361.306 170.37 359.27 170.73 358.689C172.349 355.588 173.069 352.971 173.339 350.645C173.878 345.605 173.339 340.856 171.9 335.913C170.191 329.42 168.931 327.288 168.931 320.019Z"
             fill={
-              selectedMuscles?.includes("calf") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('calf') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -296,7 +324,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M207.876 381.271C208.415 384.081 208.325 388.346 207.606 391.059C207.246 392.319 206.886 393.482 206.527 394.645C206.437 395.13 206.347 395.517 206.257 396.293C206.886 395.808 207.246 395.517 207.696 395.227C210.304 393.579 213.992 394.354 216.24 396.971C217.859 398.909 218.579 401.139 219.029 403.561C219.118 403.949 219.208 404.434 219.298 404.821C219.388 404.821 219.478 404.821 219.568 404.821C219.568 404.434 219.658 404.046 219.658 403.658C219.388 401.526 219.208 399.297 218.849 397.165C218.129 393.191 218.489 389.315 219.298 385.438C221.187 376.619 223.166 367.702 225.774 359.077C226.674 355.975 227.933 352.583 227.933 349.094C226.404 351.033 224.425 352.874 223.795 355.103C221.277 364.019 219.298 372.936 217.589 381.949C217.589 382.046 217.5 382.24 217.23 382.337C217.589 380.011 217.949 377.685 218.309 375.359C218.759 373.033 219.208 370.707 219.658 368.381C220.108 366.055 220.647 363.729 221.187 361.306C221.637 358.98 222.176 356.751 222.716 354.231C221.277 354.618 220.198 355.103 219.029 355.297C217.949 355.491 216.87 355.491 215.791 355.394C215.071 355.297 214.981 355.588 214.801 356.169C214.172 358.107 213.362 359.949 211.833 361.403C208.955 364.213 207.156 364.31 204.098 361.596C204.458 363.438 204.818 365.085 205.177 366.733C206.257 372.063 206.706 375.843 207.876 381.271Z"
             fill={
-              selectedMuscles?.includes("calf") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('calf') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -305,7 +333,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M205.269 361.791C206.258 362.663 207.337 362.663 208.507 361.984C211.205 360.337 212.644 358.011 213.543 355.297C214.713 351.808 215.162 348.222 215.162 344.636C215.162 341.244 214.982 337.852 214.802 334.46C214.263 328.16 213.543 321.861 212.014 315.658C211.475 313.332 210.395 311.2 208.507 309.552C207.787 308.874 206.798 308.486 205.898 308.099C205.089 307.711 204.549 308.099 204.459 308.874C204.369 310.231 204.369 311.588 204.459 312.945C204.549 314.883 204.639 318.081 204.639 320.019C204.639 327.288 203.47 329.42 201.581 335.817C200.142 340.76 199.692 345.509 200.142 350.548C200.412 352.874 201.131 355.491 202.75 358.592C203.2 359.271 204.729 361.306 205.269 361.791Z"
             fill={
-              selectedMuscles?.includes("calf") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('calf') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -314,7 +342,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M216.6 338.24C216.87 341.632 216.78 345.121 217.05 348.513C217.23 351.42 219.118 352.583 221.817 351.808C225.414 350.742 228.113 348.61 228.382 344.539C228.472 342.892 228.562 338.53 228.382 336.398C228.023 333.006 226.853 329.517 225.864 325.834C224.155 319.341 222.806 316.918 220.468 311.684C219.478 309.552 217.769 307.226 216.78 305.094C216.6 304.706 216.06 304.125 215.701 304.125C215.341 304.125 214.891 304.61 214.621 304.997C213.902 306.257 213.542 307.711 213.542 309.262C213.542 313.332 214.262 317.306 214.801 321.376C215.431 326.997 216.06 332.618 216.6 338.24Z"
             fill={
-              selectedMuscles?.includes("calf") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('calf') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -323,7 +351,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M158.049 304.125C157.689 304.125 157.239 304.61 156.97 305.094C155.89 307.226 154.271 309.552 153.282 311.684C150.943 316.918 149.594 319.341 147.885 325.834C146.896 329.517 145.727 333.006 145.367 336.398C145.187 338.53 145.187 342.892 145.367 344.539C145.727 348.61 148.335 350.742 151.933 351.808C154.631 352.583 156.52 351.42 156.7 348.513C156.97 345.121 156.88 341.632 157.149 338.24C157.689 332.618 158.229 326.9 158.948 321.279C159.488 317.306 160.208 313.332 160.208 309.165C160.208 307.614 159.848 306.257 159.128 304.9C158.858 304.706 158.409 304.125 158.049 304.125Z"
             fill={
-              selectedMuscles?.includes("calf") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('calf') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -333,9 +361,9 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M182.422 220.583C182.422 220.389 182.422 220.292 182.422 220.098C182.332 219.129 181.343 218.741 180.713 219.42C179.004 221.261 176.756 222.23 174.507 223.2C170.73 224.75 169.021 227.658 168.481 231.341C167.851 235.508 167.492 239.675 167.132 243.843C166.682 248.786 166.322 253.728 165.963 258.768C165.693 263.129 165.333 267.491 165.333 271.852C165.333 272.239 165.333 272.627 165.333 273.015L163.714 290.46C163.354 291.526 163.264 292.689 163.444 293.852C164.254 298.116 166.322 301.896 169.111 305.288C170.01 306.354 170.55 307.323 170.46 308.68C170.46 309.649 170.55 310.522 170.55 311.491L170.64 321.376C170.82 321.376 171.089 321.473 171.269 321.473C171.629 320.698 171.989 320.019 172.439 319.244C176.216 309.746 176.936 304.61 178.914 296.372C180.623 289.297 182.062 280.962 182.332 275.632C182.872 265.94 182.962 252.759 183.411 243.164C183.501 241.808 182.332 225.041 182.332 223.684L182.422 220.583Z"
             fill={
-              selectedMuscles?.includes("hamstrings")
+              selectedMuscles?.includes('hamstrings')
                 ? selectionColor
-                : "#C1C1C1"
+                : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -358,7 +386,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M129.896 124.15C133.404 121.533 136.552 118.82 138.171 114.749C139.25 112.036 140.689 109.322 141.948 106.608C142.128 106.124 142.308 105.639 142.578 104.767C141.049 105.154 139.97 105.445 138.8 105.639C136.282 106.221 133.764 106.511 131.245 105.93C130.166 105.639 129.716 106.221 129.446 106.996C128.457 109.516 127.288 112.036 126.568 114.652C125.939 116.784 125.759 119.014 125.399 121.146C125.309 121.63 125.399 122.212 125.579 122.696C126.209 125.022 127.917 125.701 129.896 124.15Z"
             fill={
-              selectedMuscles?.includes("triceps") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('triceps') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -367,7 +395,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M125.489 145.86C126.928 146.15 128.368 146.635 129.807 147.217C130.256 147.41 130.706 147.507 131.066 147.41L134.304 147.12C135.023 146.926 135.923 146.926 136.282 146.635C137.542 145.472 139.071 144.212 139.79 142.855C142.039 138.882 144.017 134.811 146.086 130.741C146.176 130.547 146.176 130.353 146.266 130.159C146.176 130.062 146.086 130.062 145.906 129.965C145.367 130.547 144.827 131.128 144.377 131.613C144.197 131.807 144.017 132.001 143.838 132.194C143.028 132.97 141.679 134.327 140.6 134.424C140.06 134.52 139.79 134.52 139.61 134.424L139.52 134.327C136.912 133.067 135.923 130.935 135.653 128.609C135.383 126.67 135.563 124.732 135.563 122.794C135.563 122.503 135.563 122.309 135.653 121.824C133.764 122.89 132.235 123.957 130.526 124.829C129.537 125.313 128.368 125.604 127.288 125.701C126.209 125.798 125.759 126.186 125.399 126.961C124.05 130.353 123.511 133.842 123.421 137.428C123.421 139.657 123.78 141.983 124.05 144.309C124.05 145.278 124.5 145.666 125.489 145.86Z"
             fill={
-              selectedMuscles?.includes("triceps") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('triceps') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -376,7 +404,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M235.489 130.741C235.578 130.547 235.578 130.353 235.668 130.159C235.848 128.221 236.028 126.379 236.118 125.023C235.848 123.181 235.578 121.921 235.489 120.758C234.679 113.974 230.812 108.547 226.944 103.216C226.584 102.732 225.775 102.538 225.145 102.538C224.785 102.538 224.516 103.41 224.336 103.895C224.246 104.186 224.246 104.476 224.246 104.864C224.246 109.031 224.156 113.199 224.336 117.366C224.516 123.084 227.124 127.833 230.991 131.904C232.97 134.133 234.589 133.551 235.489 130.741Z"
             fill={
-              selectedMuscles?.includes("triceps") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('triceps') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -385,7 +413,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M149.145 104.961C149.145 104.67 149.145 104.282 149.055 103.992C148.785 103.507 148.515 102.635 148.245 102.635C147.616 102.538 146.806 102.829 146.446 103.313C142.579 108.644 138.711 113.974 137.902 120.855C137.722 122.115 137.542 123.278 137.272 125.119C137.362 126.476 137.542 128.318 137.722 130.256C137.722 130.45 137.812 130.644 137.902 130.838C138.801 133.648 140.42 134.23 142.489 132.001C146.356 127.93 148.875 123.181 149.145 117.463C149.235 113.199 149.145 109.031 149.145 104.961Z"
             fill={
-              selectedMuscles?.includes("triceps") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('triceps') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -394,7 +422,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M234.499 105.736C233.329 105.446 232.25 105.155 230.721 104.864C230.991 105.736 231.081 106.221 231.351 106.705C232.61 109.419 234.049 112.036 235.128 114.846C236.747 118.82 239.895 121.631 243.403 124.247C245.382 125.701 247.18 125.12 247.72 122.891C247.9 122.406 247.99 121.824 247.9 121.34C247.54 119.111 247.36 116.979 246.731 114.846C245.921 112.23 244.842 109.71 243.853 107.19C243.583 106.512 243.133 105.93 242.054 106.124C239.445 106.705 236.927 106.318 234.499 105.736Z"
             fill={
-              selectedMuscles?.includes("triceps") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('triceps') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -403,7 +431,7 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
           <Path
             d="M246.101 125.895C245.022 125.798 243.853 125.507 242.863 125.022C241.154 124.15 239.625 123.181 237.736 122.018C237.736 122.502 237.826 122.696 237.826 122.987C237.826 124.925 238.006 126.864 237.736 128.802C237.467 131.128 236.477 133.163 233.869 134.52L233.779 134.617C233.599 134.617 233.329 134.617 232.79 134.617C231.71 134.52 230.361 133.26 229.552 132.388C229.372 132.194 229.192 132 229.012 131.806C228.472 131.225 227.933 130.643 227.483 130.159C227.393 130.256 227.303 130.256 227.123 130.353C227.213 130.547 227.213 130.74 227.303 130.934C229.372 135.005 231.351 139.075 233.599 143.049C234.409 144.406 235.848 145.666 237.107 146.829C237.467 147.216 238.456 147.216 239.086 147.313L242.323 147.604C242.683 147.701 243.133 147.604 243.583 147.41C244.932 146.829 246.371 146.344 247.9 146.053C248.889 145.859 249.339 145.472 249.429 144.696C249.699 142.37 250.059 140.141 250.059 137.815C249.969 134.229 249.429 130.74 248.08 127.348C247.63 126.476 247.18 125.991 246.101 125.895Z"
             fill={
-              selectedMuscles?.includes("triceps") ? selectionColor : "#C1C1C1"
+              selectedMuscles?.includes('triceps') ? selectionColor : '#C1C1C1'
             }
             stroke="#231F20"
             stroke-width="0.5"
@@ -425,10 +453,10 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
               <Rect
                 onPress={() => {
                   if (onMuscleToggle) {
-                    onMuscleToggle("glutes");
+                    onMuscleToggle('glutes');
                   }
                 }}
-                width="100"
+                width={bodyChart === 2 ? 105 : bodyChart === 1 ? 100 : 110}
                 height="28"
                 rx="5"
                 transform="matrix(1 0 0 -1 16 278)"
@@ -444,16 +472,46 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
               <Text
                 onPress={() => {
                   if (onMuscleToggle) {
-                    onMuscleToggle("glutes");
+                    onMuscleToggle('glutes');
                   }
                 }}
                 x="25"
                 y="268"
                 fontSize={`${responsiveFontSize(12)}`}
                 fontWeight="bold"
-                fill="black"
-              >
-                Glutes (10kg)
+                fill="black">
+                {backMusclesData.length > 0 &&
+                backMusclesData.some(
+                  (item: any) =>
+                    item.mainMuscle !== undefined &&
+                    item.mainMuscle.includes('glutes'),
+                )
+                  ? bodyChart == 1
+                    ? `${backMuscles.glutes} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('glutes'),
+                        )?.totalWeight ?? 0
+                      }kg)`
+                    : bodyChart == 2
+                    ? `${backMuscles.glutes} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('glutes'),
+                        )?.totalReps ?? 0
+                      } rep)`
+                    : bodyChart == 3
+                    ? `${backMuscles.glutes} (${getAvgOneRM(
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('glutes'),
+                        ),
+                      )} RM)`
+                    : 'Glutes'
+                  : 'Glutes'}
               </Text>
             </G>
 
@@ -469,12 +527,12 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
               <Rect
                 onPress={() => {
                   if (onMuscleToggle) {
-                    onMuscleToggle("triceps");
+                    onMuscleToggle('triceps');
                   }
                 }}
                 x="260"
                 y="90"
-                width="100"
+                width={bodyChart === 2 ? 105 : bodyChart === 1 ? 100 : 110}
                 height="28"
                 rx="5"
                 fill="#D9D9D9"
@@ -485,9 +543,39 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
                 y="108"
                 fontSize={`${responsiveFontSize(12)}`}
                 fontWeight="bold"
-                fill="black"
-              >
-                Triceps (12kg)
+                fill="black">
+                {backMusclesData.length > 0 &&
+                backMusclesData.some(
+                  (item: any) =>
+                    item.mainMuscle !== undefined &&
+                    item.mainMuscle.includes('triceps'),
+                )
+                  ? bodyChart == 1
+                    ? `${backMuscles.triceps} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('triceps'),
+                        )?.totalWeight ?? 0
+                      }kg)`
+                    : bodyChart == 2
+                    ? `${backMuscles.triceps} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('triceps'),
+                        )?.totalReps ?? 0
+                      } rep)`
+                    : bodyChart == 3
+                    ? `${backMuscles.triceps} (${getAvgOneRM(
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('triceps'),
+                        ),
+                      )} RM)`
+                    : 'Triceps'
+                  : 'Triceps'}
               </Text>
             </G>
 
@@ -496,12 +584,12 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
               <Rect
                 onPress={() => {
                   if (onMuscleToggle) {
-                    onMuscleToggle("hamstrings");
+                    onMuscleToggle('hamstrings');
                   }
                 }}
                 x="245"
                 y="256"
-                width="105"
+                width={bodyChart === 2 ? 140 : bodyChart === 1 ? 118 : 148}
                 height="28"
                 rx="5"
                 fill="#D9D9D9"
@@ -517,16 +605,46 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
               <Text
                 onPress={() => {
                   if (onMuscleToggle) {
-                    onMuscleToggle("hamstrings");
+                    onMuscleToggle('hamstrings');
                   }
                 }}
                 x="260.5"
                 y="273.5"
                 fontSize={`${responsiveFontSize(12)}`}
                 fontWeight="bold"
-                fill="black"
-              >
-                Hamstr.. (30kg)
+                fill="black">
+                {backMusclesData.length > 0 &&
+                backMusclesData.some(
+                  (item: any) =>
+                    item.mainMuscle !== undefined &&
+                    item.mainMuscle.includes('hamstrings'),
+                )
+                  ? bodyChart == 1
+                    ? `${backMuscles.hamstrings} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('hamstrings'),
+                        )?.totalWeight ?? 0
+                      }kg)`
+                    : bodyChart == 2
+                    ? `${backMuscles.hamstrings} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('hamstrings'),
+                        )?.totalReps ?? 0
+                      } rep)`
+                    : bodyChart == 3
+                    ? `${backMuscles.hamstrings} (${getAvgOneRM(
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('hamstrings'),
+                        ),
+                      )} RM)`
+                    : 'Hams...'
+                  : 'Hams..'}
               </Text>
             </G>
 
@@ -535,12 +653,12 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
               <Rect
                 onPress={() => {
                   if (onMuscleToggle) {
-                    onMuscleToggle("calf");
+                    onMuscleToggle('calf');
                   }
                 }}
                 x="251"
                 y="301"
-                width="85"
+                width={bodyChart === 2 ? 105 : bodyChart === 1 ? 85 : 112}
                 height="28"
                 rx="5"
                 fill="#D9D9D9"
@@ -555,17 +673,45 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
               />
               <Text
                 onPress={() => {
-                  if (onMuscleToggle) {
-                    onMuscleToggle("calf");
-                  }
+                  if (onMuscleToggle) onMuscleToggle('calf');
                 }}
                 x="268.5"
                 y="318.5"
                 fontSize={`${responsiveFontSize(12)}`}
                 fontWeight="bold"
-                fill="black"
-              >
-                Calf (20kg)
+                fill="black">
+                {backMusclesData.length > 0 &&
+                backMusclesData.some(
+                  (item: any) =>
+                    item.mainMuscle !== undefined &&
+                    item.mainMuscle.includes('calf'),
+                )
+                  ? bodyChart == 1
+                    ? `${backMuscles.calf} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('calf'),
+                        )?.totalWeight ?? 0
+                      }kg)`
+                    : bodyChart == 2
+                    ? `${backMuscles.calf} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('calf'),
+                        )?.totalReps ?? 0
+                      } rep)`
+                    : bodyChart == 3
+                    ? `${backMuscles.calf} (${getAvgOneRM(
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('calf'),
+                        ),
+                      )} RM)`
+                    : 'Calf'
+                  : 'Calf'}
               </Text>
             </G>
 
@@ -574,12 +720,12 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
               <Rect
                 onPress={() => {
                   if (onMuscleToggle) {
-                    onMuscleToggle("back");
+                    onMuscleToggle('back');
                   }
                 }}
                 x="5"
                 y="50.8073"
-                width="100"
+                width={bodyChart === 2 ? 105 : bodyChart === 1 ? 100 : 110}
                 height="28"
                 rx="5"
                 fill="#D9D9D9"
@@ -589,16 +735,46 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
               <Text
                 onPress={() => {
                   if (onMuscleToggle) {
-                    onMuscleToggle("back");
+                    onMuscleToggle('back');
                   }
                 }}
                 x="15.5"
                 y="68.5"
                 fontSize={`${responsiveFontSize(12)}`}
                 fontWeight="bold"
-                fill="black"
-              >
-                Back (25kg)
+                fill="black">
+                {backMusclesData.length > 0 &&
+                backMusclesData.some(
+                  (item: any) =>
+                    item.mainMuscle !== undefined &&
+                    item.mainMuscle.includes('back'),
+                )
+                  ? bodyChart == 1
+                    ? `${backMuscles.back} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('back'),
+                        )?.totalWeight ?? 0
+                      }kg)`
+                    : bodyChart == 2
+                    ? `${backMuscles.back} (${
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('back'),
+                        )?.totalReps ?? 0
+                      } rep)`
+                    : bodyChart == 3
+                    ? `${backMuscles.back} (${getAvgOneRM(
+                        backMusclesData.find(
+                          (item: any) =>
+                            item.mainMuscle !== undefined &&
+                            item.mainMuscle.includes('back'),
+                        ),
+                      )} RM)`
+                    : 'Back'
+                  : 'Back'}
               </Text>
             </G>
           </>
@@ -612,8 +788,8 @@ export default SkeletonBack;
 
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
-    alignItems: "center",
-    position: "relative",
+    width: '100%',
+    alignItems: 'center',
+    position: 'relative',
   },
 });

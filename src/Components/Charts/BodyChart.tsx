@@ -1,40 +1,72 @@
-import React, { useState } from "react";
+import React, {FC, useEffect, useState} from 'react';
 import {
   Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
-import ICONS from "../../Assets/Icons";
-import COLORS from "../../Utilities/Colors";
-import { horizontalScale, verticalScale } from "../../Utilities/Metrics";
-import SkeletonFront from "../Cards/SkeletonFront";
-import { CustomText } from "../CustomText";
-import SkeletonBack from "../Cards/SkeletonBack";
+} from 'react-native';
+import ICONS from '../../Assets/Icons';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, verticalScale} from '../../Utilities/Metrics';
+import SkeletonFront from '../Cards/SkeletonFront';
+import {CustomText} from '../CustomText';
+import SkeletonBack from '../Cards/SkeletonBack';
+import {useAppSelector} from '../../Redux/store';
 
-const BodyChart = () => {
+export type BodyChartProps = {
+  primary_muscle: any;
+};
+const BodyChart: FC<BodyChartProps> = ({primary_muscle}) => {
   const [bodyChartTabs, setBodyChartTabs] = useState(1);
-
   const [isFront, setIsFront] = useState(true);
+
+  const {exerciseData} = useAppSelector(state => state.exerciseData);
+
+  const musclesArray = Array.isArray(primary_muscle)
+    ? primary_muscle
+    : [primary_muscle];
+  const mappedExercises = musclesArray.map((exercise: any) => {
+    const sets = exercise.Set || [];
+
+    const Id = exercise.Exercise_id;
+
+    const weights = sets.map((s: any) => s.weight);
+    const reps = sets.map((s: any) => s.reps);
+
+    const totalWeight = weights.reduce((sum: number, w: number) => sum + w, 0);
+    const totalReps = reps.reduce((sum: number, r: number) => sum + r, 0);
+
+    const findMainMuscle = exerciseData?.find(item => item.exercise_id === Id);
+
+    return {
+      mainMuscle: Array.isArray(findMainMuscle?.main_muscle)
+        ? findMainMuscle?.main_muscle
+        : [findMainMuscle?.main_muscle],
+      weights,
+      reps,
+      totalWeight,
+      totalReps,
+    };
+  });
 
   const bodyChartTabsData = [
     {
-      label: "Weight",
+      label: 'Weight',
       value: 1,
       onClick: () => {
         setBodyChartTabs(1);
       },
     },
     {
-      label: "Reps",
+      label: 'Reps',
       value: 2,
       onClick: () => {
         setBodyChartTabs(2);
       },
     },
     {
-      label: "1RM",
+      label: '1RM',
       value: 3,
       onClick: () => {
         setBodyChartTabs(3);
@@ -45,7 +77,7 @@ const BodyChart = () => {
   return (
     <View style={styles.container}>
       <View style={styles.topTabsContainer}>
-        {bodyChartTabsData.map((tab) => (
+        {bodyChartTabsData.map(tab => (
           <Pressable key={tab.value} style={styles.tab} onPress={tab.onClick}>
             <CustomText
               fontSize={13}
@@ -56,8 +88,7 @@ const BodyChart = () => {
               style={[
                 styles.tab,
                 bodyChartTabs === tab.value && styles.activeTab,
-              ]}
-            >
+              ]}>
               {tab.label}
             </CustomText>
           </Pressable>
@@ -65,13 +96,30 @@ const BodyChart = () => {
       </View>
 
       <View style={styles.bodyCont}>
-        {isFront ? <SkeletonFront /> : <SkeletonBack />}
+        {isFront ? (
+          <SkeletonFront
+            frontMusclesData={mappedExercises.length > 0 && mappedExercises}
+            selectedMuscles={
+              mappedExercises &&
+              mappedExercises.map(item => item.mainMuscle?.[0])
+            }
+            bodyChart={bodyChartTabs}
+          />
+        ) : (
+          <SkeletonBack
+            backMusclesData={mappedExercises.length > 0 && mappedExercises}
+            selectedMuscles={
+              mappedExercises &&
+              mappedExercises.map(item => item.mainMuscle?.[0])
+            }
+            bodyChart={bodyChartTabs}
+          />
+        )}
 
         <View style={styles.statsContainer}>
           <TouchableOpacity
             onPress={() => setIsFront(true)}
-            style={styles.statItem}
-          >
+            style={styles.statItem}>
             <CustomText fontFamily="bold">Front</CustomText>
             {isFront ? (
               <View
@@ -96,8 +144,7 @@ const BodyChart = () => {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setIsFront(false)}
-            style={styles.statItem}
-          >
+            style={styles.statItem}>
             <CustomText fontFamily="bold">Back</CustomText>
             {!isFront ? (
               <View
@@ -132,14 +179,14 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: verticalScale(10),
     paddingBottom: verticalScale(40),
-    backgroundColor: COLORS.brown || "#333", // Match the background color of the chart
+    backgroundColor: COLORS.brown || '#333', // Match the background color of the chart
     borderRadius: 10,
   },
 
   topTabsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
     paddingVertical: verticalScale(10),
     marginHorizontal: horizontalScale(10),
   },
@@ -147,7 +194,7 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(8),
     paddingHorizontal: horizontalScale(20),
     borderRadius: 5,
-    textAlign: "center",
+    textAlign: 'center',
   },
   activeTab: {
     backgroundColor: COLORS.whiteTail,
@@ -159,60 +206,60 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFFFFF",
+    fontWeight: 'bold',
+    color: '#FFFFFF',
     marginBottom: 20,
-    textAlign: "center",
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#FFFFFF",
+    fontWeight: 'bold',
+    color: '#FFFFFF',
     marginBottom: 10,
-    textAlign: "center",
+    textAlign: 'center',
   },
   muscleGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-around",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
   },
   muscleItem: {
     margin: 10,
-    alignItems: "center",
+    alignItems: 'center',
   },
   muscleContainer: {
-    alignItems: "center",
+    alignItems: 'center',
   },
   muscleLabel: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 12,
     marginTop: 5,
   },
   bodyContainer: {
     marginTop: 20,
-    alignItems: "center",
+    alignItems: 'center',
   },
   secondaryText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 16,
   },
   statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
     paddingHorizontal: horizontalScale(10),
   },
   statItem: {
     gap: verticalScale(10),
-    alignItems: "center",
+    alignItems: 'center',
   },
   statLabel: {
-    color: COLORS.white || "#FFF",
+    color: COLORS.white || '#FFF',
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   statValue: {
-    color: COLORS.white || "#FFF",
+    color: COLORS.white || '#FFF',
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
 });

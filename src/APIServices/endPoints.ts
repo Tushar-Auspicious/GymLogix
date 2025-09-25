@@ -16,6 +16,12 @@ const ENDPOINTS = {
   createSchedule: `schedule/create_update`,
   create_update_exercise: `exercise/create_update?`,
   create_plan: `plan/create_update`,
+  activate_plan: `plan/activate_plan?`,
+  deactivate_plan: `plan/deactivate_plan?`,
+  get_insight: `insight/get`,
+  create_update_message: `conversation/create_update?`,
+  get_messages: `conversation/get?`,
+  remove_Schedule: `schedule/remove?`,
 };
 
 export default ENDPOINTS;

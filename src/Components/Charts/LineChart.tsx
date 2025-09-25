@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useState } from "react";
+import React, {FC, useEffect, useMemo, useState} from 'react';
 import {
   Modal,
   Platform,
@@ -7,40 +7,36 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-} from "react-native";
-import { LineChart, yAxisSides } from "react-native-gifted-charts";
-import COLORS from "../../Utilities/Colors"; // Adjust the import based on your project structure
-import {
-  horizontalScale,
-  hp,
-  verticalScale,
-  wp,
-} from "../../Utilities/Metrics"; // Adjust the import based on your project structure
-import { CustomText } from "../CustomText";
-import { Picker, PickerIOS } from "@react-native-picker/picker";
-import FONTS from "../../Assets/fonts";
-import CustomIcon from "../CustomIcon";
-import ICONS from "../../Assets/Icons";
+} from 'react-native';
+import {LineChart, yAxisSides} from 'react-native-gifted-charts';
+import COLORS from '../../Utilities/Colors'; // Adjust the import based on your project structure
+import {horizontalScale, hp, verticalScale, wp} from '../../Utilities/Metrics'; // Adjust the import based on your project structure
+import {CustomText} from '../CustomText';
+import {Picker, PickerIOS} from '@react-native-picker/picker';
+import FONTS from '../../Assets/fonts';
+import CustomIcon from '../CustomIcon';
+import ICONS from '../../Assets/Icons';
+import {useAppSelector} from '../../Redux/store';
 
 // Utility functions to format date strings
 const formatDate = (dateStr: string): string => {
   // Parse the date string (assuming format is "M/D")
-  const [month, day] = dateStr.split("/").map(Number);
+  const [month, day] = dateStr.split('/').map(Number);
 
   // Get month name
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   // Assume current year if not provided
@@ -53,22 +49,22 @@ const formatDate = (dateStr: string): string => {
 // Shorter format for axis labels
 const formatShortDate = (dateStr: string): string => {
   // Parse the date string (assuming format is "M/D")
-  const [month, day] = dateStr.split("/").map(Number);
+  const [month, day] = dateStr.split('/').map(Number);
 
   // Get abbreviated month name
   const monthNames = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   // Return short formatted date
@@ -91,13 +87,13 @@ interface LineChartProps {
   /** Optional initial active tab value */
   initialTabValue?: number;
   /** Optional initial selected stat option */
-  initialSelectedOption?: "Total" | "Average";
+  initialSelectedOption?: 'Total' | 'Average';
   /** Optional tabs configuration if it needs to be dynamic */
-  tabs?: { label: string; value: number }[];
+  tabs?: {label: string; value: number}[];
   /** Callback function when a tab is changed */
   onTabChange?: (tabValue: number) => void;
   /** Callback function when option (Total/Average) is changed */
-  onOptionChange?: (option: "Total" | "Average", value: number) => void;
+  onOptionChange?: (option: 'Total' | 'Average', value: number) => void;
   /** Optional chart line color */
   lineColor?: string;
   /** Optional chart data point color */
@@ -107,21 +103,25 @@ interface LineChartProps {
   /** Optional number of sections for Y Axis */
   yAxisSections?: number;
   isMeasurementTab?: boolean;
+  maxValue?: {date: string; value: number} | null;
+  minValue?: {date: string; value: number} | null;
+  storeMuscle: any;
+  setStoreMuscle: any;
 }
 
 // Default Tabs if not provided via props
 const defaultChartTabsData = [
-  { label: "Weight", value: 1 },
-  { label: "Distance", value: 2 },
-  { label: "Time", value: 3 },
-  { label: "Reps", value: 4 },
+  {label: 'Weight', value: 1},
+  {label: 'Distance', value: 2},
+  {label: 'Time', value: 3},
+  {label: 'Reps', value: 4},
 ];
 
 const CustomLineChart: FC<LineChartProps> = ({
   data = [], // Default to empty array if no data is provided
-  unit = "kg", // Default unit
+  unit = 'kg', // Default unit
   initialTabValue = 1,
-  initialSelectedOption = "Total",
+  initialSelectedOption = 'Total',
   tabs = defaultChartTabsData,
   onTabChange,
   onOptionChange,
@@ -130,25 +130,34 @@ const CustomLineChart: FC<LineChartProps> = ({
   yAxisMaxValue, // Allow parent to control max Y value
   yAxisSections = 3, // Default number of sections for Y axis labels (3 sections = 4 labels including 0)
   isMeasurementTab = false,
+  maxValue,
+  minValue,
+  storeMuscle,
+  setStoreMuscle,
 }) => {
   const [chartTabs, setChartsTabs] = useState(initialTabValue);
+  const {scheduleData} = useAppSelector(state => state.scheduleData);
   const [selectedOption, setSelectedOption] = useState(initialSelectedOption);
 
-  const [plan, setPlan] = useState<any>("Select Muscle");
+  const [plan, setPlan] = useState<any>('Select Muscle');
 
   const [isMeasurementModal, setIsMeasurementModal] = useState(false);
 
-  const plans = [
-    "Biceps",
-    "triceps",
-    "Chest",
-    "Back",
-    "Shoulders",
-    "Legs",
-    "Abs",
-    "Cardio",
-    "Other",
-  ];
+  const plans = scheduleData
+    ?.filter(item => item.type === 'measurement')
+    .flatMap(item => item.content.list) // get all measurement objects
+    .reduce((acc, curr) => {
+      const key = curr.part;
+      if (!acc[key]) {
+        acc[key] = {...curr, amount: Number(curr.amount)};
+      } else {
+        acc[key].amount += Number(curr.amount); // add amounts
+      }
+      return acc;
+    }, {});
+
+  // convert object back to array
+  const groupedPlans = Object.values(plans);
 
   // Memoize calculations to avoid re-computing on every render unless data changes
   const {
@@ -175,7 +184,7 @@ const CustomLineChart: FC<LineChartProps> = ({
       };
     }
 
-    const values = data.map((item) => item.value);
+    const values = data.map(item => item.value);
     const calculatedTotal = values.reduce((sum, item) => sum + item, 0);
     const calculatedAverage =
       values.length > 0 ? calculatedTotal / values.length : 0;
@@ -190,12 +199,12 @@ const CustomLineChart: FC<LineChartProps> = ({
         groups[date].push(item);
         return groups;
       },
-      {}
+      {},
     );
 
     // Calculate totals and averages for each date group
     const dateStats = Object.entries(dateGroups).map(([date, items]) => {
-      const dateValues = items.map((item) => item.value);
+      const dateValues = items.map(item => item.value);
       const dateTotal = dateValues.reduce((sum, val) => sum + val, 0);
       const dateAverage =
         dateValues.length > 0 ? dateTotal / dateValues.length : 0;
@@ -207,22 +216,22 @@ const CustomLineChart: FC<LineChartProps> = ({
     });
 
     // Find max and min for totals
-    const totalValues = dateStats.map((stat) => stat.total);
+    const totalValues = dateStats.map(stat => stat.total);
     const maxTotal = Math.max(...totalValues);
     const minTotal = Math.min(...totalValues);
     const maxTotalStat =
-      dateStats.find((stat) => stat.total === maxTotal) || null;
+      dateStats.find(stat => stat.total === maxTotal) || null;
     const minTotalStat =
-      dateStats.find((stat) => stat.total === minTotal) || null;
+      dateStats.find(stat => stat.total === minTotal) || null;
 
     // Find max and min for averages
-    const averageValues = dateStats.map((stat) => stat.average);
+    const averageValues = dateStats.map(stat => stat.average);
     const maxAverage = Math.max(...averageValues);
     const minAverage = Math.min(...averageValues);
     const maxAverageStat =
-      dateStats.find((stat) => stat.average === maxAverage) || null;
+      dateStats.find(stat => stat.average === maxAverage) || null;
     const minAverageStat =
-      dateStats.find((stat) => stat.average === minAverage) || null;
+      dateStats.find(stat => stat.average === minAverage) || null;
 
     // Create entries for max/min total and average
     const calculatedMaxTotalEntry = maxTotalStat
@@ -258,23 +267,21 @@ const CustomLineChart: FC<LineChartProps> = ({
     let preparedChartData;
 
     // For X-axis labels, use unique dates to avoid duplicates
-    const uniqueDates = [...new Set(data.map((item) => item.date))];
+    const uniqueDates = [...new Set(data.map(item => item.date))];
 
     // Format the dates for display
-    const preparedXAxisLabels = uniqueDates.map((date) =>
-      formatShortDate(date)
-    );
+    const preparedXAxisLabels = uniqueDates.map(date => formatShortDate(date));
 
     // If we're showing Total or Average, we need to aggregate the data by date
-    if (selectedOption === "Total" || selectedOption === "Average") {
+    if (selectedOption === 'Total' || selectedOption === 'Average') {
       // Create data points based on the totals or averages for each date
-      preparedChartData = dateStats.map((stat) => ({
-        value: selectedOption === "Total" ? stat.total : stat.average,
+      preparedChartData = dateStats.map(stat => ({
+        value: selectedOption === 'Total' ? stat.total : stat.average,
         date: stat.date,
       }));
     } else {
       // Use the original data points
-      preparedChartData = data.map((item) => ({ value: item.value }));
+      preparedChartData = data.map(item => ({value: item.value}));
     }
 
     return {
@@ -301,7 +308,7 @@ const CustomLineChart: FC<LineChartProps> = ({
   const yAxisProps = useMemo(() => {
     // Find the maximum value in the data for Y-axis scaling
     const dataMax =
-      data && data.length > 0 ? Math.max(...data.map((item) => item.value)) : 0;
+      data && data.length > 0 ? Math.max(...data.map(item => item.value)) : 0;
 
     const effectiveMax =
       yAxisMaxValue ??
@@ -320,10 +327,10 @@ const CustomLineChart: FC<LineChartProps> = ({
   // Call onOptionChange when component mounts or when data/selectedOption changes
   useEffect(() => {
     if (onOptionChange && data && data.length > 0) {
-      if (selectedOption === "Total") {
-        onOptionChange("Total", total);
+      if (selectedOption === 'Total') {
+        onOptionChange('Total', total);
       } else {
-        onOptionChange("Average", average);
+        onOptionChange('Average', average);
       }
     }
   }, [data, selectedOption, total, average, onOptionChange]);
@@ -333,12 +340,11 @@ const CustomLineChart: FC<LineChartProps> = ({
       {/* Tabs Section */}
       {!isMeasurementTab && (
         <View style={styles.topTabsContainer}>
-          {tabs.map((tab) => (
+          {tabs.map(tab => (
             <Pressable
               key={tab.value}
               style={styles.tab}
-              onPress={() => handleTabClick(tab.value)}
-            >
+              onPress={() => handleTabClick(tab.value)}>
               <CustomText
                 fontSize={14}
                 fontFamily="medium"
@@ -348,8 +354,7 @@ const CustomLineChart: FC<LineChartProps> = ({
                 style={[
                   styles.tabText,
                   chartTabs === tab.value && styles.activeTab,
-                ]}
-              >
+                ]}>
                 {tab.label}
               </CustomText>
             </Pressable>
@@ -362,13 +367,11 @@ const CustomLineChart: FC<LineChartProps> = ({
           <CustomText fontFamily="bold">Measurements</CustomText>
           <Pressable
             style={styles.dropdownButton}
-            onPress={() => setIsMeasurementModal(true)}
-          >
+            onPress={() => setIsMeasurementModal(true)}>
             <CustomText
               fontSize={12}
-              color={plan ? COLORS.black : COLORS.nickel}
-            >
-              {plan ? plan : "Select Muscle"}
+              color={plan ? COLORS.black : COLORS.nickel}>
+              {plan ? plan : 'Select Muscle'}
             </CustomText>
             <CustomIcon Icon={ICONS.DownArrowIcon} height={7} width={16} />
           </Pressable>
@@ -414,32 +417,27 @@ const CustomLineChart: FC<LineChartProps> = ({
             visible={isMeasurementModal}
             onRequestClose={() => {
               setIsMeasurementModal(!isMeasurementModal);
-            }}
-          >
+            }}>
             <TouchableOpacity
               activeOpacity={1}
               onPress={() => {
                 setIsMeasurementModal(!isMeasurementModal);
               }}
-              style={styles.centeredView}
-            >
+              style={styles.centeredView}>
               <View
                 onStartShouldSetResponder={() => true}
-                onResponderRelease={(e) => e.stopPropagation()}
-                style={styles.modalView}
-              >
+                onResponderRelease={e => e.stopPropagation()}
+                style={styles.modalView}>
                 <View
                   style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
                   <CustomText
                     fontFamily="bold"
                     color={COLORS.black}
-                    fontSize={18}
-                  >
+                    fontSize={18}>
                     Select Muscle
                   </CustomText>
                   <CustomIcon
@@ -448,17 +446,17 @@ const CustomLineChart: FC<LineChartProps> = ({
                   />
                 </View>
                 <ScrollView>
-                  {plans.map((item) => (
+                  {groupedPlans.map((item: any, index) => (
                     <Pressable
-                      key={item}
+                      key={index}
                       style={styles.modalItem}
                       onPress={() => {
-                        setPlan(item);
+                        setStoreMuscle(item); // whole object with summed amount
+                        setPlan(item?.part); // just the part
                         setIsMeasurementModal(false);
-                      }}
-                    >
+                      }}>
                       <CustomText color={COLORS.black} style={styles.itemText}>
-                        {item}
+                        {item?.part}
                       </CustomText>
                     </Pressable>
                   ))}
@@ -498,7 +496,7 @@ const CustomLineChart: FC<LineChartProps> = ({
           {/* Y-Axis Overlay - Position might need adjustment based on dynamic labels */}
           <View style={styles.yAxisOverlay}>
             <CustomText fontFamily="bold" fontSize={12}>
-              {`${yAxisProps.maxValue.toFixed(0)}${unit}`}{" "}
+              {`${yAxisProps.maxValue.toFixed(0)}${unit}`}{' '}
               {/* Use calculated max and dynamic unit */}
             </CustomText>
             <View style={styles.yAxisBackground} />
@@ -518,9 +516,9 @@ const CustomLineChart: FC<LineChartProps> = ({
         <View style={styles.statsContainer}>
           <TouchableOpacity
             onPress={() => {
-              setSelectedOption("Total");
+              setSelectedOption('Total');
               if (onOptionChange && data && data.length > 0) {
-                onOptionChange("Total", total);
+                onOptionChange('Total', total);
               }
             }}
             style={styles.statItem}
@@ -530,14 +528,13 @@ const CustomLineChart: FC<LineChartProps> = ({
               fontFamily="bold"
               color={
                 !data || data.length === 0 ? COLORS.whiteTail : COLORS.whiteTail
-              }
-            >
+              }>
               Total
             </CustomText>
             <View
               style={[
                 styles.radioCircle,
-                selectedOption === "Total"
+                selectedOption === 'Total'
                   ? styles.radioSelected
                   : styles.radioUnselected,
                 (!data || data.length === 0) && styles.radioDisabled,
@@ -549,9 +546,9 @@ const CustomLineChart: FC<LineChartProps> = ({
 
           <TouchableOpacity
             onPress={() => {
-              setSelectedOption("Average");
+              setSelectedOption('Average');
               if (onOptionChange && data && data.length > 0) {
-                onOptionChange("Average", average);
+                onOptionChange('Average', average);
               }
             }}
             style={styles.statItem}
@@ -561,14 +558,13 @@ const CustomLineChart: FC<LineChartProps> = ({
               fontFamily="bold"
               color={
                 !data || data.length === 0 ? COLORS.whiteTail : COLORS.whiteTail
-              }
-            >
+              }>
               Average
             </CustomText>
             <View
               style={[
                 styles.radioCircle,
-                selectedOption === "Average"
+                selectedOption === 'Average'
                   ? styles.radioSelected
                   : styles.radioUnselected,
                 (!data || data.length === 0) && styles.radioDisabled,
@@ -584,20 +580,18 @@ const CustomLineChart: FC<LineChartProps> = ({
       <View
         style={[
           styles.minMaxContainer,
-          isMeasurementTab && { marginTop: verticalScale(70) },
-        ]}
-      >
+          isMeasurementTab && {marginTop: verticalScale(70)},
+        ]}>
         {/* Max */}
         <View style={styles.minMaxItem}>
           <CustomText
             fontFamily="italicBold"
             color={COLORS.yellow}
-            fontSize={18}
-          >
+            fontSize={18}>
             Max
           </CustomText>
           <CustomText fontFamily="medium" fontSize={18} color={COLORS.black}>
-            {selectedOption === "Total"
+            {selectedOption === 'Total'
               ? maxTotalEntry
                 ? `${maxTotalEntry.value.toFixed(0)}${unit}`
                 : `N/A`
@@ -608,15 +602,14 @@ const CustomLineChart: FC<LineChartProps> = ({
           <CustomText
             fontFamily="italic"
             color={COLORS.lightBrown}
-            fontSize={12}
-          >
-            {selectedOption === "Total"
+            fontSize={12}>
+            {selectedOption === 'Total'
               ? maxTotalEntry
                 ? formatDate(maxTotalEntry.date)
-                : "-"
+                : '-'
               : maxAverageEntry
               ? formatDate(maxAverageEntry.date)
-              : "-"}
+              : '-'}
           </CustomText>
         </View>
 
@@ -625,12 +618,11 @@ const CustomLineChart: FC<LineChartProps> = ({
           <CustomText
             fontFamily="italicBold"
             color={COLORS.yellow}
-            fontSize={18}
-          >
+            fontSize={18}>
             Min
           </CustomText>
           <CustomText fontFamily="medium" fontSize={18} color={COLORS.black}>
-            {selectedOption === "Total"
+            {selectedOption === 'Total'
               ? minTotalEntry
                 ? `${minTotalEntry.value.toFixed(0)}${unit}`
                 : `N/A`
@@ -641,15 +633,14 @@ const CustomLineChart: FC<LineChartProps> = ({
           <CustomText
             fontFamily="italic"
             color={COLORS.lightBrown}
-            fontSize={12}
-          >
-            {selectedOption === "Total"
+            fontSize={12}>
+            {selectedOption === 'Total'
               ? minTotalEntry
                 ? formatDate(minTotalEntry.date)
-                : "-"
+                : '-'
               : minAverageEntry
               ? formatDate(minAverageEntry.date)
-              : "-"}
+              : '-'}
           </CustomText>
         </View>
       </View>
@@ -664,17 +655,17 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: verticalScale(10),
     paddingBottom: verticalScale(40),
-    backgroundColor: COLORS.brown || "#333",
+    backgroundColor: COLORS.brown || '#333',
     borderRadius: 10,
     gap: verticalScale(30),
   },
   topTabsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between", // Adjust if tabs overflow: maybe 'flex-start' and scrollview
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between', // Adjust if tabs overflow: maybe 'flex-start' and scrollview
+    alignItems: 'center',
     paddingVertical: verticalScale(10),
     marginHorizontal: horizontalScale(20),
-    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     borderBottomWidth: 1,
   },
   tab: {
@@ -684,8 +675,8 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(8),
     paddingHorizontal: horizontalScale(10),
     borderRadius: 5,
-    textAlign: "center",
-    overflow: "hidden", // Prevent text overflow issues on long labels
+    textAlign: 'center',
+    overflow: 'hidden', // Prevent text overflow issues on long labels
   },
   activeTab: {
     backgroundColor: COLORS.whiteTail,
@@ -693,52 +684,52 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   chartWrapper: {
-    position: "relative",
+    position: 'relative',
     marginHorizontal: horizontalScale(10), // Give chart slightly more space
     height: hp(32), // Ensure wrapper accommodates chart height + potential overflows
     // backgroundColor: 'rgba(255,0,0,0.1)', // DEBUG: uncomment to see wrapper bounds
   },
   yAxisText: {
-    color: COLORS.white || "#FFF",
+    color: COLORS.white || '#FFF',
     fontSize: 10, // Slightly smaller if labels get crowded
   },
   xAxisText: {
-    color: COLORS.white || "#FFF",
+    color: COLORS.white || '#FFF',
     fontSize: 10, // Slightly smaller if labels get crowded
-    textAlign: "center",
+    textAlign: 'left',
     marginTop: 5,
   },
   yAxisOverlay: {
-    position: "absolute",
+    position: 'absolute',
     right: horizontalScale(30), // Adjust position based on yAxisSide and label width
     top: verticalScale(-15), // Adjust vertical position
-    height: "105%", // May need adjustment
-    alignItems: "center",
+    height: '105%', // May need adjustment
+    alignItems: 'center',
     gap: verticalScale(5),
     // backgroundColor: 'rgba(0,255,0,0.1)', // DEBUG: uncomment to see overlay bounds
   },
   yAxisBackground: {
-    backgroundColor: "#F1F1F1",
+    backgroundColor: '#F1F1F1',
     width: horizontalScale(40), // Ensure this width accommodates labels
-    height: "100%",
+    height: '100%',
     opacity: 0.2,
     borderRadius: 10,
   },
   noDataContainer: {
     height: hp(32), // Same height as chart area
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginHorizontal: horizontalScale(20),
   },
   statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
     paddingHorizontal: horizontalScale(10),
     marginTop: verticalScale(10),
   },
   statItem: {
     gap: verticalScale(10),
-    alignItems: "center",
+    alignItems: 'center',
   },
   // --- Radio button styles ---
   radioCircle: {
@@ -760,22 +751,22 @@ const styles = StyleSheet.create({
     borderColor: COLORS.lightBrown,
   },
   minMaxContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: horizontalScale(20),
     paddingHorizontal: horizontalScale(10),
   },
   minMaxItem: {
-    backgroundColor: COLORS.white || "#FFF",
+    backgroundColor: COLORS.white || '#FFF',
     borderRadius: 10,
     paddingVertical: verticalScale(5),
-    alignItems: "center",
+    alignItems: 'center',
     minWidth: horizontalScale(120), // Ensure items have minimum width
   },
 
   dropdownContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     backgroundColor: COLORS.brown,
     paddingHorizontal: horizontalScale(20),
     paddingVertical: verticalScale(10),
@@ -785,40 +776,40 @@ const styles = StyleSheet.create({
   dropdownWrapper: {
     flex: 1,
     gap: verticalScale(5),
-    alignSelf: "center",
+    alignSelf: 'center',
     width: wp(50),
   },
   dropdown: {
     backgroundColor: COLORS.whiteTail,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "#CECECE",
-    overflow: "hidden",
+    borderColor: '#CECECE',
+    overflow: 'hidden',
   },
   dropdownButton: {
     backgroundColor: COLORS.whiteTail,
     borderRadius: 5,
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(12),
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 
   centeredView: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Semi-transparent background
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
   },
 
   modalView: {
-    backgroundColor: "white",
+    backgroundColor: 'white',
     borderRadius: 10,
     paddingVertical: verticalScale(10),
     paddingHorizontal: horizontalScale(10),
     gap: verticalScale(10),
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -826,15 +817,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    width: "80%",
-    maxHeight: "70%",
+    width: '80%',
+    maxHeight: '70%',
   },
   modalItem: {
     paddingVertical: verticalScale(10),
-    width: "100%",
+    width: '100%',
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    alignItems: "flex-start",
+    borderBottomColor: '#eee',
+    alignItems: 'flex-start',
     paddingHorizontal: horizontalScale(10),
   },
   itemText: {

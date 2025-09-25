@@ -1,10 +1,12 @@
 import {useNavigation} from '@react-navigation/native';
-import React, {FC, useEffect, useState} from 'react';
+import React, {FC, useEffect, useRef, useState} from 'react';
 import {
-  Alert,
+  ActivityIndicator,
   FlatList,
   ImageBackground,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,10 +20,12 @@ import CustomIcon from '../../Components/CustomIcon';
 import {CustomText} from '../../Components/CustomText';
 import {useAppSelector} from '../../Redux/store';
 import {ActivePlanListItem} from '../../Seeds/Plans';
-import {workoutPlan} from '../../Seeds/WorkoutProgramData';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, hp, verticalScale} from '../../Utilities/Metrics';
 import ProgramExcercise from './ProgramExcerciseList';
+import {fetchData, postData} from '../../APIServices/api';
+import ENDPOINTS from '../../APIServices/endPoints';
+import {KeyboardAvoidingContainer} from '../../Components/KeyboardAvoidingComponent';
 
 type WorkoutProgramDetailsProps = {
   onPressBack: () => void;
@@ -70,6 +74,24 @@ export const ChatBubble: FC<{text: string; sender: boolean}> = ({
   );
 };
 
+interface Message {
+  text: string;
+  created_at: string;
+  created_by: string;
+}
+
+interface MessageItem {
+  id: string;
+  plan_id: number;
+  user_id: number;
+  messages: Message[];
+}
+
+interface ResponseData {
+  status: number;
+  messages: MessageItem[];
+}
+
 const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
   onPressBack,
 }) => {
@@ -83,16 +105,25 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
 
   const [currentProgramDetails, setCurrentProgramDetails] =
     useState<null | ActivePlanListItem>(null);
+
   const [activeProgramTab, setActiveProgramTab] = useState<
     'Excercise' | 'Details' | "Coach's corner"
   >('Excercise');
   const [message, setMessage] = useState('');
+  const [allMessages, setAllMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [workoutData, setWorkoutData] = useState(null);
 
   const [isPlanActive, setIsPlanActive] = useState(false);
 
   const [isKyeboard, setisKyeboard] = useState(false);
+
+  const flatListRef = useRef<FlatList>(null); // Reference to FlatList for scrolling
 
   const renderLevelWithStars = () => {
     const level: string = 'Intermediate';
@@ -135,44 +166,194 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
   }, []);
 
   useEffect(() => {
-    const foundProgram = planData?.find(item => item.id === currentProgramId);
+    const foundProgram = planData?.find(
+      item =>
+        item.id === currentProgramId || item.allData?.id === currentProgramId,
+    );
+
+    const isActive = userData?.activated_plan?.includes(currentProgramId);
+    setIsPlanActive(isActive ?? false);
+
     const foundProgramWorkoutData = foundProgram?.allData?.content.workouts;
+
     const formattedWorkout = foundProgramWorkoutData?.map(workout => ({
       day: workout.name,
       dotColor: workout.color,
-      exercises: workout.exercises.map(ex => {
-        const workoutExercise = ex.workout_exercises?.[0];
+      exercises: workout.exercises.flatMap(ex =>
+        ex.workout_exercises.map(we => {
+          const match = exerciseData?.find(
+            t => t.exercise_id === we.exercise_id,
+          );
 
-        const match = exerciseData?.find(
-          t => t.exercise_id === workoutExercise?.exercise_id,
-        );
+          // console.log('we ---->', we);
 
-        return {
-          id: workoutExercise?.exercise_id,
-          image:
-            match?.images_urls[0] ||
-            'https://images.unsplash.com/photo-1599058917212-d750089bc07e',
-          name: match?.name || '',
-          sets: workoutExercise?.sets?.toString() || '',
-          reps: workoutExercise?.reps?.toString() || '',
-        };
-      }),
+          return {
+            id: match?.exercise_id,
+            image:
+              match?.images_urls[0] ||
+              'https://images.unsplash.com/photo-1599058917212-d750089bc07e',
+            name: match?.name || '',
+            sets: we.sets?.toString() || '',
+            reps: we.reps?.toString() || '',
+          };
+        }),
+      ),
       restPeriod: workout.rest_period,
     }));
 
-    setWorkoutData(formattedWorkout);
-
+    setWorkoutData(formattedWorkout! || []);
     setCurrentProgramDetails(foundProgram ?? null);
-  }, [currentProgramId]);
+  }, [currentProgramId, planData, userData, exerciseData]);
+
+  const createActivatePlan = async () => {
+    try {
+      const response = await postData(
+        `${ENDPOINTS.activate_plan}plan_id=${currentProgramId}`,
+      );
+
+      console.log('response activate --->', response);
+      if (response.data) {
+        setIsPlanActive(true);
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+  };
+
+  const deactivatePlan = async () => {
+    try {
+      const resposne = await postData(
+        `${ENDPOINTS.deactivate_plan}plan_id=${currentProgramId}`,
+      );
+      console.log('response deativeate---->', resposne);
+      if (resposne.data) {
+        setIsPlanActive(false);
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+  };
+
+  const CREATE_UPDATE_MESSAGE = async () => {
+    if (message.trim() === '') {
+      return;
+    }
+    const matchedItem = planData?.find(
+      item =>
+        item.id === currentProgramId || item.allData?.id === currentProgramId,
+    );
+
+    const data = {
+      plan_id: matchedItem?.allData?.plan_id
+        ? matchedItem?.allData?.plan_id
+        : matchedItem?.allData?.id,
+      message: message,
+    };
+
+    console.log('sent data --->', data);
+
+    try {
+      const response = await postData<any>(
+        `${ENDPOINTS.create_update_message}plan_id=${data.plan_id}&message=${data.message}`,
+      );
+
+      console.log('sent Message response ---->', response);
+
+      if (
+        response.data.messages ===
+        'Conversation successfully created or updated.'
+      ) {
+        setMessage('');
+        await GET_MESSAGES(1);
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+  };
+
+  const GET_MESSAGES = async (pageNumber: number = 1) => {
+    try {
+      const matchedItem = planData?.find(
+        item =>
+          item.id === currentProgramId || item.allData?.id === currentProgramId,
+      );
+      const data = {
+        plan_id: matchedItem?.allData?.plan_id
+          ? matchedItem?.allData?.plan_id
+          : matchedItem?.allData?.id,
+      };
+
+      if (pageNumber > 1) setLoadingMore(true);
+
+      const response = await fetchData<ResponseData>(
+        `${ENDPOINTS.get_messages}plan_id=${data.plan_id}`,
+      );
+
+      const formatted =
+        response.data?.messages?.flatMap((item: any, parentIndex: number) =>
+          item.messages.map((msg: any, index: number) => ({
+            id: `${item.id}-${msg.created_at}-${index}-${parentIndex}`,
+            text: msg.text,
+            created_by: msg.created_by,
+            created_at: msg.created_at,
+            plan_id: item.plan_id,
+            user_id: item.user_id,
+          })),
+        ) || [];
+
+      //  Sort newest first so FlatList inverted works correctly
+      const sorted = formatted.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+
+      setAllMessages(sorted);
+
+      //  do NOT cut the list on refresh after sending
+      if (pageNumber === 1) {
+        setVisibleCount(PAGE_SIZE);
+        setMessages(sorted.slice(0, PAGE_SIZE));
+      } else {
+        setMessages(sorted.slice(0, visibleCount));
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+  };
+
+  //  Load latest messages on mount
+  useEffect(() => {
+    GET_MESSAGES();
+  }, []);
+
+  //  Load more (older) when scroll up
+  const loadMoreMessages = () => {
+    if (loadingMore) return;
+    if (visibleCount >= allMessages.length) return;
+
+    setLoadingMore(true);
+    setTimeout(() => {
+      const newCount = visibleCount + PAGE_SIZE;
+      setVisibleCount(newCount);
+      setMessages(allMessages.slice(0, newCount)); // take more from top
+      setLoadingMore(false);
+    }, 1000);
+  };
 
   return (
-    <View style={styles.container}>
-      {!isKyeboard && !!currentProgramDetails?.coverImage && (
+    <KeyboardAvoidingView
+      style={{flex: 1}}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0} // adjust offset for header height
+    >
+      <View style={styles.container}>
         <ImageBackground
           source={{
-            uri:
-              currentProgramDetails?.coverImage ||
-              'https://images.unsplash.com/photo-1599058917212-d750089bc07e',
+            uri: currentProgramDetails?.coverImage
+              ? currentProgramDetails?.coverImage
+              : currentProgramDetails?.allData?.image_url
+              ? currentProgramDetails?.allData?.image_url
+              : 'https://images.unsplash.com/photo-1599058917212-d750089bc07e',
           }}
           style={styles.coverImage}
           imageStyle={styles.coverImageStyle}>
@@ -188,7 +369,10 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
                   {currentProgramDetails?.title}
                 </CustomText>
                 <View style={styles.tagContainer}>
-                  {currentProgramDetails?.tags.map((tag, index) => (
+                  {(
+                    currentProgramDetails?.tags ||
+                    currentProgramDetails?.allData?.content?.tags
+                  )?.map((tag, index) => (
                     <View key={index} style={styles.tag}>
                       <CustomText fontSize={12}>{tag}</CustomText>
                     </View>
@@ -198,113 +382,147 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
             </View>
           </LinearGradient>
         </ImageBackground>
-      )}
 
-      <View style={styles.tabContainer}>
-        {TabOptions.filter(
-          tab => tab !== "Coach's corner" || userData?.is_premium,
-        ).map(
-          (tab: 'Excercise' | 'Details' | "Coach's corner", index: number) => {
-            const isSelected = activeProgramTab === tab;
-            return (
-              <Pressable
-                key={index}
-                onPress={() => setActiveProgramTab(tab)}
-                style={[
-                  styles.tabButton,
-                  {
-                    backgroundColor: isSelected ? COLORS.yellow : 'transparent',
-                  },
-                ]}>
-                <CustomText>{tab}</CustomText>
-              </Pressable>
-            );
-          },
+        <View style={styles.tabContainer}>
+          {TabOptions.filter(
+            tab => tab !== "Coach's corner" || userData?.user_id,
+          ).map(
+            (
+              tab: 'Excercise' | 'Details' | "Coach's corner",
+              index: number,
+            ) => {
+              const isSelected = activeProgramTab === tab;
+              return (
+                <Pressable
+                  key={index}
+                  onPress={() => setActiveProgramTab(tab)}
+                  style={[
+                    styles.tabButton,
+                    {
+                      backgroundColor: isSelected
+                        ? COLORS.yellow
+                        : 'transparent',
+                    },
+                  ]}>
+                  <CustomText>{tab}</CustomText>
+                </Pressable>
+              );
+            },
+          )}
+        </View>
+
+        {activeProgramTab === 'Excercise' && (
+          <ProgramExcercise
+            programData={workoutData || []}
+            isActivated={isPlanActive}
+            onPressActive={() => {
+              if (isPlanActive) {
+                deactivatePlan(); // Will setIsPlanActive(false) inside
+              } else {
+                createActivatePlan(); // Will setIsPlanActive(true) inside
+              }
+            }}
+          />
+        )}
+
+        {activeProgramTab === 'Details' && (
+          <ScrollView contentContainerStyle={styles.detailsContainer}>
+            <View style={styles.detailsStatsContainer}>
+              <View style={styles.statItem}>
+                <CustomIcon Icon={ICONS.EnduranceIcon} height={48} width={48} />
+                <CustomText fontSize={14} fontFamily="bold">
+                  {currentProgramDetails?.allData?.content.goal || 'Endurance'}
+                </CustomText>
+              </View>
+              <View style={styles.statItem}>
+                <CustomIcon
+                  Icon={ICONS.GreenCalendarIcon}
+                  height={48}
+                  width={48}
+                />
+                <CustomText fontSize={14} fontFamily="bold">
+                  {`${currentProgramDetails?.allData?.content.duration} Weeks`}
+                </CustomText>
+              </View>
+              <View style={styles.statItem}>
+                <CustomIcon Icon={ICONS.barbellIcon} height={48} width={48} />
+                <CustomText fontSize={14} fontFamily="bold">
+                  {currentProgramDetails?.allData?.content.location}
+                </CustomText>
+              </View>
+              <View style={styles.statItem}>
+                <CustomText fontSize={30} fontFamily="bold">
+                  {currentProgramDetails?.allData?.content.days_per_week}
+                </CustomText>
+                <CustomText fontSize={14} fontFamily="bold">
+                  Days
+                </CustomText>
+              </View>
+            </View>
+
+            {renderLevelWithStars()}
+            <CustomText fontSize={22} fontFamily="extraBold">
+              Details
+            </CustomText>
+            <CustomText fontSize={14} style={styles.detailsText}>
+              {currentProgramDetails?.allData?.content.details}
+            </CustomText>
+          </ScrollView>
+        )}
+
+        {activeProgramTab === "Coach's corner" && (
+          <View style={styles.conversationContainer}>
+            <FlatList
+              ref={flatListRef}
+              data={messages}
+              keyExtractor={item => item.id}
+              showsHorizontalScrollIndicator={false}
+              showsVerticalScrollIndicator={false}
+              inverted
+              bounces={false}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({item}) => {
+                return (
+                  <ChatBubble
+                    text={item.text}
+                    sender={item.created_by === 'user'}
+                  />
+                );
+              }}
+              onEndReached={loadMoreMessages} // now safe, because we're slicing
+              onEndReachedThreshold={0.1}
+              ListFooterComponent={
+                loadingMore ? (
+                  <ActivityIndicator
+                    size="large"
+                    color="#fff"
+                    style={{margin: 10}}
+                  />
+                ) : null
+              }
+            />
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={message}
+                onChangeText={setMessage}
+                placeholder="Type a message..."
+                placeholderTextColor={COLORS.brown}
+                style={styles.messageInput}
+              />
+              <View style={styles.sendIconContainer}>
+                <CustomIcon
+                  Icon={ICONS.SendMessageIcon}
+                  height={40}
+                  width={40}
+                  onPress={CREATE_UPDATE_MESSAGE}
+                />
+              </View>
+            </View>
+          </View>
         )}
       </View>
-
-      {activeProgramTab === 'Excercise' && (
-        <ProgramExcercise
-          programData={workoutData || []}
-          isActivated={isPlanActive}
-          onPressActive={() => setIsPlanActive(!isPlanActive)}
-        />
-      )}
-
-      {activeProgramTab === 'Details' && (
-        <ScrollView contentContainerStyle={styles.detailsContainer}>
-          <View style={styles.detailsStatsContainer}>
-            <View style={styles.statItem}>
-              <CustomIcon Icon={ICONS.EnduranceIcon} height={48} width={48} />
-              <CustomText fontSize={14} fontFamily="bold">
-                {currentProgramDetails?.allData?.content.goal || 'Endurance'}
-              </CustomText>
-            </View>
-            <View style={styles.statItem}>
-              <CustomIcon
-                Icon={ICONS.GreenCalendarIcon}
-                height={48}
-                width={48}
-              />
-              <CustomText fontSize={14} fontFamily="bold">
-                {`${currentProgramDetails?.allData?.content.duration} Weeks`}
-              </CustomText>
-            </View>
-            <View style={styles.statItem}>
-              <CustomIcon Icon={ICONS.barbellIcon} height={48} width={48} />
-              <CustomText fontSize={14} fontFamily="bold">
-                {currentProgramDetails?.allData?.content.location}
-              </CustomText>
-            </View>
-            <View style={styles.statItem}>
-              <CustomText fontSize={30} fontFamily="bold">
-                {currentProgramDetails?.allData?.content.days_per_week}
-              </CustomText>
-              <CustomText fontSize={14} fontFamily="bold">
-                Days
-              </CustomText>
-            </View>
-          </View>
-
-          {renderLevelWithStars()}
-          <CustomText fontSize={22} fontFamily="extraBold">
-            Details
-          </CustomText>
-          <CustomText fontSize={14} style={styles.detailsText}>
-            {currentProgramDetails?.allData?.content.details}
-          </CustomText>
-        </ScrollView>
-      )}
-
-      {/* {
-        userData?.is_premium && (
-          
-        )
-      } */}
-
-      {activeProgramTab === "Coach's corner" && (
-        <View style={styles.conversationContainer}>
-          <FlatList
-            data={messages}
-            keyExtractor={item => item.id}
-            renderItem={({item}) => (
-              <ChatBubble text={item.text} sender={item.sender} />
-            )}
-          />
-          <View style={styles.inputContainer}>
-            <TextInput
-              value={message}
-              onChangeText={setMessage}
-              placeholder="Type a message..."
-              style={styles.messageInput}
-            />
-            <View style={styles.sendIconContainer}>
-              <CustomIcon Icon={ICONS.SendMessageIcon} height={40} width={40} />
-            </View>
-          </View>
-        </View>
-      )}
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

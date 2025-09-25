@@ -49,7 +49,10 @@ export const MyMealsSlice = createSlice({
 
     addIngredientsToMeal: (
       state,
-      action: PayloadAction<{mealId: number; ingredients: IngredientItem[]}>,
+      action: PayloadAction<{
+        mealId: number | string;
+        ingredients: IngredientItem[];
+      }>,
     ) => {
       const selectedMeal = state.myMealsList.find(
         meal => meal.id === action.payload.mealId,

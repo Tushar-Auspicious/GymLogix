@@ -30,6 +30,8 @@ const MealPlansList: FC<MealPlansListProps> = ({navigation}) => {
   );
 
   const renderItem = ({item}: {item: MyMealsListItem}) => {
+    // console.log('dsjnfwe', item.coverImage?.uri);
+    // console.log('p[ed,', item.id);
     return (
       <Pressable
         onPress={() =>
@@ -40,7 +42,9 @@ const MealPlansList: FC<MealPlansListProps> = ({navigation}) => {
         }
         style={styles.cardContainer}>
         <ImageBackground
-          source={{uri: item.coverImage?.uri}}
+          source={{
+            uri: item.coverImage?.uri || item.coverImage,
+          }}
           style={styles.imageBackground}
           imageStyle={styles.imageStyle}
           onLoadStart={() =>

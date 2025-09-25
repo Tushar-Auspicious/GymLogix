@@ -104,7 +104,7 @@ const ResetPassword: FC<ResetPasswordProps> = ({navigation, route}) => {
       }
     } catch (error: any) {
       setMessage({
-        text: error.message || 'Something went wrong',
+        text: error.reason || 'Something went wrong',
         type: 'error',
       });
     } finally {

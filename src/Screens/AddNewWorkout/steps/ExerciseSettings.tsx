@@ -1,71 +1,64 @@
-import React, {
-  Dispatch,
-  FC,
-  SetStateAction,
-  useEffect,
-  useState,
-} from "react";
+import React, {Dispatch, FC, SetStateAction, useEffect, useState} from 'react';
 import {
   Image,
   ImageBackground,
-  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
-import LinearGradient from "react-native-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { TimerPickerModal } from "react-native-timer-picker";
-import FONTS from "../../../Assets/fonts";
-import ICONS from "../../../Assets/Icons";
-import CustomIcon from "../../../Components/CustomIcon";
-import { CustomText } from "../../../Components/CustomText";
-import PrimaryButton from "../../../Components/PrimaryButton";
-import { setActiveStep } from "../../../Redux/slices/newWorkoutSlice";
-import { useAppDispatch, useAppSelector } from "../../../Redux/store";
-import COLORS from "../../../Utilities/Colors";
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {TimerPickerModal} from 'react-native-timer-picker';
+import FONTS from '../../../Assets/fonts';
+import ICONS from '../../../Assets/Icons';
+import CustomIcon from '../../../Components/CustomIcon';
+import {CustomText} from '../../../Components/CustomText';
+import PrimaryButton from '../../../Components/PrimaryButton';
+import {setActiveStep} from '../../../Redux/slices/newWorkoutSlice';
+import {useAppDispatch, useAppSelector} from '../../../Redux/store';
+import COLORS from '../../../Utilities/Colors';
 import {
   horizontalScale,
   hp,
   responsiveFontSize,
   verticalScale,
   wp,
-} from "../../../Utilities/Metrics";
-import { Exercise } from "../../../Seeds/ExerciseCatalog";
-import { updateExerciseSettings } from "../../../Redux/slices/exerciseCatalogSlice";
+} from '../../../Utilities/Metrics';
+import {Exercise} from '../../../Seeds/ExerciseCatalog';
+import {updateExerciseSettings} from '../../../Redux/slices/exerciseCatalogSlice';
 
 const ExerciseSettings: FC<{
   selectedExercise: string | null;
   setSelectedExercise: Dispatch<SetStateAction<string | null>>;
-}> = ({ selectedExercise, setSelectedExercise }) => {
+}> = ({selectedExercise, setSelectedExercise}) => {
   const dispatch = useAppDispatch();
-  const exerciseData = useAppSelector((state) =>
+  const exerciseData = useAppSelector(state =>
     state.exerciseCatalog.catalog.categories
-      .flatMap((category) => category.exercises)
-      .find((item) => item.id === selectedExercise)
+      .flatMap(category => category.exercises)
+      .find(item => item.id === selectedExercise),
   );
 
-  const [ExerciseSets, setExerciseSets] = useState("");
-  const [ExerciseReps, setExerciseReps] = useState("");
+  const [ExerciseSets, setExerciseSets] = useState('');
+  const [ExerciseReps, setExerciseReps] = useState('');
   const [ExerciseLogging, setExerciseLogging] = useState<
-    "Time" | "Weight" | "Distance"
-  >("Time");
+    'Time' | 'Weight' | 'Distance'
+  >('Time');
 
-  const [WarmUpTime, setWarmUpTime] = useState("Auto");
-  const [WorkingSetTime, setWorkingSetTime] = useState("Auto");
-  const [FinishExerciseTime, setFinishExerciseTime] = useState("Auto");
+  const [WarmUpTime, setWarmUpTime] = useState('Auto');
+  const [WorkingSetTime, setWorkingSetTime] = useState('Auto');
+  const [FinishExerciseTime, setFinishExerciseTime] = useState('Auto');
 
   const [isTimePickerModalVisible, setIsTimePickerModalVisible] = useState(0);
 
   const [alternateExercise, setAlternateExercise] = useState<string | null>(
-    null
+    null,
   );
 
-  const alternateExerciseDatausingId = useAppSelector((state) =>
+  const alternateExerciseDatausingId = useAppSelector(state =>
     state.exerciseCatalog.catalog.categories
-      .flatMap((category) => category.exercises)
-      .find((item) => item.id === alternateExercise)
+      .flatMap(category => category.exercises)
+      .find(item => item.id === alternateExercise),
   );
 
   const formatTime = ({
@@ -79,29 +72,29 @@ const ExerciseSettings: FC<{
   }) => {
     const timeParts = [];
     if (minutes !== undefined) {
-      timeParts.push(minutes.toString().padStart(2, "0"));
+      timeParts.push(minutes.toString().padStart(2, '0'));
     }
     if (seconds !== undefined) {
-      timeParts.push(seconds.toString().padStart(2, "0"));
+      timeParts.push(seconds.toString().padStart(2, '0'));
     }
 
-    return timeParts.join(":");
+    return timeParts.join(':');
   };
 
   useEffect(() => {
     if (exerciseData) {
-      setExerciseSets(exerciseData.exerciseSettings?.sets?.toString() ?? "");
-      setExerciseReps(exerciseData.exerciseSettings?.reps?.toString() ?? "");
-      setExerciseLogging(exerciseData.exerciseSettings?.loggingType ?? "Time");
-      setWarmUpTime(exerciseData.exerciseSettings?.timing?.warmUp ?? "Auto");
+      setExerciseSets(exerciseData.exerciseSettings?.sets?.toString() ?? '');
+      setExerciseReps(exerciseData.exerciseSettings?.reps?.toString() ?? '');
+      setExerciseLogging(exerciseData.exerciseSettings?.loggingType ?? 'Time');
+      setWarmUpTime(exerciseData.exerciseSettings?.timing?.warmUp ?? 'Auto');
       setWorkingSetTime(
-        exerciseData.exerciseSettings?.timing?.workingSet ?? "Auto"
+        exerciseData.exerciseSettings?.timing?.workingSet ?? 'Auto',
       );
       setFinishExerciseTime(
-        exerciseData.exerciseSettings?.timing?.finishExercise ?? "Auto"
+        exerciseData.exerciseSettings?.timing?.finishExercise ?? 'Auto',
       );
       setAlternateExercise(
-        exerciseData.exerciseSettings?.alternateExercise ?? null
+        exerciseData.exerciseSettings?.alternateExercise ?? null,
       );
     }
   }, [exerciseData]);
@@ -109,16 +102,14 @@ const ExerciseSettings: FC<{
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={{ uri: exerciseData?.coverImage?.uri }}
+        source={{uri: exerciseData?.coverImage?.uri}}
         style={styles.coverImage}
-        imageStyle={styles.coverImageStyle}
-      >
+        imageStyle={styles.coverImageStyle}>
         <LinearGradient
-          colors={["rgba(0,0,0,0)", "#1F1A16"]}
+          colors={['rgba(0,0,0,0)', '#1F1A16']}
           style={styles.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        >
+          start={{x: 0, y: 0}}
+          end={{x: 0, y: 1}}>
           <View style={styles.headerContainer}>
             <CustomIcon
               onPress={() => dispatch(setActiveStep(8))}
@@ -126,12 +117,11 @@ const ExerciseSettings: FC<{
             />
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 width: wp(90),
-              }}
-            >
+              }}>
               <CustomText color={COLORS.white} fontSize={18}>
                 {exerciseData?.name}
               </CustomText>
@@ -143,30 +133,27 @@ const ExerciseSettings: FC<{
         style={{
           padding: horizontalScale(10),
           gap: verticalScale(20),
-        }}
-      >
+        }}>
         <View
           style={{
             gap: verticalScale(30),
             backgroundColor: COLORS.brown,
             padding: verticalScale(10),
             borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
+            alignItems: 'center',
+          }}>
           <CustomText fontSize={20} fontFamily="bold" color={COLORS.yellow}>
             Strategy
           </CustomText>
           <CustomText
             fontSize={15}
             fontFamily="italic"
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             Set the strategy of your exercise
           </CustomText>
 
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={{ alignItems: "center", gap: verticalScale(5) }}>
+          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <View style={{alignItems: 'center', gap: verticalScale(5)}}>
               <TextInput
                 value={ExerciseSets}
                 onChangeText={setExerciseSets}
@@ -180,9 +167,9 @@ const ExerciseSettings: FC<{
                   maxWidth: horizontalScale(120),
                   width: horizontalScale(72),
                   height: verticalScale(72),
-                  textAlign: "center",
+                  textAlign: 'center',
                   color: COLORS.whiteTail,
-                  fontFamily: FONTS["bold"],
+                  fontFamily: FONTS['bold'],
                 }}
                 keyboardType="numeric"
               />
@@ -193,10 +180,9 @@ const ExerciseSettings: FC<{
             <View
               style={{
                 bottom: verticalScale(12),
-                flexDirection: "row",
-                alignItems: "center",
-              }}
-            >
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}>
               <View
                 style={{
                   width: horizontalScale(50),
@@ -208,8 +194,7 @@ const ExerciseSettings: FC<{
                 color={COLORS.whiteTail}
                 fontSize={24}
                 fontFamily="bold"
-                style={{ bottom: 3, marginHorizontal: 2 }}
-              >
+                style={{bottom: 3, marginHorizontal: 2}}>
                 x
               </CustomText>
               <View
@@ -220,7 +205,7 @@ const ExerciseSettings: FC<{
                 }}
               />
             </View>
-            <View style={{ alignItems: "center", gap: verticalScale(5) }}>
+            <View style={{alignItems: 'center', gap: verticalScale(5)}}>
               <TextInput
                 value={ExerciseReps}
                 onChangeText={setExerciseReps}
@@ -234,9 +219,9 @@ const ExerciseSettings: FC<{
                   maxWidth: horizontalScale(120),
                   height: verticalScale(72),
                   width: horizontalScale(72),
-                  textAlign: "center",
+                  textAlign: 'center',
                   color: COLORS.whiteTail,
-                  fontFamily: FONTS["bold"],
+                  fontFamily: FONTS['bold'],
                 }}
               />
               <CustomText fontSize={12} fontFamily="italic">
@@ -251,48 +236,44 @@ const ExerciseSettings: FC<{
             backgroundColor: COLORS.brown,
             padding: verticalScale(10),
             borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
+            alignItems: 'center',
+          }}>
           <CustomText fontSize={20} fontFamily="bold" color={COLORS.yellow}>
             Log
           </CustomText>
           <CustomText
             fontSize={15}
             fontFamily="italic"
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             What would you like to log for this exercise
           </CustomText>
 
           <View
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-evenly",
-              width: "100%",
-            }}
-          >
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-evenly',
+              width: '100%',
+            }}>
             {[
-              { icon: ICONS.LogTimeIcon, label: "Time" },
-              { icon: ICONS.LogWeightIcon, label: "Weight" },
-              { icon: ICONS.LogDistanceIcon, label: "Distance" },
-            ].map((item) => (
+              {icon: ICONS.LogTimeIcon, label: 'Time'},
+              {icon: ICONS.LogWeightIcon, label: 'Weight'},
+              {icon: ICONS.LogDistanceIcon, label: 'Distance'},
+            ].map(item => (
               <TouchableOpacity
                 onPress={() => setExerciseLogging(item.label as any)}
                 key={item.label}
                 style={{
-                  alignItems: "center",
+                  alignItems: 'center',
                   gap: verticalScale(10),
                   borderRadius: 20,
                   borderColor:
                     ExerciseLogging === item.label
                       ? COLORS.whiteTail
-                      : "transparent",
+                      : 'transparent',
                   borderWidth: 1,
                   padding: verticalScale(15),
-                }}
-              >
+                }}>
                 <CustomIcon
                   Icon={item.icon}
                   height={verticalScale(70)}
@@ -311,33 +292,29 @@ const ExerciseSettings: FC<{
             backgroundColor: COLORS.brown,
             padding: verticalScale(10),
             borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
+            alignItems: 'center',
+          }}>
           <CustomText fontSize={20} fontFamily="bold" color={COLORS.yellow}>
             Timing
           </CustomText>
           <CustomText
             fontSize={15}
             fontFamily="italic"
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             Set timing strategy for the exercise
           </CustomText>
 
           <View
             style={{
-              width: "100%",
+              width: '100%',
               paddingHorizontal: horizontalScale(15),
               gap: verticalScale(10),
-            }}
-          >
+            }}>
             <View
               style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+              }}>
               <CustomText color={COLORS.whiteTail} fontFamily="bold">
                 Warm up reset time
               </CustomText>
@@ -347,10 +324,9 @@ const ExerciseSettings: FC<{
             </View>
             <View
               style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+              }}>
               <CustomText color={COLORS.whiteTail} fontFamily="bold">
                 Working set reset time
               </CustomText>
@@ -360,10 +336,9 @@ const ExerciseSettings: FC<{
             </View>
             <View
               style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+              }}>
               <CustomText color={COLORS.whiteTail} fontFamily="bold">
                 Finish exercise rest time
               </CustomText>
@@ -383,7 +358,7 @@ const ExerciseSettings: FC<{
             }}
             modalTitle="Set Time"
             onCancel={() => setIsTimePickerModalVisible(0)}
-            onConfirm={(selectedDate) => {
+            onConfirm={selectedDate => {
               const formattedTime = formatTime(selectedDate);
               if (isTimePickerModalVisible === 1) {
                 setWarmUpTime(formattedTime);
@@ -407,17 +382,15 @@ const ExerciseSettings: FC<{
             backgroundColor: COLORS.brown,
             padding: verticalScale(10),
             borderRadius: 10,
-            alignItems: "center",
-          }}
-        >
+            alignItems: 'center',
+          }}>
           <CustomText fontSize={20} fontFamily="bold" color={COLORS.yellow}>
             Alternative Exercise
           </CustomText>
           <CustomText
             fontSize={15}
             fontFamily="italic"
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             Substitute exercise
           </CustomText>
 
@@ -426,58 +399,53 @@ const ExerciseSettings: FC<{
               <View
                 key={alternateExerciseDatausingId.id}
                 style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
                   borderRadius: verticalScale(10),
                   backgroundColor: COLORS.lightBrown,
                   padding: verticalScale(5),
                   borderWidth: 1,
                   borderColor: COLORS.white,
-                }}
-              >
+                }}>
                 <Image
                   source={{
                     uri: alternateExerciseDatausingId.coverImage?.uri,
                   }}
                   style={{
-                    height: "100%",
+                    height: '100%',
                     minHeight: 71,
                     width: 66,
                     borderRadius: 10,
-                    resizeMode: "cover",
+                    resizeMode: 'cover',
                   }}
                 />
                 <View
                   style={{
                     paddingHorizontal: horizontalScale(10),
-                    justifyContent: "flex-start",
+                    justifyContent: 'flex-start',
                     gap: verticalScale(5),
                     paddingVertical: verticalScale(4),
                     flex: 1,
-                  }}
-                >
+                  }}>
                   <CustomText
                     color={COLORS.yellow}
                     fontFamily="medium"
-                    fontSize={12}
-                  >
+                    fontSize={12}>
                     {alternateExerciseDatausingId.name}
                   </CustomText>
                   <CustomText
                     color={COLORS.white}
                     fontFamily="medium"
-                    fontSize={12}
-                  >
+                    fontSize={12}>
                     {`${alternateExerciseDatausingId.recommendedSets} sets x ${alternateExerciseDatausingId.recommendedReps} reps`}
                   </CustomText>
                 </View>
                 <TouchableOpacity
-                  style={{ justifyContent: "center" }}
+                  style={{justifyContent: 'center'}}
                   onPress={
-                    (event) => {}
+                    event => {}
                     // handleExerciseMenuPress(event, exercise, dayId)
-                  }
-                >
+                  }>
                   <CustomIcon
                     Icon={ICONS.SidMultiDotView}
                     height={verticalScale(27)}
@@ -494,8 +462,8 @@ const ExerciseSettings: FC<{
               }}
               isFullWidth={false}
               style={{
-                alignSelf: "flex-end",
-                width: "auto",
+                alignSelf: 'flex-end',
+                width: 'auto',
                 paddingHorizontal: horizontalScale(20),
                 paddingVertical: verticalScale(5),
                 borderRadius: verticalScale(5),
@@ -523,7 +491,7 @@ const ExerciseSettings: FC<{
                   alternateExercise:
                     exerciseData?.exerciseSettings?.alternateExercise,
                 },
-              })
+              }),
             );
             dispatch(setActiveStep(8));
           }}
@@ -542,20 +510,20 @@ const styles = StyleSheet.create({
   },
   coverImage: {
     height: hp(20),
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   coverImageStyle: {
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   gradient: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   headerContainer: {
     flex: 1,
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: verticalScale(10),
     paddingVertical: verticalScale(20),
     paddingHorizontal: verticalScale(10),

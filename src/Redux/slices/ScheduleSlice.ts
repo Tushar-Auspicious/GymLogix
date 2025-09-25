@@ -9,6 +9,7 @@ export interface ScheduleAPIData {
   updated_at: string;
   created_at: string;
   id: string;
+  _id: string;
   finish_at?: string;
 }
 
@@ -17,7 +18,7 @@ interface scheduleState {
 }
 
 const initialState: scheduleState = {
-  scheduleData: null,
+  scheduleData: [],
 };
 
 const scheduleSlice = createSlice({
@@ -27,11 +28,11 @@ const scheduleSlice = createSlice({
     setScheduleData(state, action: PayloadAction<ScheduleAPIData[] | null>) {
       state.scheduleData = action.payload;
     },
-    addSchedule(state, action: PayloadAction<ScheduleAPIData[] | null>) {
+    addSchedule(state, action: PayloadAction<ScheduleAPIData>) {
       if (!state.scheduleData) {
-        state.scheduleData = action.payload;
-      } else if (action.payload) {
-        state.scheduleData.push(...action.payload);
+        state.scheduleData = [action.payload];
+      } else {
+        state.scheduleData.push(action.payload);
       }
     },
   },

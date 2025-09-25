@@ -1,5 +1,6 @@
 import React, {FC, useState} from 'react';
 import {
+  Alert,
   FlatList,
   Image,
   ImageBackground,
@@ -26,6 +27,7 @@ import {
   resetMeal,
   setCoverImage,
   setDescription,
+  setFileData,
   setInstructions,
   setMealImages,
   setTitle,
@@ -37,6 +39,12 @@ import {horizontalScale, hp, verticalScale, wp} from '../../Utilities/Metrics';
 import {addMeal} from '../../Redux/slices/myMealsSlice';
 import {postData, postFormData} from '../../APIServices/api';
 import ENDPOINTS from '../../APIServices/endPoints';
+import {
+  getLocalStorageData,
+  storeLocalStorageData,
+} from '../../Utilities/Storage';
+import STORAGE_KEYS from '../../Utilities/Constants';
+import {showCustomToast} from '../../Utilities/Helpers';
 
 export interface CapturedPhoto {
   uri: string;
@@ -56,6 +64,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
     macros,
     mealImages,
     instructions,
+    fileData,
   } = useAppSelector(state => state.newMeal);
 
   const [isUploadImageOptionModal, setIsUploadImageOptionModal] =
@@ -68,95 +77,58 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
   const [showMacrosInput, setShowMacrosInput] = useState(false);
   const [showTitleInput, setShowTitleInput] = useState(false);
 
-  const [fileData, setFileData] = useState<any | null>(null);
+  const [errors, setErrors] = useState({
+    title: '',
+    description: '',
+    fileData: '',
+    ingredients: '',
+    instructions: '',
+  });
 
-  const handleSave = async () => {
+  const validInputs = () => {
+    let valid = true;
+    let newErrors = {
+      title: '',
+      description: '',
+      fileData: '',
+      ingredients: '',
+      instructions: '',
+    };
     if (!fileData) {
-      console.log('Image is not uploaded yet');
+      valid = false;
+      newErrors.fileData = 'CoverImage is required.';
+      showCustomToast('error', newErrors.fileData);
+      return;
+    }
+    if (!title.trim()) {
+      valid = false;
+      newErrors.title = 'Title is required.';
+      showCustomToast('error', newErrors.title);
+      return;
+    }
+    if (!description.trim()) {
+      valid = false;
+      newErrors.description = 'Description is required.';
+      showCustomToast('error', newErrors.description);
       return;
     }
 
-    const macroCalorieData = ingredients.reduce(
-      (sum, item) => sum + (item.calories[0] || 0),
-      0,
-    );
-
-    const macroCrabsData = ingredients.reduce(
-      (sum, item) => sum + (item.calories[1] || 0),
-      0,
-    );
-    const macroFatData = ingredients.reduce(
-      (sum, item) => sum + (item.calories[2] || 0),
-      0,
-    );
-    const macroProteinData = ingredients.reduce(
-      (sum, item) => sum + (item.calories[3] || 0),
-      0,
-    );
-    const data = {
-      name: title,
-      description: description,
-      image_url: fileData,
-      calories: macroCalorieData,
-      carbs: macroCrabsData,
-      fats: macroFatData,
-      protein: macroProteinData,
-      preparation_instructions: instructions,
-      foods: ingredients.map(item => ({
-        food_id: item.idFood,
-        amount_g: item.quantity,
-        calories: item.calories[0],
-        carbs: item.calories[1],
-        fats: item.calories[2],
-        protein: item.calories[3],
-        serving_size: item.size,
-        measurement: item.measurementUnit,
-      })),
-      tags: ['breakfast'],
-    };
-
-    console.log('sent data ---->', data);
-
-    try {
-      const response = await postData<any>(ENDPOINTS.mealCreate, {data});
-      if (response.data) {
-        const getMealId = response.data.data.meal_id;
-        const getUserId = response.data.data.user_id;
-        const getImage_Url = response.data.data.image_url;
-        const getCalorieData = response.data.calories;
-        const getCrabsData = response.data.carbs;
-        const getFatData = response.data.fats;
-        const getProteinData = response.data.protein;
-        // const getTagsData = response.data.tags;
-        // const getPublicData = response.data.is_public;
-        dispatch(
-          addMeal({
-            id: getMealId,
-            coverImage: getImage_Url,
-            description,
-            title,
-            ingredients,
-            instructions,
-            macros: {
-              calories: getCalorieData,
-              carbs: getCrabsData,
-              fat: getFatData,
-              protein: getProteinData,
-            },
-            mealImages,
-            userId: getUserId,
-            // tags: getTagsData,
-            // isPublic: getPublicData,
-          }),
-        );
-
-        navigation.goBack();
-      }
-    } catch (error) {
-      console.log(error, 'Something went wrong');
+    if (ingredients.length < 1) {
+      valid = false;
+      newErrors.ingredients = 'Ingredients is required.';
+      showCustomToast('error', newErrors.ingredients);
+      return;
     }
 
-    dispatch(resetMeal());
+    if (!instructions.trim()) {
+      valid = false;
+      newErrors.instructions = 'Instructions is required.';
+      showCustomToast('error', newErrors.instructions);
+      return;
+    }
+
+    setErrors(newErrors);
+    return valid;
   };
 
   const closeModal = () => {
@@ -176,20 +148,20 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
         console.log('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
-        const imageData: CapturedPhoto = {
-          uri: asset.uri || '',
-          width: asset.width,
-          height: asset.height,
-          type: asset.type,
-          name: asset.fileName,
-        };
-        dispatch(setCoverImage(imageData));
+        // const imageData: CapturedPhoto = {
+        //   uri: asset.uri || '',
+        //   width: asset.width,
+        //   height: asset.height,
+        //   type: asset.type,
+        //   name: asset.fileName,
+        // };
+        // dispatch(setCoverImage(imageData));
         const formData = new FormData();
-        const assets = imageData;
+        const assets = asset;
         formData.append('asset', {
           uri: assets.uri,
           type: assets.type,
-          name: assets.name,
+          name: assets.fileName,
         });
 
         try {
@@ -197,12 +169,12 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
             ENDPOINTS.uploadFile,
             formData,
           );
-          console.log('image pick ', response.data);
+          console.log('image pick ', response);
 
           if (response.data) {
             const get_Image_url = response.data.url;
             if (get_Image_url) {
-              setFileData(get_Image_url);
+              dispatch(setFileData(response.data.url));
             }
           }
         } catch (error) {
@@ -226,19 +198,19 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
         console.log('Camera error:', result.errorMessage);
       } else if (result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        const imageData: CapturedPhoto = {
-          uri: asset.uri || '',
-          width: asset.width,
-          height: asset.height,
-          type: asset.type,
-          name: asset.fileName,
-        };
-        dispatch(setCoverImage(imageData));
+        // const imageData: CapturedPhoto = {
+        //   uri: asset.uri || '',
+        //   width: asset.width,
+        //   height: asset.height,
+        //   type: asset.type,
+        //   name: asset.fileName,
+        // };
+        // dispatch(setCoverImage(imageData));
         const formData = new FormData();
-        const assets = imageData;
+        const assets = asset;
         formData.append('asset', {
           uri: assets.uri,
-          name: assets.name,
+          name: assets.fileName,
           type: assets.type,
         });
 
@@ -247,10 +219,11 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
             ENDPOINTS.uploadFile,
             formData,
           );
+
           if (response.data) {
             const get_Image_url = response.data.url;
             if (get_Image_url) {
-              setFileData(get_Image_url);
+              dispatch(setFileData(response.data.url));
             }
           }
         } catch (error) {
@@ -313,6 +286,141 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
     }
   };
 
+  const handleSave = async () => {
+    if (!validInputs()) {
+      return;
+    }
+    const macroCalorieData = ingredients.reduce(
+      (sum, item) => sum + (item.calories[0] || 0),
+      0,
+    );
+
+    const macroCrabsData = ingredients.reduce(
+      (sum, item) => sum + (item.calories[1] || 0),
+      0,
+    );
+    const macroFatData = ingredients.reduce(
+      (sum, item) => sum + (item.calories[2] || 0),
+      0,
+    );
+    const macroProteinData = ingredients.reduce(
+      (sum, item) => sum + (item.calories[3] || 0),
+      0,
+    );
+    const data = {
+      name: title,
+      description: description,
+      image_url: fileData,
+      calories: macroCalorieData,
+      carbs: macroCrabsData,
+      fats: macroFatData,
+      protein: macroProteinData,
+      preparation_instructions: instructions,
+      foods: ingredients.map(item => ({
+        food_id: item.idFood,
+        amount_g: item.quantity,
+        calories: item.calories[0],
+        carbs: item.calories[1],
+        fats: item.calories[2],
+        protein: item.calories[3],
+        serving_size: item.size,
+        measurement: item.measurementUnit,
+      })),
+      // tags: ['breakfast'],
+    };
+
+    try {
+      const response = await postData<any>(ENDPOINTS.mealCreate, {data});
+      if (response.data) {
+        const getMealId = response.data.data.meal_id;
+        const getUserId = response.data.data.user_id;
+        const getImage_Url = response.data.data.image_url;
+        const getCalorieData = response.data.data.calories;
+        const getCrabsData = response.data.data.carbs;
+        const getFatData = response.data.data.fats;
+        const getProteinData = response.data.data.protein;
+        // const getTagsData = response.data.data.tags;
+        const getPublicData = response.data.data.is_public;
+
+        dispatch(
+          addMeal({
+            id: getMealId,
+            coverImage: getImage_Url,
+            description,
+            title,
+            ingredients,
+            instructions,
+            macros: {
+              calories: getCalorieData,
+              carbs: getCrabsData,
+              fat: getFatData,
+              protein: getProteinData,
+            },
+            mealImages,
+            userId: getUserId,
+            tags: [],
+            isPublic: getPublicData,
+          }),
+        );
+
+        const localMealList =
+          (await getLocalStorageData(STORAGE_KEYS.localMealData)) || [];
+
+        const newMeal = {
+          meal_id: getMealId,
+          user_id: getUserId,
+          name: title,
+          description: description,
+          image_url: getImage_Url,
+          calories: getCalorieData,
+          carbs: getCrabsData,
+          fats: getFatData,
+          protein: getProteinData,
+          preparation_instructions: instructions,
+          is_public: getPublicData,
+          tags: ['breakfast'],
+          foods: ingredients.map(item => ({
+            food_id: item.idFood,
+            amount_g: item.quantity,
+            calories: item.calories[0],
+            carbs: item.calories[1],
+            fats: item.calories[2],
+            protein: item.calories[3],
+            serving_size: item.size,
+            measurement: item.measurementUnit,
+          })),
+        };
+
+        const updatedMealList = [...localMealList, newMeal];
+        await storeLocalStorageData(
+          STORAGE_KEYS.localMealData,
+          updatedMealList,
+        );
+
+        Alert.alert('Success!', `Meal has been saved successfully!`, [
+          {
+            text: 'View My Meals',
+            onPress: () => {
+              navigation.navigate('tabs', {
+                screen: 'PLAN',
+              });
+            },
+          },
+          {
+            text: 'Create Another',
+            onPress: () => {},
+          },
+        ]);
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+
+    dispatch(resetMeal());
+  };
+
+  console.log('abhfhaf', fileData);
+
   return (
     <View style={styles.contentContainer}>
       <ScrollView
@@ -322,7 +430,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
         {/* Cover Image Section */}
         <ImageBackground
           source={{
-            uri: coverImage?.uri,
+            uri: fileData ? fileData : '',
           }}
           style={styles.coverImage}
           imageStyle={styles.coverImageStyle}>
@@ -340,7 +448,10 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
                   justifyContent: 'space-between',
                 }}>
                 <CustomIcon
-                  onPress={() => navigation.goBack()}
+                  onPress={() => {
+                    navigation.goBack();
+                    dispatch(resetMeal());
+                  }}
                   Icon={ICONS.BackArrow}
                 />
                 <View style={styles.headerTextContainer}>
@@ -638,9 +749,9 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
           title="Save"
           onPress={handleSave}
           style={styles.saveButton}
-          disabled={
-            !title || !description || !instructions || ingredients.length == 0
-          }
+          // disabled={
+          //   !title || !description || !instructions || ingredients.length == 0
+          // }
         />
       </ScrollView>
 

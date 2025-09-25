@@ -35,6 +35,11 @@ import SelectAlternateExercise from './steps/SelectAlternateExercise';
 import {postData, postFormData} from '../../APIServices/api';
 import ENDPOINTS from '../../APIServices/endPoints';
 import {setPlanData} from '../../Redux/slices/PlanDataSlice';
+import {
+  getLocalStorageData,
+  storeLocalStorageData,
+} from '../../Utilities/Storage';
+import STORAGE_KEYS from '../../Utilities/Constants';
 
 const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
@@ -209,12 +214,26 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
     }
   };
 
+  const toMinutesDecimal = (seconds: number): number => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return parseFloat((minutes + remainingSeconds / 60).toFixed(2));
+  };
+
+  // Existing function to convert MM:SS string to seconds
+  const toSeconds = (timeStr: string | undefined) => {
+    if (!timeStr) return 0;
+    const [min, sec] = timeStr.split(':').map(Number);
+    return min * 60 + sec;
+  };
+
   const createNewWorkout = async () => {
     const difficultyLevels: any = {
       1: 'beginner',
       2: 'intermediate',
       3: 'advance',
     };
+
     const data = {
       name: workoutData.name, //must be included
       image_url: fileData,
@@ -237,24 +256,91 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
           exercises: [
             {
               type: item.exercise[0]?.type,
-              workout_exercises: item.exercise.map(ex => ({
+              workout_exercises: item.exercise.map((ex: any) => ({
                 exercise_id: Number(ex.id),
-                sets: ex.recommendedSets || 0,
-                reps: ex.recommendedReps || 0,
+                sets: ex.exerciseSettings?.sets ?? 0,
+                reps: ex.exerciseSettings?.reps ?? 0,
+                timing_warmup: toMinutesDecimal(
+                  toSeconds(ex.exerciseSettings?.timing?.warmUp),
+                ),
+                timing_workset: toMinutesDecimal(
+                  toSeconds(ex.exerciseSettings?.timing?.workingSet),
+                ),
+                timing_finish: toMinutesDecimal(
+                  toSeconds(ex.exerciseSettings?.timing?.finishExercise),
+                ),
+                Is_time:
+                  ex.exerciseSettings?.loggingType === 'Time' ? true : false,
+                is_weight:
+                  ex.exerciseSettings?.loggingType === 'Weight' ? true : false,
+                Is_distance:
+                  ex.exerciseSettings?.loggingType === 'Distance'
+                    ? true
+                    : false,
+                alternate_exercise_id: ex.exerciseSettings?.alternateExercise
+                  ? [ex.exerciseSettings?.alternateExercise]
+                  : [],
               })),
             },
           ],
         })),
+        tags: ['trending'],
       },
     };
 
-    console.log('sent data --->', data);
-
     try {
       const response = await postData<any>(ENDPOINTS.create_plan, {data});
-      console.log('new workout plan response ---->', response);
-      if (response.data.data) {
-        // dispatch(setPlanData(response.data.data));
+      console.log('new workout --->', response);
+      if (response?.data?.data) {
+        const newPlan = response.data.data;
+
+        // Save locally
+        const existing =
+          (await getLocalStorageData(STORAGE_KEYS.localWorkoutData)) || [];
+        const updated = [newPlan, ...existing.filter(Boolean)];
+        await storeLocalStorageData(STORAGE_KEYS.localWorkoutData, updated);
+
+        console.log('newPlan', updated);
+
+        // Dispatch updated plan list
+
+        dispatch(
+          setPlanData(
+            updated.map(item => ({
+              id: item._id ? item._id : item.id ? item.id : item.plan_id,
+              title: item.name || '',
+              coverImage:
+                item.image_url ||
+                'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+              tags: item.tags,
+              type: item.type === 'workout' ? 'workout' : 'food',
+              allData: item,
+            })),
+          ),
+        );
+
+        Alert.alert(
+          'Success!',
+          `Workout "${workoutData.name}" has been saved successfully!`,
+          [
+            {
+              text: 'View My Workouts',
+              onPress: () => {
+                dispatch(resetNewWorkoutSlice());
+                navigation.navigate('tabs', {
+                  screen: 'PLAN',
+                });
+              },
+            },
+            {
+              text: 'Create Another',
+              onPress: () => {
+                dispatch(resetNewWorkoutSlice());
+                dispatch(setActiveStep(1));
+              },
+            },
+          ],
+        );
       }
     } catch (error) {
       console.log(error, 'Something went wrong');
@@ -332,28 +418,8 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
                     // Save the workout
                     createNewWorkout();
 
-                    return;
+                    // return;
                     // Show success message
-                    Alert.alert(
-                      'Success!',
-                      `Workout "${workoutData.name}" has been saved successfully!`,
-                      [
-                        {
-                          text: 'View My Workouts',
-                          onPress: () => {
-                            dispatch(resetNewWorkoutSlice());
-                            navigation.navigate('savedWorkouts');
-                          },
-                        },
-                        {
-                          text: 'Create Another',
-                          onPress: () => {
-                            dispatch(resetNewWorkoutSlice());
-                            dispatch(setActiveStep(1));
-                          },
-                        },
-                      ],
-                    );
                   } else {
                     // Continue to next step
                     dispatch(setActiveStep(activeStep + 1));

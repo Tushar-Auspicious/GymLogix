@@ -32,6 +32,11 @@ import COLORS from '../../Utilities/Colors';
 import {horizontalScale, hp, verticalScale, wp} from '../../Utilities/Metrics';
 import {postData, postFormData} from '../../APIServices/api';
 import ENDPOINTS from '../../APIServices/endPoints';
+import {
+  getLocalStorageData,
+  storeLocalStorageData,
+} from '../../Utilities/Storage';
+import STORAGE_KEYS from '../../Utilities/Constants';
 
 interface CapturedPhoto {
   uri: string;
@@ -72,10 +77,9 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
   const [showTitleInput, setShowTitleInput] = useState(false);
 
   const handleSave = async () => {
-    if (!fileData) {
-      console.log('Image is not uploaded yet');
-      return;
-    }
+    // if (!fileData) {
+    //   return;
+    // }
     const macroCalorieData = ingredients.reduce(
       (sum, item) => sum + (item.calories[0] || 0),
       0,
@@ -98,7 +102,7 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
       name: title,
       description: description,
       meal_id: mealId,
-      image_url: fileData,
+      image_url: fileData ? fileData : meal?.coverImage?.uri,
       calories: macroCalorieData,
       carbs: macroCrabsData,
       fats: macroFatData,
@@ -114,25 +118,27 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
         serving_size: item.size,
         measurement: item.measurementUnit,
       })),
-      tags: meal?.tags,
     };
+
+    console.log('sent data ', data.image_url);
 
     try {
       const response = await postData<any>(ENDPOINTS.mealCreate, {data});
-      console.log(response.data);
+
+      console.log('edit reposne  ', response);
 
       if (response.data) {
-        const getCalorieData = response.data.calories;
-        const getCrabsData = response.data.carbs;
-        const getFatData = response.data.fats;
-        const getProteinData = response.data.protein;
-        const getImage_Url = response.data.image_url;
+        const getCalorieData = response.data.data.calories;
+        const getCrabsData = response.data.data.carbs;
+        const getFatData = response.data.data.fats;
+        const getProteinData = response.data.data.protein;
+        const getImage_Url = response.data.data.image_url;
 
         dispatch(
           updateMeal({
             id: mealId,
             title: title || '',
-            coverImage: getImage_Url,
+            coverImage: getImage_Url ? getImage_Url : meal?.coverImage?.uri,
             description: description || '',
             ingredients: ingredients,
             instructions: instructions || '',
@@ -144,8 +150,49 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
               protein: getProteinData,
             },
             userId: meal?.userId!,
-            tags: meal?.tags!,
+            tags: [],
           }),
+        );
+
+        const localMealList =
+          (await getLocalStorageData(STORAGE_KEYS.localMealData)) || [];
+
+        const updatedMeal = {
+          meal_id: mealId,
+          user_id: meal?.userId!,
+          name: title,
+          description: description,
+          image_url: getImage_Url ? getImage_Url : meal?.coverImage?.uri,
+          calories: getCalorieData,
+          carbs: getCrabsData,
+          fats: getFatData,
+          protein: getProteinData,
+          preparation_instructions: instructions,
+          is_public: false,
+          tags: meal?.tags || [],
+          foods: ingredients.map(item => ({
+            food_id: item.idFood,
+            amount_g: item.quantity,
+            calories: item.calories[0],
+            carbs: item.calories[1],
+            fats: item.calories[2],
+            protein: item.calories[3],
+            serving_size: item.size,
+            measurement: item.measurementUnit,
+          })),
+        };
+
+        const updatedMealList = localMealList.some(
+          (meal: any) => meal.meal_id === mealId,
+        )
+          ? localMealList.map((meal: any) =>
+              meal.meal_id === mealId ? updatedMeal : meal,
+            )
+          : [...localMealList, updatedMeal];
+
+        await storeLocalStorageData(
+          STORAGE_KEYS.localMealData,
+          updatedMealList,
         );
         // Implement save functionality here (e.g., API call or state update)
         navigation.goBack();
@@ -175,7 +222,7 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
           type: asset.type,
           name: asset.fileName,
         };
-        setImage(imageData);
+        // setImage(imageData);
 
         const formData = new FormData();
         const assets = imageData;
@@ -226,7 +273,7 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
           type: asset.type,
           name: asset.fileName,
         };
-        setImage(imageData);
+        // setImage(imageData);
 
         const formData = new FormData();
         const assests = imageData;
@@ -323,6 +370,10 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
     setIngredients(meal?.ingredients!);
   }, [meal?.ingredients]);
 
+  console.log('ndywf', meal?.coverImage?.uri);
+  console.log('plii', fileData);
+  // console.log('aeax', meal?.coverImage);
+
   return (
     <View style={styles.contentContainer}>
       <ScrollView
@@ -332,7 +383,7 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
         {/* Cover Image Section */}
         <ImageBackground
           source={{
-            uri: image?.uri,
+            uri: fileData ? fileData : meal?.coverImage?.uri,
           }}
           style={styles.coverImage}
           imageStyle={styles.coverImageStyle}>

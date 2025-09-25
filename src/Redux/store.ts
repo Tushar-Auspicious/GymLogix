@@ -21,6 +21,10 @@ import PlanReducer from './slices/PlanDataSlice';
 import foodDataReducer from './slices/foodSlice';
 import exerciseReducer from './slices/ExerciseSlice';
 import scheduleReducer from './slices/ScheduleSlice';
+import insightReducer from './slices/InsightSlice';
+import quickReducer from './slices/QuickMeals';
+import macroReducer from './slices/macroSlice';
+import logWorkoutReducer from './slices/LogWorkoutSlice';
 
 export const store = configureStore({
   reducer: {
@@ -40,6 +44,10 @@ export const store = configureStore({
     foodData: foodDataReducer,
     exerciseData: exerciseReducer,
     scheduleData: scheduleReducer,
+    insightData: insightReducer,
+    quickMeals: quickReducer,
+    macros: macroReducer,
+    logWorkoutData: logWorkoutReducer,
   },
 });
 

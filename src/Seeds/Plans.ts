@@ -4,7 +4,7 @@ import {IngredientItem, Ingredients} from './MealPlansData';
 import {Data} from '../Typings/ApiResponse/GetPlanResponse';
 
 export type ActivePlanListItem = {
-  id: string;
+  id: string | number;
   coverImage: string;
   title: string;
   tags: string[];

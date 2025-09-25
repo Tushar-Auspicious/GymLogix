@@ -35,11 +35,12 @@ export type MainStackParams = {
     title: string;
   };
   logMeal: {
-    mealId: string;
+    mealId: string | number;
   };
   workoutProgramDetails: {
-    programId: string;
+    programId: string | number;
     day: WeeklyStructure[];
+    selectedProgram: any;
   };
   workoutResult: {
     workoutData: any;
@@ -58,7 +59,7 @@ export type MainStackParams = {
   addNewMeal: undefined;
   ingredientList: {
     isFrom?: string;
-    mealId?: number;
+    mealId?: number | string;
   };
 };
 

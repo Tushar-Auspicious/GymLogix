@@ -1,9 +1,9 @@
-import React, { FC } from "react";
-import { StyleSheet, View } from "react-native";
-import { PieChart } from "react-native-gifted-charts";
-import COLORS from "../../Utilities/Colors"; // Adjust the import based on your project structure
-import { horizontalScale, verticalScale, wp } from "../../Utilities/Metrics"; // Adjust the import based on your project structure
-import { CustomText } from "../CustomText"; // Assuming you have this component
+import React, {FC} from 'react';
+import {StyleSheet, View} from 'react-native';
+import {PieChart} from 'react-native-gifted-charts';
+import COLORS from '../../Utilities/Colors'; // Adjust the import based on your project structure
+import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics'; // Adjust the import based on your project structure
+import {CustomText} from '../CustomText'; // Assuming you have this component
 
 // Define the structure for each nutrient data point
 export interface NutrientData {
@@ -32,16 +32,19 @@ const MacronutrientChart: FC<MacronutrientChartProps> = ({
   percentageTextColor = COLORS.black, // Default text color on slices
 }) => {
   const pieChartData = data
-    .filter((item) => item.percentage > 0) // Only include items with a percentage > 0 for the chart itself
-    .map((item) => ({
-      value: item.percentage, // The value prop controls the slice size (based on percentage)
-      text: `${item.percentage}%`, // The text prop displays the label on the slice
-      color: item.color,
-      shiftTextX: item.percentage < 10 ? horizontalScale(-2) : 0, // Optional: Adjust text position slightly for small percentages if needed
-    }));
+    .filter(item => item.percentage > 0)
+    .map(item => {
+      const formatted = Number(item.percentage.toFixed(1)); // keep 1 decimal place
+      return {
+        value: formatted,
+        text: `${formatted}%`,
+        color: item.color,
+        shiftTextX: item.percentage < 10 ? horizontalScale(-2) : 0,
+      };
+    });
 
   // Find the 'Calories' data for potential display, if included in data array
-  const calorieData = data.find((item) => item.id === "calories");
+  const calorieData = data.find(item => item.id === 'calories');
 
   // Data for the legend/summary section (can include items not in the pie chart, like total calories)
   const legendData = data; // Use the full data for the legend
@@ -53,10 +56,9 @@ const MacronutrientChart: FC<MacronutrientChartProps> = ({
         fontSize={20}
         style={{
           marginBottom: verticalScale(10),
-          textAlign: "left",
-          alignSelf: "flex-start",
-        }}
-      >
+          textAlign: 'left',
+          alignSelf: 'flex-start',
+        }}>
         Daily average
       </CustomText>
       <View style={styles.chartContainer}>
@@ -77,15 +79,13 @@ const MacronutrientChart: FC<MacronutrientChartProps> = ({
           <View
             style={[
               styles.chartPlaceholder,
-              { height: radius * 2, width: radius * 2 },
-            ]}
-          >
+              {height: radius * 2, width: radius * 2},
+            ]}>
             <CustomText
               color={COLORS.whiteTail}
               style={{
-                textAlign: "center",
-              }}
-            >
+                textAlign: 'center',
+              }}>
               No data to display chart
             </CustomText>
           </View>
@@ -94,23 +94,20 @@ const MacronutrientChart: FC<MacronutrientChartProps> = ({
 
       {/* Legend / Summary Section */}
       <View style={styles.legendContainer}>
-        {legendData.map((item) => (
+        {legendData.map(item => (
           <View
             key={item.id}
-            style={[styles.legendItem, { backgroundColor: item.color }]}
-          >
+            style={[styles.legendItem, {backgroundColor: item.color}]}>
             <CustomText
               style={styles.legendLabel}
               fontFamily="medium"
-              fontSize={12}
-            >
+              fontSize={12}>
               {item.name}
             </CustomText>
             <CustomText
               style={styles.legendValue}
               fontFamily="bold"
-              fontSize={14}
-            >
+              fontSize={14}>
               {item.value.toFixed(0)}
               {/* {` ${item.unit}`} // Optionally display unit here */}
             </CustomText>
@@ -125,41 +122,41 @@ export default MacronutrientChart;
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: "center",
-    backgroundColor: COLORS.brown || "#222", // Match the background from the image
+    alignItems: 'center',
+    backgroundColor: COLORS.brown || '#222', // Match the background from the image
     paddingVertical: verticalScale(20),
     paddingHorizontal: horizontalScale(10),
     borderRadius: 15,
   },
   chartContainer: {
     marginBottom: verticalScale(25),
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chartPlaceholder: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.lighterBrown || "#555", // Placeholder background
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.lighterBrown || '#555', // Placeholder background
     borderRadius: wp(35), // Make it circular matching radius
   },
   centerLabel: {
     // Styles for the optional center label
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: COLORS.brown,
     height: wp(36),
     width: wp(36),
     borderRadius: 100,
   },
   legendContainer: {
-    flexDirection: "row",
-    justifyContent: "space-evenly", // Distribute items evenly
-    flexWrap: "wrap", // Allow wrapping on smaller screens if needed
-    width: "100%", // Take full width of container
+    flexDirection: 'row',
+    justifyContent: 'space-evenly', // Distribute items evenly
+    flexWrap: 'wrap', // Allow wrapping on smaller screens if needed
+    width: '100%', // Take full width of container
     paddingHorizontal: horizontalScale(5),
   },
   legendItem: {
-    alignItems: "center",
+    alignItems: 'center',
     borderRadius: 8,
     paddingVertical: verticalScale(8),
     paddingHorizontal: horizontalScale(12),
@@ -167,8 +164,8 @@ const styles = StyleSheet.create({
     margin: horizontalScale(5), // Add spacing between legend items
     // Add shadow or elevation for depth if desired
     elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },

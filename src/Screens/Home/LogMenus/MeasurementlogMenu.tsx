@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, {useRef, useState} from 'react';
 import {
   FlatList,
   Modal,
@@ -8,16 +8,21 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
-import FONTS from "../../../Assets/fonts";
-import { KeyboardAvoidingContainer } from "../../../Components/KeyboardAvoidingComponent"; // Keep if needed for overall screen layout
-import PrimaryButton from "../../../Components/PrimaryButton";
-import COLORS from "../../../Utilities/Colors";
+} from 'react-native';
+import FONTS from '../../../Assets/fonts';
+import {KeyboardAvoidingContainer} from '../../../Components/KeyboardAvoidingComponent'; // Keep if needed for overall screen layout
+import PrimaryButton from '../../../Components/PrimaryButton';
+import COLORS from '../../../Utilities/Colors';
 import {
   horizontalScale,
   responsiveFontSize,
   verticalScale,
-} from "../../../Utilities/Metrics";
+} from '../../../Utilities/Metrics';
+import {postData} from '../../../APIServices/api';
+import ENDPOINTS from '../../../APIServices/endPoints';
+import {useAppDispatch, useAppSelector} from '../../../Redux/store';
+import Toast from 'react-native-toast-message';
+import {addSchedule} from '../../../Redux/slices/ScheduleSlice';
 
 // Define interfaces
 interface DropdownItem {
@@ -30,28 +35,31 @@ interface Values {
 }
 
 const MeasurementlogMenu = () => {
+  const dispatch = useAppDispatch();
   const dropdownData: DropdownItem[] = [
-    { title: "Waist", unit: "CM" },
-    { title: "Body Fat", unit: "%" },
-    { title: "Biceps", unit: "CM" },
-    { title: "Triceps", unit: "LB" },
+    {title: 'Waist', unit: 'CM'},
+    {title: 'Body Fat', unit: '%'},
+    {title: 'Biceps', unit: 'CM'},
+    {title: 'Triceps', unit: 'LB'},
   ];
+
+  const {userData} = useAppSelector(state => state.userData);
 
   const flatListRef = useRef<FlatList>(null); // Explicitly type the ref
 
   const [values, setValues] = useState<Values>({
-    Waist: "",
-    "Body Fat": "",
+    Waist: '',
+    'Body Fat': '',
   });
   const [selectedTitles, setSelectedTitles] = useState<string[]>([
-    "Waist",
-    "Body Fat",
+    'Waist',
+    'Body Fat',
   ]);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
 
   const handleValueChange = (title: string, value: string) => {
-    setValues((prev) => ({ ...prev, [title]: value }));
+    setValues(prev => ({...prev, [title]: value}));
   };
 
   const handleAddMeasurement = () => {
@@ -68,12 +76,12 @@ const MeasurementlogMenu = () => {
         return;
       }
 
-      setSelectedTitles((prev) =>
-        prev.map((title) => (title === oldTitle ? newTitle : title))
+      setSelectedTitles(prev =>
+        prev.map(title => (title === oldTitle ? newTitle : title)),
       );
 
-      setValues((prev) => {
-        const newValues = { ...prev, [newTitle]: prev[oldTitle] || "" };
+      setValues(prev => {
+        const newValues = {...prev, [newTitle]: prev[oldTitle] || ''};
         delete newValues[oldTitle];
         return newValues;
       });
@@ -82,7 +90,7 @@ const MeasurementlogMenu = () => {
     } else {
       if (!selectedTitles.includes(newTitle)) {
         setSelectedTitles([...selectedTitles, newTitle]);
-        setValues((prev) => ({ ...prev, [newTitle]: "" }));
+        setValues(prev => ({...prev, [newTitle]: ''}));
       }
     }
     setModalVisible(false);
@@ -92,9 +100,9 @@ const MeasurementlogMenu = () => {
     if (selectedTitles.length <= 1) {
       return;
     }
-    setSelectedTitles(selectedTitles.filter((t) => t !== title));
-    setValues((prev) => {
-      const newValues = { ...prev };
+    setSelectedTitles(selectedTitles.filter(t => t !== title));
+    setValues(prev => {
+      const newValues = {...prev};
       delete newValues[title];
       return newValues;
     });
@@ -105,22 +113,20 @@ const MeasurementlogMenu = () => {
     setModalVisible(true);
   };
 
-  const renderDropdownItem = ({ item }: { item: DropdownItem }) => (
+  const renderDropdownItem = ({item}: {item: DropdownItem}) => (
     <TouchableOpacity
       style={styles.dropdownItem}
       onPress={() => handleSelectTitle(item.title)}
       disabled={
         selectedTitles.includes(item.title) && item.title !== editingTitle
-      }
-    >
+      }>
       <Text
         style={[
           styles.dropdownText,
           selectedTitles.includes(item.title) &&
             item.title !== editingTitle &&
             styles.disabledText,
-        ]}
-      >
+        ]}>
         {item.title}
       </Text>
     </TouchableOpacity>
@@ -133,20 +139,19 @@ const MeasurementlogMenu = () => {
     item: string;
     index: number;
   }) => {
-    const item = dropdownData.find((data) => data.title === title);
+    const item = dropdownData.find(data => data.title === title);
     if (!item) return null;
 
     return (
       <View key={title} style={styles.inputRow}>
         <TouchableOpacity
           style={styles.labelButton}
-          onPress={() => handleLabelPress(title)}
-        >
+          onPress={() => handleLabelPress(title)}>
           <Text style={styles.labelText}>{title}</Text>
         </TouchableOpacity>
         <TextInput
           value={values[title]}
-          onChangeText={(value) => handleValueChange(title, value)}
+          onChangeText={value => handleValueChange(title, value)}
           style={styles.valueButton}
           keyboardType="numeric"
           onFocus={() => {
@@ -169,27 +174,92 @@ const MeasurementlogMenu = () => {
             selectedTitles.length <= 1 && styles.disabledDeleteButton,
           ]}
           onPress={() => handleDeleteMeasurement(title)}
-          disabled={selectedTitles.length <= 1}
-        >
+          disabled={selectedTitles.length <= 1}>
           <Text style={styles.deleteButtonText}>X</Text>
         </TouchableOpacity>
       </View>
     );
   };
 
+  const handleLog = async () => {
+    // validate first
+    const emptyFields = selectedTitles.filter(
+      title => !values[title] || values[title].trim() === '',
+    );
+
+    if (emptyFields.length > 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Please enter all measurements',
+        visibilityTime: 2000,
+      });
+      return; // stop execution
+    }
+
+    const now = new Date(); // current date
+    const scheduleDate = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        now.getUTCHours(),
+        now.getUTCMinutes(),
+        now.getUTCSeconds(),
+        now.getUTCMilliseconds(),
+      ),
+    );
+
+    const list = selectedTitles.map(title => {
+      const item = dropdownData.find(d => d.title === title);
+      return {
+        part: title,
+        unit: item ? item.unit : '', // unit from dropdownData
+        amount: values[title] || '0', // entered value
+      };
+    });
+
+    const data = {
+      description: '',
+      schedule_at: scheduleDate.toISOString(),
+      user_id: userData?.user_id,
+      status: 'done',
+      type: 'measurement',
+      content: {
+        list: list,
+      },
+    };
+
+    console.log('sent data --->', data);
+
+    try {
+      const response = await postData<any>(ENDPOINTS.createSchedule, {data});
+      if (response.data.data) {
+        if (response.data.data) {
+          dispatch(addSchedule(response.data.data));
+        }
+        Toast.show({
+          type: 'success',
+          text1: 'Measurements Logged Successfully',
+          visibilityTime: 2000,
+        });
+      }
+    } catch (error) {
+      console.log(error, 'Something went wrong');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
-        style={{ flex: 1 }}
+        style={{flex: 1}}
         contentContainerStyle={{
-          justifyContent: "space-between",
-        }}
-      >
+          justifyContent: 'space-between',
+        }}>
         <FlatList
           ref={flatListRef}
           data={selectedTitles}
           renderItem={renderMeasurementItem}
-          keyExtractor={(item) => item}
+          keyExtractor={item => item}
           contentContainerStyle={{
             gap: verticalScale(10),
             paddingBottom: verticalScale(20), // Ensure space for the keyboard
@@ -202,8 +272,8 @@ const MeasurementlogMenu = () => {
                   onPress={handleAddMeasurement}
                   isFullWidth={false}
                   style={{
-                    alignSelf: "flex-end",
-                    width: "auto",
+                    alignSelf: 'flex-end',
+                    width: 'auto',
                     paddingVertical: verticalScale(4),
                     paddingHorizontal: horizontalScale(30),
                     borderRadius: verticalScale(5),
@@ -215,7 +285,7 @@ const MeasurementlogMenu = () => {
           }}
         />
 
-        <PrimaryButton title="Log Measurements" onPress={() => {}} />
+        <PrimaryButton title="Log Measurements" onPress={handleLog} />
       </ScrollView>
 
       <Modal
@@ -225,24 +295,22 @@ const MeasurementlogMenu = () => {
         onRequestClose={() => {
           setModalVisible(false);
           setEditingTitle(null);
-        }}
-      >
+        }}>
         <TouchableOpacity
           onPress={() => {
             setModalVisible(false);
             setEditingTitle(null);
           }}
           activeOpacity={1}
-          style={styles.modalContainer}
-        >
+          style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>
-              {editingTitle ? "Change Measurement" : "Select Measurement"}
+              {editingTitle ? 'Change Measurement' : 'Select Measurement'}
             </Text>
             <FlatList
               data={dropdownData}
               renderItem={renderDropdownItem}
-              keyExtractor={(item) => item.title}
+              keyExtractor={item => item.title}
               style={styles.dropdownList}
             />
             <TouchableOpacity
@@ -250,8 +318,7 @@ const MeasurementlogMenu = () => {
               onPress={() => {
                 setModalVisible(false);
                 setEditingTitle(null);
-              }}
-            >
+              }}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -269,9 +336,9 @@ const styles = StyleSheet.create({
     padding: verticalScale(10),
   },
   inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: COLORS.lightBrown,
     borderRadius: 10,
     paddingVertical: verticalScale(20),
@@ -285,12 +352,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.white,
     borderRadius: 10,
-    width: "25%",
+    width: '25%',
     height: verticalScale(55),
-    alignItems: "center",
+    alignItems: 'center',
   },
   labelText: {
-    color: "#D3D3D3",
+    color: '#D3D3D3',
     fontSize: 16,
   },
   valueButton: {
@@ -299,10 +366,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.white,
     borderRadius: 10,
-    width: "30%",
+    width: '30%',
     height: verticalScale(55),
-    alignItems: "center",
-    textAlign: "center",
+    alignItems: 'center',
+    textAlign: 'center',
     fontSize: responsiveFontSize(20),
     fontFamily: FONTS.bold,
     color: COLORS.whiteTail,
@@ -314,11 +381,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
     borderRadius: 10,
     height: verticalScale(55),
-    width: "15%",
-    alignItems: "center",
+    width: '15%',
+    alignItems: 'center',
   },
   unitText: {
-    color: "#D3D3D3",
+    color: '#D3D3D3',
     fontSize: 16,
   },
   deleteButton: {
@@ -327,39 +394,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.white,
     borderRadius: 10,
-    width: "10%",
+    width: '10%',
     height: verticalScale(55),
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FF6B6B",
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6B6B',
   },
   disabledDeleteButton: {
-    backgroundColor: "#FF6B6B80",
+    backgroundColor: '#FF6B6B80',
     opacity: 0.5,
   },
   deleteButtonText: {
-    color: "#FFF",
+    color: '#FFF',
     fontSize: responsiveFontSize(16),
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
   modalContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: COLORS.white,
     borderRadius: 10,
     padding: verticalScale(20),
-    width: "80%",
-    maxHeight: "50%",
+    width: '80%',
+    maxHeight: '50%',
   },
   modalTitle: {
     fontSize: responsiveFontSize(18),
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: verticalScale(10),
-    textAlign: "center",
+    textAlign: 'center',
   },
   dropdownList: {
     flexGrow: 0,
@@ -367,25 +434,25 @@ const styles = StyleSheet.create({
   dropdownItem: {
     padding: verticalScale(10),
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: '#eee',
   },
   dropdownText: {
     fontSize: responsiveFontSize(16),
     color: COLORS.black,
   },
   disabledText: {
-    color: "#aaa",
+    color: '#aaa',
   },
   closeButton: {
     marginTop: verticalScale(10),
     padding: verticalScale(10),
-    backgroundColor: "#F4A261",
+    backgroundColor: '#F4A261',
     borderRadius: 5,
-    alignItems: "center",
+    alignItems: 'center',
   },
   closeButtonText: {
-    color: "#FFF",
+    color: '#FFF',
     fontSize: responsiveFontSize(16),
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
 });

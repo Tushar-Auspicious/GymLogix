@@ -343,8 +343,8 @@ const WorkroutDataScreen: FC<{
               {exercise.name}
             </CustomText>
             <CustomText color={COLORS.white} fontFamily="medium" fontSize={12}>
-              {`${exercise.recommendedSets || 3} sets x ${
-                exercise.recommendedReps || 10
+              {`${exercise.exerciseSettings?.sets || 3} sets x ${
+                exercise.exerciseSettings?.reps || 10
               } reps`}
             </CustomText>
           </View>
@@ -444,8 +444,8 @@ const WorkroutDataScreen: FC<{
                       color={COLORS.white}
                       fontFamily="medium"
                       fontSize={12}>
-                      {`${exercise.recommendedSets || 3} sets x ${
-                        exercise.recommendedReps || 10
+                      {`${exercise.exerciseSettings?.sets || 3} sets x ${
+                        exercise.exerciseSettings?.reps || 10
                       } reps`}
                     </CustomText>
                   </View>

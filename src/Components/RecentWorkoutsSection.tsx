@@ -1,11 +1,14 @@
-import React from "react";
-import { View, StyleSheet, FlatList, TouchableOpacity } from "react-native";
-import { CustomText } from "./CustomText";
-import WorkoutHistoryCard from "./WorkoutHistoryCard";
-import { useAppSelector } from "../Redux/store";
-import { selectRecentWorkouts, selectWorkoutStats } from "../Redux/slices/historySlice";
-import COLORS from "../Utilities/Colors";
-import { horizontalScale, verticalScale } from "../Utilities/Metrics";
+import React from 'react';
+import {View, StyleSheet, FlatList, TouchableOpacity} from 'react-native';
+import {CustomText} from './CustomText';
+import WorkoutHistoryCard from './WorkoutHistoryCard';
+import {useAppSelector} from '../Redux/store';
+import {
+  selectRecentWorkouts,
+  selectWorkoutStats,
+} from '../Redux/slices/historySlice';
+import COLORS from '../Utilities/Colors';
+import {horizontalScale, verticalScale} from '../Utilities/Metrics';
 
 interface RecentWorkoutsSectionProps {
   onViewAllPress?: () => void;
@@ -16,12 +19,14 @@ const RecentWorkoutsSection: React.FC<RecentWorkoutsSectionProps> = ({
   onViewAllPress,
   onWorkoutPress,
 }) => {
-  const recentWorkouts = useAppSelector((state) => selectRecentWorkouts(state, 3));
+  const recentWorkouts = useAppSelector(state =>
+    selectRecentWorkouts(state, 3),
+  );
   const stats = useAppSelector(selectWorkoutStats);
 
   const formatStreak = (streak: number) => {
-    if (streak === 0) return "No current streak";
-    if (streak === 1) return "1 day streak";
+    if (streak === 0) return 'No current streak';
+    if (streak === 1) return '1 day streak';
     return `${streak} day streak`;
   };
 
@@ -38,20 +43,12 @@ const RecentWorkoutsSection: React.FC<RecentWorkoutsSectionProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <CustomText
-          fontFamily="bold"
-          fontSize={18}
-          color={COLORS.white}
-        >
+        <CustomText fontFamily="bold" fontSize={18} color={COLORS.white}>
           Recent Workouts
         </CustomText>
         {recentWorkouts.length > 0 && (
           <TouchableOpacity onPress={onViewAllPress}>
-            <CustomText
-              fontFamily="medium"
-              fontSize={14}
-              color={COLORS.yellow}
-            >
+            <CustomText fontFamily="medium" fontSize={14} color={COLORS.yellow}>
               View All
             </CustomText>
           </TouchableOpacity>
@@ -61,52 +58,28 @@ const RecentWorkoutsSection: React.FC<RecentWorkoutsSectionProps> = ({
       {/* Quick Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
-          <CustomText
-            fontFamily="bold"
-            fontSize={16}
-            color={COLORS.white}
-          >
+          <CustomText fontFamily="bold" fontSize={16} color={COLORS.white}>
             {stats.totalWorkouts}
           </CustomText>
-          <CustomText
-            fontFamily="regular"
-            fontSize={12}
-            color={COLORS.nickel}
-          >
+          <CustomText fontFamily="regular" fontSize={12} color={COLORS.nickel}>
             Total Workouts
           </CustomText>
         </View>
 
         <View style={styles.statCard}>
-          <CustomText
-            fontFamily="bold"
-            fontSize={16}
-            color={COLORS.white}
-          >
+          <CustomText fontFamily="bold" fontSize={16} color={COLORS.white}>
             {formatTotalVolume(stats.totalVolume)}
           </CustomText>
-          <CustomText
-            fontFamily="regular"
-            fontSize={12}
-            color={COLORS.nickel}
-          >
+          <CustomText fontFamily="regular" fontSize={12} color={COLORS.nickel}>
             Total Volume
           </CustomText>
         </View>
 
         <View style={styles.statCard}>
-          <CustomText
-            fontFamily="bold"
-            fontSize={16}
-            color={COLORS.white}
-          >
+          <CustomText fontFamily="bold" fontSize={16} color={COLORS.white}>
             {Math.round(stats.averageWorkoutDuration)}m
           </CustomText>
-          <CustomText
-            fontFamily="regular"
-            fontSize={12}
-            color={COLORS.nickel}
-          >
+          <CustomText fontFamily="regular" fontSize={12} color={COLORS.nickel}>
             Avg Duration
           </CustomText>
         </View>
@@ -115,15 +88,10 @@ const RecentWorkoutsSection: React.FC<RecentWorkoutsSectionProps> = ({
           <CustomText
             fontFamily="bold"
             fontSize={16}
-            color={stats.currentStreak > 0 ? COLORS.green : COLORS.nickel}
-          >
+            color={stats.currentStreak > 0 ? COLORS.green : COLORS.nickel}>
             {stats.currentStreak}
           </CustomText>
-          <CustomText
-            fontFamily="regular"
-            fontSize={12}
-            color={COLORS.nickel}
-          >
+          <CustomText fontFamily="regular" fontSize={12} color={COLORS.nickel}>
             Day Streak
           </CustomText>
         </View>
@@ -133,8 +101,8 @@ const RecentWorkoutsSection: React.FC<RecentWorkoutsSectionProps> = ({
       {recentWorkouts.length > 0 ? (
         <FlatList
           data={recentWorkouts}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
+          keyExtractor={item => item.id}
+          renderItem={({item}) => (
             <WorkoutHistoryCard
               workout={item}
               onPress={() => onWorkoutPress?.(item.id)}
@@ -149,16 +117,14 @@ const RecentWorkoutsSection: React.FC<RecentWorkoutsSectionProps> = ({
             fontFamily="medium"
             fontSize={16}
             color={COLORS.nickel}
-            style={styles.emptyTitle}
-          >
+            style={styles.emptyTitle}>
             No workouts yet
           </CustomText>
           <CustomText
             fontFamily="regular"
             fontSize={14}
             color={COLORS.whiteTail}
-            style={styles.emptySubtitle}
-          >
+            style={styles.emptySubtitle}>
             Start your first workout to see your history here
           </CustomText>
         </View>
@@ -168,11 +134,7 @@ const RecentWorkoutsSection: React.FC<RecentWorkoutsSectionProps> = ({
       {stats.currentStreak > 0 && (
         <View style={styles.streakContainer}>
           <View style={styles.streakIndicator} />
-          <CustomText
-            fontFamily="medium"
-            fontSize={14}
-            color={COLORS.green}
-          >
+          <CustomText fontFamily="medium" fontSize={14} color={COLORS.green}>
             🔥 {formatStreak(stats.currentStreak)}! Keep it up!
           </CustomText>
         </View>
@@ -186,15 +148,15 @@ const styles = StyleSheet.create({
     marginVertical: verticalScale(16),
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: verticalScale(16),
     paddingHorizontal: horizontalScale(16),
   },
   statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: verticalScale(16),
     paddingHorizontal: horizontalScale(16),
   },
@@ -202,14 +164,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brown,
     borderRadius: verticalScale(8),
     padding: horizontalScale(12),
-    alignItems: "center",
+    alignItems: 'center',
     flex: 1,
     marginHorizontal: horizontalScale(2),
     borderWidth: 1,
     borderColor: COLORS.darkBrown,
   },
   emptyState: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: verticalScale(32),
     paddingHorizontal: horizontalScale(16),
   },
@@ -217,12 +179,12 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(8),
   },
   emptySubtitle: {
-    textAlign: "center",
+    textAlign: 'center',
     lineHeight: 20,
   },
   streakContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.darkGreen,
     borderRadius: verticalScale(8),
     padding: horizontalScale(12),

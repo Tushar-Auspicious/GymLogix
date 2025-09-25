@@ -34,6 +34,11 @@ import {
   storeLocalStorageData,
 } from '../../Utilities/Storage';
 import {setExerciseCatalog} from '../../Redux/slices/exerciseCatalogSlice';
+import {
+  ScheduleAPIData,
+  setScheduleData,
+} from '../../Redux/slices/ScheduleSlice';
+import {setInsightData} from '../../Redux/slices/InsightSlice';
 
 function mapLocation(equipment: string | null | undefined) {
   const eq = (equipment || '').toLowerCase();
@@ -56,12 +61,12 @@ function mapForce(force: string | null | undefined) {
   return 'push';
 }
 
-function getRecommendedSetCount(exerciseId) {
+function getRecommendedSetCount(exerciseId: any) {
   // Search through planData to find matching exercise and return sets
   for (const plan of planData || []) {
     for (const workout of plan.allData?.content?.workouts || []) {
       const exercise = workout.exercises?.find(
-        e => e.exercise_id === exerciseId,
+        (e: any) => e.exercise_id === exerciseId,
       );
       if (exercise) {
         return exercise.workout_exercises?.[0]?.sets || 0;
@@ -122,11 +127,11 @@ export const buildExerciseCatalog = (exerciseList: ExerciseAPIData[]) => {
   };
 };
 
-function getRecommendedReps(exerciseId) {
+function getRecommendedReps(exerciseId: any) {
   for (const plan of planData || []) {
     for (const workout of plan.allData?.content?.workouts || []) {
       const exercise = workout.exercises?.find(
-        e => e.exercise_id === exerciseId,
+        (e: any) => e.exercise_id === exerciseId,
       );
       if (exercise) {
         return exercise.workout_exercises?.[0]?.reps || 0;
@@ -292,7 +297,6 @@ const Splash: FC<SplashProps> = ({navigation}) => {
             dispatch(setExerciseHashChanged(isExercise));
             dispatch(setFoodHashChanged(isFood));
             dispatch(setPlanHashChanged(isPlan));
-
             await storeLocalStorageData(STORAGE_KEYS.allHashes, {
               foods_hash,
               exercises_hash,
@@ -398,18 +402,16 @@ const Splash: FC<SplashProps> = ({navigation}) => {
 
           dispatch(
             setPlanData(
-              response.data.data
-                .filter(item => item.is_public === true)
-                .map(item => ({
-                  id: item._id || '',
-                  title: item.name || '',
-                  coverImage:
-                    item.image_url ||
-                    'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-                  tags: item.tags,
-                  type: item.type === 'workout' ? 'workout' : 'food',
-                  allData: item,
-                })),
+              response.data.data.map(item => ({
+                id: item._id ? item._id : item.id ? item.id : item.plan_id,
+                title: item.name || '',
+                coverImage:
+                  item.image_url ||
+                  'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                tags: item.tags,
+                type: item.type === 'workout' ? 'workout' : 'food',
+                allData: item,
+              })),
             ),
           );
         }
@@ -421,7 +423,7 @@ const Splash: FC<SplashProps> = ({navigation}) => {
         dispatch(
           setPlanData(
             localWorkoutData.map((item: any) => ({
-              id: item._id || '',
+              id: item._id ? item._id : item.id ? item.id : item.plan_id,
               title: item.name || '',
               coverImage:
                 item.image_url ||
@@ -474,17 +476,64 @@ const Splash: FC<SplashProps> = ({navigation}) => {
         STORAGE_KEYS.localExerciseCatalog,
       );
 
-      console.log('local catalogdata', localExerciseCatalog);
+      // console.log('local catalogdata', localExerciseCatalog);
 
       dispatch(setExerciseData(localExerciseData));
 
       const catalog = buildExerciseCatalog(localExerciseCatalog);
 
-      console.log(catalog);
+      // console.log(catalog);
 
       dispatch(setExerciseCatalog(catalog));
     }
   };
+
+  useEffect(() => {
+    const getScheduleData = async () => {
+      if (token) {
+        const response = await fetchData<ScheduleAPIData[] | any>(
+          ENDPOINTS.schedule,
+        );
+        if (response.data) {
+          await storeLocalStorageData(
+            STORAGE_KEYS.localScheduleData,
+            response.data,
+          );
+
+          dispatch(setScheduleData(response.data.data));
+        } else {
+          const localScheduleData = await getLocalStorageData(
+            STORAGE_KEYS.localScheduleData,
+          );
+
+          dispatch(setScheduleData(localScheduleData));
+        }
+      }
+    };
+    getScheduleData();
+  }, [token]);
+
+  useEffect(() => {
+    const getInsightData = async () => {
+      if (token) {
+        const response = await fetchData<any>(ENDPOINTS.get_insight);
+        if (response.data.data) {
+          await storeLocalStorageData(
+            STORAGE_KEYS.localInsight,
+            response.data.data,
+          );
+          dispatch(setInsightData(response.data.data));
+        } else {
+          const localInsightData = await getLocalStorageData(
+            STORAGE_KEYS.localInsight,
+          );
+
+          dispatch(setInsightData(localInsightData));
+        }
+      }
+    };
+    getInsightData();
+  }, [token]);
 
   return (
     <ImageBackground

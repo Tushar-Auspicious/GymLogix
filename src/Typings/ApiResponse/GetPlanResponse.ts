@@ -30,6 +30,7 @@ export interface Content {
   difficulty?: string;
   associate_food_plan?: number;
   workouts?: Workout[];
+  tags: string[];
   description?: string;
   calories_per_day: any;
   dietry_type?: string;

@@ -27,6 +27,7 @@ export interface User {
   user_id: number;
   updated_at: string;
   created_at: string;
+  activated_plan: any[];
   id: string;
 }
 

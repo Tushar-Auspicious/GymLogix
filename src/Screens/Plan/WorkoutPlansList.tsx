@@ -43,10 +43,13 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
   const {planData} = useAppSelector(state => state.planData);
 
   const renderBanner = () => {
+    const item = planData
+      ?.filter(item => item.type === 'workout')
+      .map(item => item);
     return (
       <ImageBackground
         source={{
-          uri: 'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+          uri: item![0].coverImage,
         }}
         style={styles.bannerImage}
         imageStyle={styles.bannerImageStyle}>
@@ -57,7 +60,9 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
           end={{x: 0, y: 1}}>
           <TouchableOpacity
             onPress={() => {
-              dispatch(setCurrentprogramId('2'));
+              dispatch(
+                setCurrentprogramId(item![0].id || item![0]?.allData?.id),
+              );
               dispatch(setActiveWorkoutprogramIndex(2));
             }}
             style={styles.bannerTouchable}>
@@ -65,7 +70,11 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
               fontSize={24}
               fontFamily="bold"
               style={styles.bannerText}>
-              Full Program Hyper Throphy
+              {`${
+                item![0].allData?.name
+                  ? item![0].allData?.name
+                  : 'Full Program Hyper Throphy'
+              }`}
             </CustomText>
           </TouchableOpacity>
         </LinearGradient>
@@ -74,48 +83,56 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
   };
 
   const renderGymPrograms = () => {
+    const gymPlans =
+      planData?.filter(item => {
+        const tags =
+          item.tags ||
+          item.allData?.tags ||
+          item.allData?.content?.tags ||
+          item.tags ||
+          [];
+        return tags.includes('gym');
+      }) || [];
     return (
       <View style={styles.sectionContainer}>
-        {planData
-          ?.filter(item => item.tags.includes('gym'))
-          .map((item, index) => {
-            return (
-              <Pressable
-                key={item.id + index.toString()}
-                onPress={() => {
-                  dispatch(setCurrentprogramId(item.id));
-                  dispatch(setActiveWorkoutprogramIndex(2));
-                }}>
-                <ImageBackground
-                  source={{
-                    uri: item.coverImage,
-                  }}
-                  style={styles.programImage}
-                  imageStyle={styles.programImageStyle}>
-                  <View style={[styles.gradient, styles.programTextContainer]}>
-                    <CustomText
-                      fontSize={20}
-                      fontFamily="bold"
-                      style={styles.programTitle}>
-                      {item.title}
-                    </CustomText>
-                    <View style={styles.tagContainer}>
-                      {item.tags.map((tag, index) => (
-                        <CustomText
-                          key={index}
-                          style={styles.tag}
-                          fontFamily="italicBold"
-                          fontSize={12}
-                          color={COLORS.black}>
-                          {tag}
-                        </CustomText>
-                      ))}
-                    </View>
+        {gymPlans.map((item, index) => {
+          return (
+            <Pressable
+              key={item.id || item.allData?.id + index.toString()}
+              onPress={() => {
+                dispatch(setCurrentprogramId(item.id || item.allData?.id));
+                dispatch(setActiveWorkoutprogramIndex(2));
+              }}>
+              <ImageBackground
+                source={{
+                  uri: item.coverImage,
+                }}
+                style={styles.programImage}
+                imageStyle={styles.programImageStyle}>
+                <View style={[styles.gradient, styles.programTextContainer]}>
+                  <CustomText
+                    fontSize={20}
+                    fontFamily="bold"
+                    style={styles.programTitle}>
+                    {item.title}
+                  </CustomText>
+                  <View style={styles.tagContainer}>
+                    {item.tags.map((tag, index) => (
+                      <CustomText
+                        key={index}
+                        style={styles.tag}
+                        fontFamily="italicBold"
+                        fontSize={12}
+                        color={COLORS.black}>
+                        {tag}
+                      </CustomText>
+                    ))}
                   </View>
-                </ImageBackground>
-              </Pressable>
-            );
-          })}
+                </View>
+              </ImageBackground>
+            </Pressable>
+          );
+        })}
         <PrimaryButton
           isFullWidth
           title="See All"
@@ -123,7 +140,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
             dispatch(
               setCurrentProgramList({
                 title: 'Gym Programs',
-                data: trainingPrograms,
+                data: gymPlans,
               }),
             );
             dispatch(setActiveWorkoutprogramIndex(1));
@@ -136,17 +153,21 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
   };
 
   const renderTrendingPrograms = () => {
-    const trending = planData?.filter(item => item.tags.includes('trending'));
+    const trending = planData?.filter(item => {
+      const tags = item.allData?.content?.tags || item.tags || [];
+      return tags.includes('trending');
+    });
     return (
       <FlatList
         data={trending}
         horizontal
+        keyExtractor={item => (item.id || item.allData?.id)?.toString()}
         renderItem={({item}) => {
           return (
             <Pressable
               onPress={() => {
                 dispatch(setActiveWorkoutprogramIndex(2));
-                dispatch(setCurrentprogramId(item.id));
+                dispatch(setCurrentprogramId(item.id || item.allData?.id));
               }}
               style={styles.trendingProgramItem}>
               <Image
@@ -161,7 +182,6 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
             </Pressable>
           );
         }}
-        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.trendingProgramsList}
       />
     );
@@ -171,11 +191,19 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
     return (
       <View style={styles.sectionContainer}>
         {planData
-          ?.filter(item => item.tags.includes('strength'))
+          ?.filter(item => {
+            const tags =
+              item.tags ||
+              item.allData?.tags ||
+              item.allData?.content?.tags ||
+              item.tags ||
+              [];
+            return tags.includes('strength');
+          })
           .map((item, index) => {
             return (
               <ImageBackground
-                key={item.id + index.toString()}
+                key={item.id || item.allData?.id + index.toString()}
                 source={{
                   uri: item.coverImage,
                 }}
@@ -183,7 +211,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
                 imageStyle={styles.programImageStyle}>
                 <Pressable
                   onPress={() => {
-                    dispatch(setCurrentprogramId(item.id));
+                    dispatch(setCurrentprogramId(item.id || item.allData?.id));
                     dispatch(setActiveWorkoutprogramIndex(2));
                   }}
                   style={[styles.gradient, styles.programTextContainer]}>
@@ -242,7 +270,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
               imageStyle={styles.programImageStyle}>
               <Pressable
                 onPress={() => {
-                  dispatch(setCurrentprogramId(item.id));
+                  dispatch(setCurrentprogramId(item.id || item.allData?.id));
                   dispatch(setActiveWorkoutprogramIndex(2));
                 }}
                 style={[
@@ -301,8 +329,11 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
             {renderBanner()}
             {/* Gym program -----> */}
             {planData &&
-              planData?.filter(item => item.tags.includes('gym')).length >
-                0 && (
+              planData.filter(item => {
+                const tags =
+                  item.allData?.content?.tags || item.allData?.tags || [];
+                return tags.includes('gym');
+              }).length > 0 && (
                 <>
                   <CustomText
                     fontSize={22}
@@ -315,8 +346,11 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
               )}
             {/* Trending program -----> */}
             {planData &&
-              planData?.filter(item => item.tags.includes('trending')).length >
-                0 && (
+              planData.filter(item => {
+                const tags =
+                  item.allData?.content?.tags || item.allData?.tags || [];
+                return tags.includes('trending');
+              }).length > 0 && (
                 <>
                   <CustomText
                     fontSize={22}
@@ -329,8 +363,11 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
               )}
             {/* strength program -----> */}
             {planData &&
-              planData?.filter(item => item.tags.includes('strength')).length >
-                0 && (
+              planData.filter(item => {
+                const tags =
+                  item.allData?.content?.tags || item.allData?.tags || [];
+                return tags.includes('strength');
+              }).length > 0 && (
                 <>
                   <CustomText
                     fontSize={22}

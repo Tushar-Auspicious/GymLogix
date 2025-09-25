@@ -1,5 +1,5 @@
-import { useNavigation } from "@react-navigation/native";
-import React, { FC, useMemo } from "react";
+import {useNavigation} from '@react-navigation/native';
+import React, {FC, useMemo} from 'react';
 import {
   Animated,
   FlatList,
@@ -8,21 +8,21 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-} from "react-native";
-import ICONS from "../../../Assets/Icons";
-import CustomIcon from "../../../Components/CustomIcon";
-import { CustomText } from "../../../Components/CustomText";
-import PrimaryButton from "../../../Components/PrimaryButton";
-import { selectAllExercises } from "../../../Redux/slices/exerciseCatalogSlice";
-import { useAppSelector } from "../../../Redux/store";
-import { Exercise } from "../../../Seeds/ExerciseCatalog";
-import { WeeklyStructure } from "../../../Seeds/TrainingPLans";
-import COLORS from "../../../Utilities/Colors";
-import { horizontalScale, verticalScale, wp } from "../../../Utilities/Metrics";
+} from 'react-native';
+import ICONS from '../../../Assets/Icons';
+import CustomIcon from '../../../Components/CustomIcon';
+import {CustomText} from '../../../Components/CustomText';
+import PrimaryButton from '../../../Components/PrimaryButton';
+import {selectAllExercises} from '../../../Redux/slices/exerciseCatalogSlice';
+import {useAppSelector} from '../../../Redux/store';
+import {Exercise} from '../../../Seeds/ExerciseCatalog';
+import {WeeklyStructure} from '../../../Seeds/TrainingPLans';
+import COLORS from '../../../Utilities/Colors';
+import {horizontalScale, verticalScale, wp} from '../../../Utilities/Metrics';
 
 // Define a type for a Superset
 type Superset = {
-  type: "superset";
+  type: 'superset';
   exercises: Exercise[];
 };
 
@@ -48,8 +48,9 @@ type ExerciseData = {
   handleDeleteSelected: () => void;
   handleClickSuperSet: () => void;
   fadeAnim: Animated.Value;
-  programId: string;
+  programId: string | number;
   currentDayIndex: number;
+  dayData: any;
 };
 
 // Helper function to get exercise name
@@ -59,7 +60,7 @@ const getExerciseName = (exercise: Exercise): string => {
 
 // Helper function to get exercise image
 const getExerciseImage = (exercise: Exercise): string => {
-  return exercise.coverImage?.uri || exercise.images?.[0]?.uri || "";
+  return exercise.coverImage?.uri || exercise.images?.[0]?.uri || '';
 };
 
 // Helper function to get target muscles
@@ -74,17 +75,17 @@ const getExerciseSets = (exercise: Exercise): number => {
 
 // Helper function to get exercise reps (with default)
 const getExerciseReps = (exercise: Exercise): string => {
-  return exercise.recommendedReps?.toString() || "10";
+  return exercise.recommendedReps?.toString() || '10';
 };
 
 // Helper function to get exercise rest (with default)
 const getExerciseRest = (exercise: Exercise): string => {
-  return "60 seconds"; // Default rest time
+  return '60 seconds'; // Default rest time
 };
 
 // Helper function to get exercise weight (with default)
 const getExerciseWeight = (exercise: Exercise): string => {
-  return "Bodyweight"; // Default weight
+  return 'Bodyweight'; // Default weight
 };
 
 const ExerciseView: FC<ExerciseData> = ({
@@ -100,25 +101,26 @@ const ExerciseView: FC<ExerciseData> = ({
   handleClickSuperSet,
   programId,
   currentDayIndex = 0,
+  dayData,
 }) => {
   const navigation = useNavigation<any>();
 
   // Calculate targeted muscles and their percentages based on superset or all exercises
   const muscleData = useMemo(() => {
-    const muscleCount: { [key: string]: number } = {};
+    const muscleCount: {[key: string]: number} = {};
     let totalMuscleMentions = 0;
 
     if (isSupersetSelected) {
       const superset = exerciseData.find(
-        (item) =>
+        item =>
           item &&
-          typeof item === "object" &&
-          "type" in item &&
-          item.type === "superset"
+          typeof item === 'object' &&
+          'type' in item &&
+          item.type === 'superset',
       ) as Superset | undefined;
       if (superset) {
-        superset.exercises.forEach((exercise) => {
-          exercise.targetMuscles?.forEach((muscle) => {
+        superset.exercises.forEach(exercise => {
+          exercise.targetMuscles?.forEach(muscle => {
             muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
             totalMuscleMentions++;
           });
@@ -128,9 +130,9 @@ const ExerciseView: FC<ExerciseData> = ({
       exerciseData.forEach((item: any) => {
         if (
           item &&
-          typeof item === "object" &&
-          "type" in item &&
-          item.type === "superset"
+          typeof item === 'object' &&
+          'type' in item &&
+          item.type === 'superset'
         ) {
           item.exercises.forEach((exercise: any) => {
             exercise.targetMuscles?.forEach((muscle: any) => {
@@ -147,7 +149,7 @@ const ExerciseView: FC<ExerciseData> = ({
       });
     }
 
-    const muscles: MuscleData[] = Object.keys(muscleCount).map((muscle) => ({
+    const muscles: MuscleData[] = Object.keys(muscleCount).map(muscle => ({
       name: muscle,
       percentage: totalMuscleMentions
         ? Math.round((muscleCount[muscle] / totalMuscleMentions) * 100)
@@ -156,27 +158,44 @@ const ExerciseView: FC<ExerciseData> = ({
 
     return muscles.sort((a, b) => b.percentage - a.percentage);
   }, [exerciseData, isSupersetSelected]);
+
   const allExercises = useAppSelector(selectAllExercises);
+
+  const exercisesData = useAppSelector(state => state.exerciseData);
+
+  const exerciseIds = data.map((ex: any) => ex.exercise_id);
+
+  const findExercises = exercisesData.exerciseData
+    ?.filter(item => exerciseIds.includes(item.exercise_id))
+    .map(item => {
+      const exerciseSettings = data.find(
+        (d: any) => d.exercise_id === item.exercise_id,
+      );
+      return {
+        ...item,
+        exerciseSettings, // attach sets, reps, timings etc.
+      };
+    });
 
   const renderExerciseList = () => {
     return (
       <FlatList
-        data={exerciseData}
+        data={findExercises}
         style={{}}
         contentContainerStyle={{
           gap: verticalScale(10),
         }}
-        renderItem={({ item }: any) => {
+        renderItem={({item}: any) => {
           const alternateExerciseId = item.exerciseSettings?.alternateExercise;
           const alternateExercise = allExercises.find(
-            (exercise) => exercise.id === alternateExerciseId
+            exercise => exercise.id === alternateExerciseId,
           );
 
           if (
             item &&
-            typeof item === "object" &&
-            "type" in item &&
-            item.type === "superset"
+            typeof item === 'object' &&
+            'type' in item &&
+            item.type === 'superset'
           ) {
             return (
               <TouchableOpacity
@@ -189,31 +208,28 @@ const ExerciseView: FC<ExerciseData> = ({
                   borderWidth: 1,
                   borderRadius: 10,
                   width: wp(95),
-                }}
-              >
+                }}>
                 <View
                   style={{
-                    width: "100%",
+                    width: '100%',
                     backgroundColor: COLORS.brown,
                     paddingHorizontal: horizontalScale(10),
                     paddingVertical: verticalScale(2),
                     borderTopRightRadius: 10,
                     borderTopLeftRadius: 10,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
                   <CustomText fontFamily="italic" fontSize={14}>
                     SUPERSET
                   </CustomText>
                   <View
                     style={{
-                      flexDirection: "row",
+                      flexDirection: 'row',
                       gap: horizontalScale(5),
-                      alignItems: "center",
-                    }}
-                  >
+                      alignItems: 'center',
+                    }}>
                     <CustomIcon
                       Icon={ICONS.ThreeLineSideDotMenuView}
                       height={verticalScale(15)}
@@ -222,31 +238,29 @@ const ExerciseView: FC<ExerciseData> = ({
                 </View>
                 <View
                   style={{
-                    width: "98%",
+                    width: '98%',
                     gap: verticalScale(5),
-                    alignSelf: "center",
-                  }}
-                >
+                    alignSelf: 'center',
+                  }}>
                   {item.exercises.map((exercise: any, index: number) => {
                     const isSelected = selectedExercises.includes(
-                      getExerciseName(exercise)
+                      getExerciseName(exercise),
                     );
                     return (
                       <View
                         key={index}
                         style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
                           borderRadius: verticalScale(10),
                           backgroundColor: COLORS.lightBrown,
                           padding: verticalScale(5),
-                        }}
-                      >
+                        }}>
                         <Image
                           source={{
                             uri:
                               getExerciseImage(exercise) ||
-                              "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                              'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
                           }}
                           style={styles.ExerciseImage}
                         />
@@ -254,21 +268,19 @@ const ExerciseView: FC<ExerciseData> = ({
                           <CustomText
                             color={COLORS.yellow}
                             fontFamily="medium"
-                            fontSize={12}
-                          >
+                            fontSize={12}>
                             {getExerciseName(exercise)}
                           </CustomText>
                           <CustomText
                             color={COLORS.white}
                             fontFamily="medium"
-                            fontSize={12}
-                          >
+                            fontSize={12}>
                             {`${getExerciseSets(
-                              exercise
+                              exercise,
                             )} sets x ${getExerciseReps(exercise)} reps`}
                           </CustomText>
                         </View>
-                        <View style={{ justifyContent: "center" }}>
+                        <View style={{justifyContent: 'center'}}>
                           <CustomIcon
                             Icon={ICONS.SidMultiDotView}
                             height={verticalScale(27)}
@@ -282,29 +294,29 @@ const ExerciseView: FC<ExerciseData> = ({
             );
           }
 
-          const isSelected = selectedExercises.includes(getExerciseName(item));
+          const isSelected = selectedExercises.includes(item.name);
           const isAlternateSelected =
-            alternateExercise &&
-            selectedExercises.includes(getExerciseName(alternateExercise));
+            alternateExercise && selectedExercises.includes(item.name);
+
           return (
             <>
               <TouchableOpacity
-                onLongPress={() =>
-                  handleLongExercisePress(getExerciseName(item))
-                }
+                onLongPress={() => {
+                  handleLongExercisePress(item.name);
+                  console.log('LONGGG', item.name);
+                }}
                 onPress={() => handleExercisePress(item)}
                 delayLongPress={400}
                 activeOpacity={0.7}
                 style={[
                   styles.ExerciseItem,
                   isSelected && styles.selectedExerciseItem,
-                ]}
-              >
+                ]}>
                 <Image
                   source={{
                     uri:
-                      getExerciseImage(item) ||
-                      "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                      item.images_urls[0] ||
+                      'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
                   }}
                   style={styles.ExerciseImage}
                 />
@@ -312,21 +324,21 @@ const ExerciseView: FC<ExerciseData> = ({
                   <CustomText
                     color={COLORS.yellow}
                     fontFamily="medium"
-                    fontSize={12}
-                  >
-                    {getExerciseName(item)}
+                    fontSize={12}>
+                    {/* {getExerciseName(item)} */}
+                    {item.name}
                   </CustomText>
                   <CustomText
                     color={COLORS.white}
                     fontFamily="medium"
-                    fontSize={12}
-                  >
-                    {`${getExerciseSets(item)} sets x ${getExerciseReps(
-                      item
-                    )} reps`}
+                    fontSize={12}>
+                    {/* {`${getExerciseSets(item)} sets x ${getExerciseReps(
+                      item,
+                    )} reps`} */}
+                    {`${item.exerciseSettings.sets} Sets x ${item.exerciseSettings.reps}`}
                   </CustomText>
                 </View>
-                <View style={{ justifyContent: "center" }}>
+                <View style={{justifyContent: 'center'}}>
                   <CustomIcon
                     Icon={ICONS.SidMultiDotView}
                     height={verticalScale(27)}
@@ -334,16 +346,15 @@ const ExerciseView: FC<ExerciseData> = ({
                 </View>
               </TouchableOpacity>
               {alternateExercise && (
-                <View style={{ marginVertical: verticalScale(5) }}>
+                <View style={{marginVertical: verticalScale(5)}}>
                   <CustomText
                     fontFamily="italic"
                     fontSize={14}
                     color={COLORS.whiteTail}
-                    style={{ marginVertical: horizontalScale(5) }}
-                  >
+                    style={{marginVertical: horizontalScale(5)}}>
                     Alternate
                   </CustomText>
-                  <View style={{ width: "100%" }}>
+                  <View style={{width: '100%'}}>
                     <TouchableOpacity
                       // onLongPress={() =>
                       //   handleLongExercisePress(
@@ -355,19 +366,18 @@ const ExerciseView: FC<ExerciseData> = ({
                       activeOpacity={0.7}
                       style={[
                         {
-                          flexDirection: "row",
-                          justifyContent: "space-between",
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
                           borderWidth: 1,
                           borderRadius: verticalScale(10),
                           borderColor: COLORS.whiteTail,
                           backgroundColor: COLORS.lightBrown,
                           width: wp(90),
                           padding: verticalScale(5),
-                          alignSelf: "flex-end",
+                          alignSelf: 'flex-end',
                         },
                         isAlternateSelected && styles.selectedExerciseItem,
-                      ]}
-                    >
+                      ]}>
                       <Image
                         source={{
                           uri: getExerciseImage(alternateExercise),
@@ -378,21 +388,19 @@ const ExerciseView: FC<ExerciseData> = ({
                         <CustomText
                           color={COLORS.yellow}
                           fontFamily="medium"
-                          fontSize={12}
-                        >
+                          fontSize={12}>
                           {getExerciseName(alternateExercise)}
                         </CustomText>
                         <CustomText
                           color={COLORS.white}
                           fontFamily="medium"
-                          fontSize={12}
-                        >
+                          fontSize={12}>
                           {`${getExerciseSets(
-                            alternateExercise
+                            alternateExercise,
                           )} sets x ${getExerciseReps(alternateExercise)} reps`}
                         </CustomText>
                       </View>
-                      <View style={{ justifyContent: "center" }}>
+                      <View style={{justifyContent: 'center'}}>
                         <CustomIcon
                           Icon={ICONS.SidMultiDotView}
                           height={verticalScale(27)}
@@ -406,20 +414,20 @@ const ExerciseView: FC<ExerciseData> = ({
           );
         }}
         keyExtractor={(item: any, index) => {
-          if (item && typeof item === "object" && "type" in item) {
+          if (item && typeof item === 'object' && 'type' in item) {
             return item.type + index.toString();
           }
           return (item?.id || item?.name || index).toString();
         }}
         ListFooterComponent={() => (
-          <View style={{ alignItems: "flex-end" }}>
+          <View style={{alignItems: 'flex-end'}}>
             <PrimaryButton
               onPress={() => {
                 // Get the current day ID from the data
-                const currentDay = data[currentDayIndex];
-                const dayId = currentDay?.day || `day-${currentDayIndex}`;
+                const currentDay = dayData[currentDayIndex];
+                const dayId = currentDay?.name || `day-${currentDayIndex}`;
 
-                navigation.navigate("exerciseList", {
+                navigation.navigate('exerciseList', {
                   fromTrainingPlan: programId
                     ? {
                         programId: programId,
@@ -431,7 +439,7 @@ const ExerciseView: FC<ExerciseData> = ({
               }}
               isFullWidth={false}
               style={{
-                width: "auto",
+                width: 'auto',
                 paddingVertical: verticalScale(8),
                 paddingHorizontal: horizontalScale(12),
                 borderRadius: verticalScale(5),
@@ -447,11 +455,11 @@ const ExerciseView: FC<ExerciseData> = ({
 
   const renderSupersetDetails = () => {
     const superset = exerciseData.find(
-      (item) =>
+      item =>
         item &&
-        typeof item === "object" &&
-        "type" in item &&
-        item.type === "superset"
+        typeof item === 'object' &&
+        'type' in item &&
+        item.type === 'superset',
     ) as Superset | undefined;
 
     if (!superset) return null;
@@ -462,15 +470,15 @@ const ExerciseView: FC<ExerciseData> = ({
 
     const timePerRep = 3; // 3 seconds per rep (controlled lifting)
 
-    superset.exercises.forEach((exercise) => {
-      const repsRange = getExerciseReps(exercise).split("-");
+    superset.exercises.forEach(exercise => {
+      const repsRange = getExerciseReps(exercise).split('-');
       const reps =
         repsRange.length > 1
           ? Math.round((parseInt(repsRange[0]) + parseInt(repsRange[1])) / 2)
           : parseInt(repsRange[0]) || 0;
 
       const restSeconds =
-        parseInt(getExerciseRest(exercise).replace(/\D/g, "")) || 60;
+        parseInt(getExerciseRest(exercise).replace(/\D/g, '')) || 60;
 
       const exerciseTime =
         getExerciseSets(exercise) * reps * timePerRep +
@@ -485,9 +493,9 @@ const ExerciseView: FC<ExerciseData> = ({
     const formatTime = (seconds: number): string => {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
-      return `${mins.toString().padStart(2, "0")}:${secs
+      return `${mins.toString().padStart(2, '0')}:${secs
         .toString()
-        .padStart(2, "0")}`;
+        .padStart(2, '0')}`;
     };
 
     return (
@@ -496,43 +504,39 @@ const ExerciseView: FC<ExerciseData> = ({
           gap: verticalScale(10),
           width: wp(95),
           flex: 1,
-        }}
-      >
+        }}>
         <View
           style={{
             padding: verticalScale(4),
             gap: verticalScale(20),
             borderRadius: 10,
-          }}
-        >
+          }}>
           <CustomText fontFamily="bold" fontSize={14}>
             Superset
           </CustomText>
           <View
             style={{
-              width: "98%",
+              width: '98%',
               gap: verticalScale(5),
-              alignSelf: "center",
-            }}
-          >
+              alignSelf: 'center',
+            }}>
             {superset.exercises.map((exercise, index) => (
               <View
                 key={index}
                 style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
                   borderRadius: verticalScale(10),
                   backgroundColor: COLORS.lightBrown,
                   padding: verticalScale(5),
                   borderWidth: 1,
                   borderColor: COLORS.white,
-                }}
-              >
+                }}>
                 <Image
                   source={{
                     uri:
                       getExerciseImage(exercise) ||
-                      "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                      'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
                   }}
                   style={styles.ExerciseImage}
                 />
@@ -540,21 +544,19 @@ const ExerciseView: FC<ExerciseData> = ({
                   <CustomText
                     color={COLORS.yellow}
                     fontFamily="medium"
-                    fontSize={12}
-                  >
+                    fontSize={12}>
                     {getExerciseName(exercise)}
                   </CustomText>
                   <CustomText
                     color={COLORS.white}
                     fontFamily="medium"
-                    fontSize={12}
-                  >
+                    fontSize={12}>
                     {`${getExerciseSets(exercise)} sets x ${getExerciseReps(
-                      exercise
+                      exercise,
                     )} reps`}
                   </CustomText>
                 </View>
-                <View style={{ justifyContent: "center" }}>
+                <View style={{justifyContent: 'center'}}>
                   <CustomIcon
                     Icon={ICONS.SidMultiDotView}
                     height={verticalScale(27)}
@@ -566,14 +568,13 @@ const ExerciseView: FC<ExerciseData> = ({
           <CustomText fontFamily="bold" fontSize={14}>
             Rest Time
           </CustomText>
-          <View style={{ gap: verticalScale(10) }}>
+          <View style={{gap: verticalScale(10)}}>
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
               <CustomText fontSize={14}>Warm-up Time</CustomText>
               <CustomText fontSize={14}>
                 {formatTime(warmUpTimeSeconds)}
@@ -581,11 +582,10 @@ const ExerciseView: FC<ExerciseData> = ({
             </View>
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
               <CustomText fontSize={14}>Working Time</CustomText>
               <CustomText fontSize={14}>
                 {formatTime(workingTimeSeconds)}
@@ -593,11 +593,10 @@ const ExerciseView: FC<ExerciseData> = ({
             </View>
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}>
               <CustomText fontSize={14}>Full Completion Time</CustomText>
               <CustomText fontSize={14}>
                 {formatTime(fullCompletionTimeSeconds)}
@@ -613,34 +612,31 @@ const ExerciseView: FC<ExerciseData> = ({
     <View
       style={{
         gap: verticalScale(10),
-        alignItems: "center",
+        alignItems: 'center',
         flex: 1,
-      }}
-    >
+      }}>
       {isSupersetSelected ? (
         <ScrollView
           style={{
             width: wp(100),
             paddingHorizontal: horizontalScale(10),
             flex: 1,
-          }}
-        >
+          }}>
           <FlatList
             horizontal
             data={muscleData}
-            renderItem={({ item }) => (
+            renderItem={({item}) => (
               <View
                 style={{
-                  flexDirection: "row",
-                  alignItems: "center",
+                  flexDirection: 'row',
+                  alignItems: 'center',
                   gap: horizontalScale(5),
                   borderRadius: verticalScale(10),
                   padding: verticalScale(5),
-                }}
-              >
+                }}>
                 <Image
                   source={{
-                    uri: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                    uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
                   }}
                   style={{
                     height: 60,
@@ -653,25 +649,22 @@ const ExerciseView: FC<ExerciseData> = ({
                 <View
                   style={{
                     gap: verticalScale(5),
-                    alignItems: "flex-start",
-                  }}
-                >
+                    alignItems: 'flex-start',
+                  }}>
                   <CustomText fontFamily="medium">{item.name}</CustomText>
                   <View
                     style={{
                       backgroundColor: COLORS.nickel,
                       paddingVertical: verticalScale(4),
                       paddingHorizontal: horizontalScale(20),
-                      justifyContent: "center",
-                      alignItems: "center",
+                      justifyContent: 'center',
+                      alignItems: 'center',
                       borderRadius: 100,
-                    }}
-                  >
+                    }}>
                     <CustomText
                       color={COLORS.white}
                       fontFamily="medium"
-                      fontSize={10}
-                    >
+                      fontSize={10}>
                       {`${item.percentage}%`}
                     </CustomText>
                   </View>
@@ -686,26 +679,24 @@ const ExerciseView: FC<ExerciseData> = ({
               marginVertical: verticalScale(20),
             }}
           />
-          <View style={{ flex: 1 }}>{renderSupersetDetails()}</View>
+          <View style={{flex: 1}}>{renderSupersetDetails()}</View>
         </ScrollView>
       ) : (
         <>
           {selectedExercises.length > 0 ? (
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 width: wp(100),
                 paddingHorizontal: horizontalScale(10),
                 paddingBottom: verticalScale(10),
-              }}
-            >
-              <View style={{ flexDirection: "row", gap: horizontalScale(20) }}>
+              }}>
+              <View style={{flexDirection: 'row', gap: horizontalScale(20)}}>
                 <TouchableOpacity
                   onPress={handleDeleteSelected}
-                  style={styles.actionButton}
-                >
+                  style={styles.actionButton}>
                   <CustomIcon Icon={ICONS.DeleteIcon} height={15} width={15} />
                   <CustomText fontSize={6} fontFamily="bold">
                     DELETE
@@ -721,8 +712,7 @@ const ExerciseView: FC<ExerciseData> = ({
               {selectedExercises.length > 1 && (
                 <TouchableOpacity
                   onPress={handleClickSuperSet}
-                  style={styles.actionButton}
-                >
+                  style={styles.actionButton}>
                   <CustomIcon
                     Icon={ICONS.SuperSetIcon}
                     height={15}
@@ -736,22 +726,20 @@ const ExerciseView: FC<ExerciseData> = ({
             </View>
           ) : (
             <View
-              style={{ width: wp(100), paddingHorizontal: horizontalScale(10) }}
-            >
+              style={{width: wp(100), paddingHorizontal: horizontalScale(10)}}>
               <FlatList
                 horizontal
                 data={muscleData}
-                renderItem={({ item }) => (
+                renderItem={({item}) => (
                   <View
                     style={{
-                      flexDirection: "row",
-                      alignItems: "center",
+                      flexDirection: 'row',
+                      alignItems: 'center',
                       gap: horizontalScale(5),
-                    }}
-                  >
+                    }}>
                     <Image
                       source={{
-                        uri: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                        uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
                       }}
                       style={{
                         height: 60,
@@ -764,25 +752,22 @@ const ExerciseView: FC<ExerciseData> = ({
                     <View
                       style={{
                         gap: verticalScale(5),
-                        alignItems: "flex-start",
-                      }}
-                    >
+                        alignItems: 'flex-start',
+                      }}>
                       <CustomText fontFamily="medium">{item.name}</CustomText>
                       <View
                         style={{
                           backgroundColor: COLORS.nickel,
                           paddingVertical: verticalScale(4),
                           paddingHorizontal: horizontalScale(20),
-                          justifyContent: "center",
-                          alignItems: "center",
+                          justifyContent: 'center',
+                          alignItems: 'center',
                           borderRadius: 100,
-                        }}
-                      >
+                        }}>
                         <CustomText
                           color={COLORS.white}
                           fontFamily="medium"
-                          fontSize={10}
-                        >
+                          fontSize={10}>
                           {`${item.percentage}%`}
                         </CustomText>
                       </View>
@@ -809,8 +794,8 @@ export default ExerciseView;
 
 const styles = StyleSheet.create({
   ExerciseItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     borderWidth: 1,
     borderRadius: verticalScale(10),
     borderColor: COLORS.whiteTail,
@@ -822,22 +807,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.skinColor,
   },
   ExerciseImage: {
-    height: "100%",
+    height: '100%',
     minHeight: 71,
     width: 66,
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   ExerciseDetails: {
     paddingHorizontal: horizontalScale(10),
-    justifyContent: "flex-start",
+    justifyContent: 'flex-start',
     gap: verticalScale(5),
     paddingVertical: verticalScale(4),
     flex: 1,
   },
   TargetMusclesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: horizontalScale(5),
   },
   TargetMuscleItem: {
@@ -847,11 +832,11 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(2),
   },
   actionButton: {
-    alignItems: "center",
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.whiteTail,
     borderRadius: 100,
-    justifyContent: "center",
+    justifyContent: 'center',
     height: 40,
     width: 40,
   },

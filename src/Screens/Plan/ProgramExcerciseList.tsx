@@ -1,13 +1,13 @@
-import React, { FC, useState } from "react";
-import { FlatList, Image, ScrollView, StyleSheet, View } from "react-native";
-import ICONS from "../../Assets/Icons"; // Assuming you have an ICONS file with a lock icon
-import CustomIcon from "../../Components/CustomIcon"; // Assuming you have a CustomIcon component
-import { CustomText } from "../../Components/CustomText"; // Assuming you have a CustomText component
-import { workoutPlan, WorkoutProgram } from "../../Seeds/WorkoutProgramData";
-import COLORS from "../../Utilities/Colors";
-import { horizontalScale, verticalScale } from "../../Utilities/Metrics";
-import PrimaryButton from "../../Components/PrimaryButton";
-import ScheduleCalendar from "../../Components/Modals/ScheduleCalendar";
+import React, {FC, useState} from 'react';
+import {FlatList, Image, ScrollView, StyleSheet, View} from 'react-native';
+import ICONS from '../../Assets/Icons'; // Assuming you have an ICONS file with a lock icon
+import CustomIcon from '../../Components/CustomIcon'; // Assuming you have a CustomIcon component
+import {CustomText} from '../../Components/CustomText'; // Assuming you have a CustomText component
+import {workoutPlan, WorkoutProgram} from '../../Seeds/WorkoutProgramData';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, verticalScale} from '../../Utilities/Metrics';
+import PrimaryButton from '../../Components/PrimaryButton';
+import ScheduleCalendar from '../../Components/Modals/ScheduleCalendar';
 
 type ProgramExcerciseProps = {
   programData: WorkoutProgram[];
@@ -25,14 +25,14 @@ const ProgramExcercise: FC<ProgramExcerciseProps> = ({
   const renderExercise = ({
     item,
   }: {
-    item: (typeof workoutPlan)[0]["exercises"][0];
+    item: (typeof workoutPlan)[0]['exercises'][0];
   }) => (
     <View style={styles.exerciseCont}>
       <Image
-        source={{ uri: item.image }}
-        style={{ height: 70, width: 70, borderRadius: 10 }}
+        source={{uri: item.image}}
+        style={{height: 70, width: 70, borderRadius: 10}}
       />
-      <View style={{ gap: verticalScale(10) }}>
+      <View style={{gap: verticalScale(10)}}>
         <CustomText color={COLORS.yellow} fontSize={15} fontFamily="medium">
           {item.name}
         </CustomText>
@@ -54,7 +54,7 @@ const ProgramExcercise: FC<ProgramExcerciseProps> = ({
       {/* Day Header with Dot and Lock Icon */}
       <View style={styles.dayHeader}>
         <View style={styles.timelineContainer}>
-          <View style={[styles.dot, { backgroundColor: item.dotColor }]} />
+          <View style={[styles.dot, {backgroundColor: item.dotColor}]} />
           <CustomText color={COLORS.white} fontFamily="bold">
             {item.day}
           </CustomText>
@@ -75,7 +75,7 @@ const ProgramExcercise: FC<ProgramExcerciseProps> = ({
         <FlatList
           data={item.exercises}
           renderItem={renderExercise}
-          keyExtractor={(exercise) => exercise.id}
+          keyExtractor={exercise => exercise.id}
           style={styles.exerciseList}
           scrollEnabled={false} // Let the outer ScrollView handle scrolling
         />
@@ -97,25 +97,23 @@ const ProgramExcercise: FC<ProgramExcerciseProps> = ({
   return (
     <ScrollView
       contentContainerStyle={styles.container}
-      style={{ flex: 1 }}
-      showsVerticalScrollIndicator={false}
-    >
+      style={{flex: 1}}
+      showsVerticalScrollIndicator={false}>
       <FlatList
         data={programData}
         renderItem={renderDay}
-        keyExtractor={(item) => item.day}
+        keyExtractor={item => item.day}
         contentContainerStyle={styles.listContainer}
-        style={{ gap: 10 }}
+        style={{gap: 10}}
         scrollEnabled={false} // Let the outer ScrollView handle scrolling
       />
-      {!isActivated ? (
+      {isActivated ? (
         <View
           style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
+            flexDirection: 'row',
+            justifyContent: 'space-between',
             paddingHorizontal: horizontalScale(20),
-          }}
-        >
+          }}>
           <PrimaryButton
             onPress={onPressActive}
             title="Deactivate"
@@ -146,7 +144,7 @@ const ProgramExcercise: FC<ProgramExcerciseProps> = ({
             paddingVertical: verticalScale(8),
             paddingHorizontal: horizontalScale(20),
             borderRadius: 10,
-            alignSelf: "center",
+            alignSelf: 'center',
           }}
         />
       )}
@@ -170,9 +168,9 @@ const styles = StyleSheet.create({
   },
 
   exerciseCont: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderColor: "#E8E7E9",
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: '#E8E7E9',
     borderWidth: 1,
     padding: 5,
     borderRadius: 10,
@@ -181,17 +179,17 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   dayHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: verticalScale(10),
     backgroundColor: COLORS.brown,
     paddingHorizontal: horizontalScale(20),
     paddingVertical: verticalScale(5),
-    justifyContent: "space-between",
+    justifyContent: 'space-between',
   },
   timelineContainer: {
-    alignItems: "center",
-    flexDirection: "row",
+    alignItems: 'center',
+    flexDirection: 'row',
     gap: horizontalScale(10),
   },
   dot: {
@@ -206,8 +204,8 @@ const styles = StyleSheet.create({
   },
 
   restPeriodContainer: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginVertical: verticalScale(10),
     gap: verticalScale(5),
   },

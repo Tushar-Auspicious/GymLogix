@@ -47,6 +47,12 @@ import {
 import {postData, postFormData} from '../../../APIServices/api';
 import ENDPOINTS from '../../../APIServices/endPoints';
 import {Exercise, ExerciseCatalog} from '../../../Seeds/ExerciseCatalog';
+import {
+  getLocalStorageData,
+  storeLocalStorageData,
+} from '../../../Utilities/Storage';
+import STORAGE_KEYS from '../../../Utilities/Constants';
+import {showCustomToast} from '../../../Utilities/Helpers';
 
 function mapLocation(equipment = '') {
   const eq = equipment.toLowerCase();
@@ -154,6 +160,17 @@ const AddNewExercise = ({}) => {
 
   const [isUploadOptionModal, setIsUploadOptionModal] = useState(false);
   const [isExerciseImagesModal, setIsExerciseImagesModal] = useState(false);
+
+  const [errors, setErrors] = useState({
+    exerciseName: '',
+    uplaodFileData: '',
+    description: '',
+    instructions: '',
+    mainMuscle: '',
+    secondaryMuscle: '',
+    difficulty: '',
+    equipment: '',
+  });
   const closeModal = () => {
     setIsUploadOptionModal(false);
     setIsExerciseImagesModal(false);
@@ -167,7 +184,6 @@ const AddNewExercise = ({}) => {
         console.log('ImagePicker Error: ', response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0];
-        console.log('assets --->', asset);
 
         setCoverImage(asset);
 
@@ -183,7 +199,6 @@ const AddNewExercise = ({}) => {
           ENDPOINTS.uploadFile,
           formData,
         );
-        console.log('uplaod file', apiResponse);
 
         if (apiResponse.data) {
           const getImageUrl = apiResponse.data.url;
@@ -226,7 +241,6 @@ const AddNewExercise = ({}) => {
           ENDPOINTS.uploadFile,
           formData,
         );
-        console.log('asset camera Pick response --->', response);
 
         if (response.data) {
           const get_Image_Url = response.data.url;
@@ -298,12 +312,74 @@ const AddNewExercise = ({}) => {
     setExerciseImages(prevImages => prevImages.filter((_, i) => i !== index));
   };
 
-  // Function to save the exercise and go back to exercise selection
-  const handleSaveExercise = async () => {
+  const validInputs = () => {
+    let valid = true;
+    let newErrors = {
+      exerciseName: '',
+      uplaodFileData: '',
+      description: '',
+      instructions: '',
+      mainMuscle: '',
+      secondaryMuscle: '',
+      difficulty: '',
+      equipment: '',
+    };
+
     if (!uplaodFileData) {
-      console.log('Image is not uploaded yet');
+      valid = false;
+      newErrors.uplaodFileData = 'Cover Image is required.';
+      showCustomToast('error', newErrors.uplaodFileData);
       return;
     }
+    if (!exerciseName.trim()) {
+      valid = false;
+      newErrors.exerciseName = 'Title is required.';
+      showCustomToast('error', newErrors.exerciseName);
+      return;
+    }
+    if (!description.trim()) {
+      valid = false;
+      newErrors.description = 'Description is required.';
+      showCustomToast('error', newErrors.description);
+      return;
+    }
+    if (!instructions.trim()) {
+      valid = false;
+      newErrors.instructions = 'Instruction is required.';
+      showCustomToast('error', newErrors.instructions);
+      return;
+    }
+    if (mainMuscle.front.length < 1 && mainMuscle.back.length < 1) {
+      valid = false;
+      newErrors.mainMuscle = 'Main Muscle is required.';
+      showCustomToast('error', newErrors.mainMuscle);
+      return;
+    }
+    if (secondaryMuscle.front.length < 1 && secondaryMuscle.back.length < 1) {
+      valid = false;
+      newErrors.secondaryMuscle = 'Secondary Muscle is required.';
+      showCustomToast('error', newErrors.secondaryMuscle);
+      return;
+    }
+    if (!difficulty) {
+      valid = false;
+      newErrors.difficulty = 'Difficulty is required.';
+      showCustomToast('error', newErrors.difficulty);
+      return;
+    }
+    if (!equipment) {
+      valid = false;
+      newErrors.equipment = 'Equipment is required.';
+      showCustomToast('error', newErrors.equipment);
+      return;
+    }
+
+    setErrors(newErrors);
+    return valid;
+  };
+
+  // Function to save the exercise and go back to exercise selection
+  const handleSaveExercise = async () => {
     const primaryMuscle =
       mainMuscle.front.length > 0
         ? mainMuscle.front[0]
@@ -337,6 +413,10 @@ const AddNewExercise = ({}) => {
       3: 'advance',
     };
 
+    if (!validInputs()) {
+      return;
+    }
+
     const data = {
       name: exerciseName,
       description: description,
@@ -350,8 +430,6 @@ const AddNewExercise = ({}) => {
       equipment: equipment,
       force: force,
     };
-
-    console.log('data sent --->', data);
 
     try {
       const response = await postData<any>(ENDPOINTS.create_update_exercise, {
@@ -372,7 +450,7 @@ const AddNewExercise = ({}) => {
           difficultyToIndex[(item.difficulty || '').toLowerCase()] || 1;
 
         const newExercise = {
-          id: item._id || item.id,
+          id: item.exercise_id,
           name: item.name,
           coverImage: item.images_urls?.[0] ? {uri: item.images_urls[0]} : null,
           images: item.images_urls?.map((url: string) => ({uri: url})) || [],
@@ -397,6 +475,22 @@ const AddNewExercise = ({}) => {
         console.log('new exercise --->', newExercise);
 
         const updatedCatalog = addExerciseToCatalog(catalog, newExercise);
+
+        const localExerciseList =
+          (await getLocalStorageData(STORAGE_KEYS.localExerciseData)) || [];
+
+        // 2. Add new exercise to the list
+        const updatedExerciseList = [...localExerciseList, newExercise];
+
+        // 3. Store updated list and catalog in local storage
+        await storeLocalStorageData(
+          STORAGE_KEYS.localExerciseData,
+          updatedExerciseList,
+        );
+        await storeLocalStorageData(
+          STORAGE_KEYS.localExerciseCatalog,
+          updatedCatalog,
+        );
 
         console.log('djksl', updatedCatalog);
 
@@ -431,7 +525,7 @@ const AddNewExercise = ({}) => {
             gap: verticalScale(10),
           }}>
           <CustomText color={COLORS.yellow} fontFamily="italicBold">
-            Give a meanigull name for your exercise
+            Give a meaningfull name for your exercise
           </CustomText>
           <TextInput
             value={exerciseName}
@@ -590,6 +684,8 @@ const AddNewExercise = ({}) => {
                 containerWidth={wp(45)}
                 selectedMuscles={mainMuscle.front}
                 viewBox="0 30 369 70"
+                bodyChart={() => {}}
+                frontMusclesData={() => {}}
               />
             </TouchableOpacity>
 
@@ -610,6 +706,8 @@ const AddNewExercise = ({}) => {
                 containerWidth={wp(45)}
                 selectedMuscles={mainMuscle.back}
                 viewBox="0 30 369 70"
+                backMusclesData={() => {}}
+                bodyChart={() => {}}
               />
             </TouchableOpacity>
           </View>
@@ -661,6 +759,8 @@ const AddNewExercise = ({}) => {
                 }
                 viewBox="0 30 369 70"
                 selectionColor={'#C3FF00'}
+                bodyChart={() => {}}
+                frontMusclesData={() => {}}
               />
             </TouchableOpacity>
 
@@ -689,6 +789,8 @@ const AddNewExercise = ({}) => {
                 }
                 viewBox="0 30 369 70"
                 selectionColor={'#C3FF00'}
+                bodyChart={() => {}}
+                backMusclesData={() => {}}
               />
             </TouchableOpacity>
           </View>
@@ -859,17 +961,17 @@ const AddNewExercise = ({}) => {
                 handleSaveExercise();
               }
             }}
-            disabled={
-              newExerciseStep === 1
-                ? !exerciseName.trim()
-                : !description.trim() ||
-                  !instructions.trim() ||
-                  !equipment.trim() ||
-                  !difficulty ||
-                  !location ||
-                  !exerciseType ||
-                  !force
-            }
+            // disabled={
+            //   newExerciseStep === 1
+            //     ? !exerciseName.trim()
+            //     : !description.trim() ||
+            //       !instructions.trim() ||
+            //       !equipment.trim() ||
+            //       !difficulty ||
+            //       !location ||
+            //       !exerciseType ||
+            //       !force
+            // }
           />
         </View>
 
@@ -931,6 +1033,8 @@ const AddNewExercise = ({}) => {
                     }));
                   }}
                   viewBox="0 30 369 90"
+                  bodyChart={() => {}}
+                  frontMusclesData={() => {}}
                 />
               </View>
             </TouchableOpacity>
@@ -977,6 +1081,8 @@ const AddNewExercise = ({}) => {
                     }));
                   }}
                   viewBox="0 30 369 90"
+                  bodyChart={() => {}}
+                  backMusclesData={() => {}}
                 />
               </View>
             </TouchableOpacity>
@@ -1037,6 +1143,8 @@ const AddNewExercise = ({}) => {
                   }}
                   viewBox="0 30 369 90"
                   selectionColor={'#C3FF00'}
+                  bodyChart={() => {}}
+                  frontMusclesData={() => {}}
                 />
               </View>
             </TouchableOpacity>
@@ -1097,6 +1205,8 @@ const AddNewExercise = ({}) => {
                   }}
                   viewBox="0 30 369 90"
                   selectionColor={'#C3FF00'}
+                  bodyChart={() => {}}
+                  backMusclesData={() => {}}
                 />
               </View>
             </TouchableOpacity>

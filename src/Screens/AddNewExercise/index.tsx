@@ -460,6 +460,8 @@ const AddNewExercise = ({}) => {
                 containerWidth={wp(45)}
                 selectedMuscles={mainMuscle.front}
                 viewBox="0 30 369 70"
+                bodyChart={() => {}}
+                frontMusclesData={() => {}}
               />
             </TouchableOpacity>
 
@@ -480,6 +482,8 @@ const AddNewExercise = ({}) => {
                 containerWidth={wp(45)}
                 selectedMuscles={mainMuscle.back}
                 viewBox="0 30 369 70"
+                bodyChart={() => {}}
+                backMusclesData={() => {}}
               />
             </TouchableOpacity>
           </View>
@@ -531,6 +535,8 @@ const AddNewExercise = ({}) => {
                 }
                 viewBox="0 30 369 70"
                 selectionColor={'#C3FF00'}
+                bodyChart={() => {}}
+                frontMusclesData={() => {}}
               />
             </TouchableOpacity>
 
@@ -559,6 +565,8 @@ const AddNewExercise = ({}) => {
                 }
                 viewBox="0 30 369 70"
                 selectionColor={'#C3FF00'}
+                bodyChart={() => {}}
+                backMusclesData={() => {}}
               />
             </TouchableOpacity>
           </View>
@@ -965,6 +973,8 @@ const AddNewExercise = ({}) => {
                   }));
                 }}
                 viewBox="0 30 369 90"
+                bodyChart={() => {}}
+                frontMusclesData={() => {}}
               />
             </View>
           </TouchableOpacity>
@@ -1011,6 +1021,8 @@ const AddNewExercise = ({}) => {
                   }));
                 }}
                 viewBox="0 30 369 90"
+                bodyChart={() => {}}
+                backMusclesData={() => {}}
               />
             </View>
           </TouchableOpacity>
@@ -1071,6 +1083,8 @@ const AddNewExercise = ({}) => {
                 }}
                 viewBox="0 30 369 90"
                 selectionColor={'#C3FF00'}
+                bodyChart={() => {}}
+                frontMusclesData={() => {}}
               />
             </View>
           </TouchableOpacity>
@@ -1131,6 +1145,8 @@ const AddNewExercise = ({}) => {
                 }}
                 viewBox="0 30 369 90"
                 selectionColor={'#C3FF00'}
+                bodyChart={() => {}}
+                backMusclesData={() => {}}
               />
             </View>
           </TouchableOpacity>

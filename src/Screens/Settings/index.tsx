@@ -892,7 +892,7 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
                   alignItems: 'center',
                 }}>
                 <View style={{flex: 1}}>
-                  <CustomText fontFamily="bold">John Smith</CustomText>
+                  <CustomText fontFamily="bold">{`${userData?.first_name} ${userData?.last_name}`}</CustomText>
                   <CustomText fontFamily="medium" fontSize={14}>
                     {userData?.email}
                   </CustomText>

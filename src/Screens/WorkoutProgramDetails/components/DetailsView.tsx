@@ -1,20 +1,29 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import React from "react";
-import CustomIcon from "../../../Components/CustomIcon";
-import ICONS from "../../../Assets/Icons";
-import { CustomText } from "../../../Components/CustomText";
-import { horizontalScale, verticalScale } from "../../../Utilities/Metrics";
+import {ScrollView, StyleSheet, View} from 'react-native';
+import React, {FC} from 'react';
+import CustomIcon from '../../../Components/CustomIcon';
+import ICONS from '../../../Assets/Icons';
+import {CustomText} from '../../../Components/CustomText';
+import {horizontalScale, verticalScale} from '../../../Utilities/Metrics';
+type DetailData = {
+  data: any;
+};
 
-const DetailsView = () => {
+const DetailsView: FC<DetailData> = ({data}) => {
   const renderLevelWithStars = () => {
-    const level: string = "Intermediate";
+    const level: string = getContent?.allData.content.difficulty;
     const isFilled =
-      level === "Beginner" ? 1 : level === "Intermediate" ? 2 : 3;
+      level === 'Beginner'
+        ? 1
+        : level === 'Intermediate'
+        ? 2
+        : level === 'advance'
+        ? 3
+        : 0;
 
     return (
       <View style={styles.levelContainer}>
         <View style={styles.starContainer}>
-          {Array.from({ length: 3 }).map((_, index) => (
+          {Array.from({length: 3}).map((_, index) => (
             <CustomIcon
               key={index}
               Icon={
@@ -25,10 +34,14 @@ const DetailsView = () => {
             />
           ))}
         </View>
-        <CustomText fontFamily="bold">{level}</CustomText>
+        <CustomText fontFamily="bold">
+          {getContent?.allData.content.difficulty}
+        </CustomText>
       </View>
     );
   };
+
+  const getContent = data;
 
   return (
     <ScrollView style={styles.detailsContainer}>
@@ -36,24 +49,24 @@ const DetailsView = () => {
         <View style={styles.statItem}>
           <CustomIcon Icon={ICONS.EnduranceIcon} height={48} width={48} />
           <CustomText fontSize={14} fontFamily="bold">
-            Endurance
+            {getContent?.type}
           </CustomText>
         </View>
         <View style={styles.statItem}>
           <CustomIcon Icon={ICONS.GreenCalendarIcon} height={48} width={48} />
           <CustomText fontSize={14} fontFamily="bold">
-            12 Weeks
+            {`${getContent?.allData.content.duration} Weeks`}
           </CustomText>
         </View>
         <View style={styles.statItem}>
           <CustomIcon Icon={ICONS.barbellIcon} height={48} width={48} />
           <CustomText fontSize={14} fontFamily="bold">
-            GYM
+            {getContent?.allData.content.location}
           </CustomText>
         </View>
         <View style={styles.statItem}>
           <CustomText fontSize={30} fontFamily="bold">
-            3
+            {getContent?.allData.content.days_per_week}
           </CustomText>
           <CustomText fontSize={14} fontFamily="bold">
             Days
@@ -66,22 +79,15 @@ const DetailsView = () => {
         Details
       </CustomText>
       <CustomText fontSize={14} style={styles.detailsText}>
-        Juicy, tender salmon fillet seasoned with a zesty lemon-herb marinade,
-        grilled to perfection. Served on a bed of fluffy quinoa mixed with fresh
-        cherry tomatoes, crisp cucumbers, chopped parsley, and a drizzle of
-        olive oil. Accompanied by a side of roasted asparagus for a light,
-        healthy, and flavorful meal. Perfect for a refreshing post-workout
-        dinner or a wholesome lunch!
-        {"\n"}
-        {"\n"}
-        {"\n"}
-        {"\n"}
-        Juicy, tender salmon fillet seasoned with a zesty lemon-herb marinade,
-        grilled to perfection. Served on a bed of fluffy quinoa mixed with fresh
-        cherry tomatoes, crisp cucumbers, chopped parsley, and a drizzle of
-        olive oil. Accompanied by a side of roasted asparagus for a light,
-        healthy, and flavorful meal. Perfect for a refreshing post-workout
-        dinner or a wholesome lunch!
+        {getContent?.allData.content.details}
+        {'\n'}
+        {'\n'}
+      </CustomText>
+      <CustomText fontSize={22} fontFamily="extraBold">
+        Instructions
+      </CustomText>
+      <CustomText fontSize={14} style={styles.detailsText}>
+        {getContent?.allData.content.instructions}
       </CustomText>
     </ScrollView>
   );
@@ -95,26 +101,26 @@ const styles = StyleSheet.create({
     gap: verticalScale(10),
   },
   detailsStatsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-evenly",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
     marginVertical: verticalScale(20),
     minHeight: verticalScale(85),
     maxHeight: verticalScale(85),
   },
   statItem: {
-    alignItems: "center",
-    justifyContent: "space-between",
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   levelContainer: {
     gap: verticalScale(20),
-    alignItems: "center",
+    alignItems: 'center',
   },
   starContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: horizontalScale(10),
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   detailsText: {
     lineHeight: 22,
