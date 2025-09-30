@@ -410,6 +410,9 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
         is_kosher: false,
         is_public: true,
       };
+
+      console.log('SENRTT', data);
+
       try {
         const response = await postData<any>(ENDPOINTS.foodCreate, {data});
         if (response?.data) {
@@ -982,7 +985,7 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
 
     // The rest of your dispatch logic
     if (isFrom === 'addNewMeal') {
-      // dispatch(setIngredient(ingredientsToAdd));
+      dispatch(setIngredient(ingredientsToAdd));
       dispatch(setQuickMeals(ingredientsToAdd));
       dispatch(setSource('addNewMeal'));
       navigation.goBack();

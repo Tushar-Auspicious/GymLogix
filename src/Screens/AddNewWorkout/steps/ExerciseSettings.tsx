@@ -99,10 +99,16 @@ const ExerciseSettings: FC<{
     }
   }, [exerciseData]);
 
+  console.log('EXREEJR', exerciseData);
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={{uri: exerciseData?.coverImage?.uri}}
+        source={{
+          uri:
+            exerciseData?.coverImage?.uri ||
+            'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
+        }}
         style={styles.coverImage}
         imageStyle={styles.coverImageStyle}>
         <LinearGradient

@@ -139,20 +139,62 @@ const ExerciseDetails: FC<{
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
     null,
   );
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [setsTab, setSetsTab] = useState(1);
   // State for managing newly added sets that should appear at the top of all tabs
   const [addedSets, setAddedSets] = useState<ExtendedSetDetail[]>([]);
+  // State for managing the selected difficulty for new sets
+  const [selectedDifficulty, setSelectedDifficulty] = useState<
+    'Warmup' | 'Easy' | 'Medium' | 'Hard'
+  >('Medium');
+
+  // State to store current picker values
+  const [currentPickerValues, setCurrentPickerValues] = useState({
+    reps: '6',
+    distance: '100m',
+    weight: '6kg',
+    time: '6m',
+  });
+
+  // useEffect(() => {
+  //   timerRef.current = setInterval(() => {
+  //     setExerciseTimeInSeconds((prev: any) => prev + 1);
+  //   }, 1000);
+
+  //   return () => {
+  //     if (timerRef.current) clearInterval(timerRef.current);
+  //   };
+  // }, []);
 
   useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setExerciseTimeInSeconds((prev: any) => prev + 1);
+    if (!exerciseData?.id) return;
+
+    const id = exerciseData.id;
+
+    // Reset live timer for this exercise
+    let timerRef: NodeJS.Timeout | null = null;
+
+    timerRef = setInterval(() => {
+      setExerciseTimeInSeconds((prev: any) => {
+        const existing = prev.find((item: any) => item.exerciseId === id);
+
+        if (existing) {
+          // update time
+          return prev.map((item: any) =>
+            item.exerciseId === id
+              ? {...item, timeInSeconds: item.timeInSeconds + 1}
+              : item,
+          );
+        } else {
+          // first time opening this exercise
+          return [...prev, {exerciseId: id, timeInSeconds: 1}];
+        }
+      });
     }, 1000);
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef) clearInterval(timerRef);
     };
-  }, []);
+  }, [exerciseData?.id]);
 
   const getFilteredDraftWorkoutData = () => {
     if (!draftWorkoutData || !Array.isArray(draftWorkoutData)) return [];
@@ -190,14 +232,6 @@ const ExerciseDetails: FC<{
         (ex: any) => ex.Exercise_id === exerciseData.exercise_id,
       ),
   );
-
-  // State to store current picker values
-  const [currentPickerValues, setCurrentPickerValues] = useState({
-    reps: '6',
-    distance: '100m',
-    weight: '6kg',
-    time: '6m',
-  });
 
   const muscleData = useMemo(() => {
     const muscleCount: {[key: string]: number} = {};
@@ -242,6 +276,16 @@ const ExerciseDetails: FC<{
   };
 
   const renderDetailsTab = () => {
+    const muscleMap: Record<string, string> = {
+      glutes: 'glutes',
+      'lower back': 'erector spinae', // 👈 map to the actual supported muscle name
+      // add more mappings if needed
+    };
+
+    const selectedMuscles = exerciseData.secondary_muscles
+      ?.map((m: string) => muscleMap[m.toLowerCase().trim()])
+      .filter(Boolean);
+
     return (
       <ScrollView
         contentContainerStyle={{alignItems: 'center', gap: verticalScale(20)}}
@@ -308,7 +352,11 @@ const ExerciseDetails: FC<{
           }}
         />
         <Image
-          source={{uri: exerciseData.images_urls[0]}}
+          source={{
+            uri:
+              exerciseData.images_urls[0] ||
+              'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+          }}
           style={{height: hp(40), width: wp(90), borderRadius: 20}}
         />
 
@@ -341,7 +389,7 @@ const ExerciseDetails: FC<{
                 fontSize={14}
                 fontFamily="medium"
                 color={COLORS.whiteTail}>
-                {getExerciseInstruction(exerciseData)}
+                {exerciseData.instruction || 'instructions'}
               </CustomText>
             </View>
           )}
@@ -376,7 +424,7 @@ const ExerciseDetails: FC<{
                 width={wp(45)}
                 height={verticalScale(230)}
                 containerWidth={wp(45)}
-                selectedMuscles={exerciseData.main_muscle}
+                selectedMuscles={exerciseData.main_muscle.toLowerCase()}
                 viewBox="0 30 369 70"
                 bodyChart={() => {}}
                 frontMusclesData={() => {}}
@@ -394,7 +442,7 @@ const ExerciseDetails: FC<{
                 width={wp(45)}
                 height={verticalScale(230)}
                 containerWidth={wp(45)}
-                selectedMuscles={exerciseData.main_muscle}
+                selectedMuscles={exerciseData.main_muscle.toLowerCase()}
                 viewBox="0 30 369 70"
                 bodyChart={() => {}}
                 backMusclesData={() => {}}
@@ -431,7 +479,7 @@ const ExerciseDetails: FC<{
                 width={wp(45)}
                 height={verticalScale(230)}
                 containerWidth={wp(45)}
-                selectedMuscles={exerciseData.secondary_muscles}
+                selectedMuscles={selectedMuscles}
                 viewBox="0 30 369 70"
                 bodyChart={() => {}}
                 frontMusclesData={() => {}}
@@ -449,7 +497,7 @@ const ExerciseDetails: FC<{
                 width={wp(45)}
                 height={verticalScale(230)}
                 containerWidth={wp(45)}
-                selectedMuscles={exerciseData.secondary_muscles}
+                selectedMuscles={selectedMuscles}
                 viewBox="0 30 369 70"
                 selectionColor={'#C3FF00'}
                 bodyChart={() => {}}
@@ -590,15 +638,19 @@ const ExerciseDetails: FC<{
               </View>
             );
           }}
+          ListEmptyComponent={
+            <CustomText
+              fontSize={16}
+              color={COLORS.yellow}
+              fontFamily="bold"
+              style={styles.noHistoryText}>
+              No History available for now
+            </CustomText>
+          }
         />
       </View>
     );
   };
-
-  // State for managing the selected difficulty for new sets
-  const [selectedDifficulty, setSelectedDifficulty] = useState<
-    'Warmup' | 'Easy' | 'Medium' | 'Hard'
-  >('Medium');
 
   // Function to handle picker value changes
   const handlePickerValuesChange = useCallback(
@@ -927,14 +979,17 @@ const ExerciseDetails: FC<{
       case 3: // Max Weight
         // Calculate total weight for each exercise (sum of weight * reps for all sets)
         const exercisesByTotalWeight = exerciseHistory.map(item => {
-          const totalWeight = item.exercise.details.reduce((sum, set) => {
-            return (
-              sum +
-              extractNumericValue(set.weight) *
-                extractReps(set.reps) *
-                set.count
-            );
-          }, 0);
+          const totalWeight = item.exercise.details.reduce(
+            (sum: any, set: any) => {
+              return (
+                sum +
+                extractNumericValue(set.weight) *
+                  extractReps(set.reps) *
+                  set.count
+              );
+            },
+            0,
+          );
           return {...item, totalWeight};
         });
 
@@ -948,9 +1003,12 @@ const ExerciseDetails: FC<{
       case 4: // Max Time
         // Calculate total time for each exercise
         const exercisesByTotalTime = exerciseHistory.map(item => {
-          const totalTime = item.exercise.details.reduce((sum, set) => {
-            return sum + extractTime(set.time) * set.count;
-          }, 0);
+          const totalTime = item.exercise.details.reduce(
+            (sum: any, set: any) => {
+              return sum + extractTime(set.time) * set.count;
+            },
+            0,
+          );
           return {...item, totalTime};
         });
 
@@ -964,10 +1022,13 @@ const ExerciseDetails: FC<{
       case 5: // Max Distance (not in the tabs but mentioned in requirements)
         // Calculate total distance for each exercise
         const exercisesByTotalDistance = exerciseHistory.map(item => {
-          const totalDistance = item.exercise.details.reduce((sum, set) => {
-            // Assuming distance is stored in the reps field with a format like "123m"
-            return sum + extractDistance(set.reps) * set.count;
-          }, 0);
+          const totalDistance = item.exercise.details.reduce(
+            (sum: any, set: any) => {
+              // Assuming distance is stored in the reps field with a format like "123m"
+              return sum + extractDistance(set.reps) * set.count;
+            },
+            0,
+          );
           return {...item, totalDistance};
         });
 
@@ -983,7 +1044,7 @@ const ExerciseDetails: FC<{
       case 6: // 1RM (not in the tabs but mentioned in requirements)
         // Calculate 1RM for each set in each exercise
         const exercisesWith1RM = exerciseHistory.flatMap(item => {
-          return item.exercise.details.map(set => {
+          return item.exercise.details.map((set: any) => {
             const oneRM = calculate1RM(set.weight, set.reps);
             return {...item, set, oneRM};
           });
@@ -1535,9 +1596,9 @@ const ExerciseDetails: FC<{
         fontFamily="medium">
         {exerciseData.name +
           ' ' +
-          exerciseData.recommendedSets +
+          exerciseData.exerciseSettings.sets +
           'x' +
-          exerciseData.recommendedReps}
+          exerciseData.exerciseSettings.reps}
       </CustomText>
       {!showAddSetUi && renderTabs()}
       {renderMainView()}
@@ -1698,5 +1759,9 @@ const styles = StyleSheet.create({
     padding: verticalScale(15),
     backgroundColor: COLORS.lightBrown,
     borderRadius: 10,
+  },
+  noHistoryText: {
+    flex: 1,
+    textAlign: 'center',
   },
 });

@@ -76,17 +76,31 @@ const ActivePlanList: FC<ActivePlanListProps> = ({}) => {
     fetchUser();
   }, []);
 
-  const activatePlanIds = userData?.activated_plan || [];
-
-  const filterPlans = planData?.filter(item =>
-    activatePlanIds.includes(item.allData?.id),
+  const activatePlanIds = (userData?.activated_plan || []).map(
+    (id: string | number) => Number(id),
   );
 
+  const filterPlans = planData?.filter(item =>
+    activatePlanIds.includes(Number(item.allData?.plan_id)),
+  );
+
+  console.log('FIKLTERE', filterPlans);
+
   const convertData = filterPlans?.map(item => ({
-    id: item.allData?.id ?? '',
-    coverImage: item.allData?.image_url ?? '',
-    title: item.allData?.name ?? '',
-    tags: item.allData?.content?.tags ?? [],
+    id: item.id ?? '',
+    planId: item.planId,
+    coverImage: item.allData?.image_url
+      ? item.allData?.image_url
+      : item.coverImage
+      ? item.coverImage!
+      : 'https://images.unsplash.com/photo-1599058917212-d750089bc07e',
+    title: item.allData?.name || 'Name',
+    tags:
+      (item.tags !== undefined && item.tags.length > 1
+        ? item.tags
+        : item.allData?.content.tags
+        ? item.allData?.content.tags
+        : item.allData?.tags) ?? [],
     type: item.allData?.type as 'workout' | 'food',
     allData: item.allData,
   }));
@@ -121,16 +135,16 @@ const ActivePlanList: FC<ActivePlanListProps> = ({}) => {
           renderItem={({item}) => (
             <ActivePlanListCard
               {...item}
-              key={item.allData?.id}
+              key={item.id}
               onPress={() => {
-                dispatch(setCurrentprogramId(item.id || item.allData?.id));
+                dispatch(setCurrentprogramId(item.allData?.plan_id));
                 dispatch(
                   setActivePlanIndex(item.allData?.type === 'workout' ? 1 : 2),
                 );
               }}
             />
           )}
-          keyExtractor={item => item.allData?.id.toString()}
+          keyExtractor={item => item.planId || item.allData?.id.toString()}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingBottom: verticalScale(80),

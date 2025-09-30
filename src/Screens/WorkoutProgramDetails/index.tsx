@@ -1,6 +1,7 @@
 import React, {FC, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Animated,
+  FlatList,
   ImageBackground,
   Pressable,
   StyleSheet,
@@ -123,6 +124,11 @@ const tabData = [
 //   targetedMuscles: [],
 // };
 
+type ExerciseTime = {
+  exerciseId: string;
+  timeInSeconds: number;
+};
+
 const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   navigation,
   route,
@@ -145,7 +151,10 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   const [exerciseLog, setExerciseLog] = useState<any>([]);
   const [scheduleMap, setScheduleMap] = useState<{[key: string]: string}>({});
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [exerciseTimeInSeconds, setExerciseTimeInSeconds] = useState(0);
+
+  const [exerciseTimeInSeconds, setExerciseTimeInSeconds] = useState<
+    ExerciseTime[]
+  >([]);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [exerciseWithSetData, setexerciseWithSetData] = useState<
@@ -161,8 +170,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   const {draftWorkout, workoutTime} = useAppSelector(
     state => state.logWorkoutData,
   );
-
-  console.log('CRRRRERE', draftWorkout);
 
   const programDetails = planData
     ?.filter(it => it.type === 'workout')
@@ -468,9 +475,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
     }
   };
 
-  // console.log('DAYYYYY', day);
-  // console.log('PLANNNN', programDetails);
-
   const renderBottomSection = () => {
     return (
       <View style={{alignItems: 'center', gap: verticalScale(10)}}>
@@ -542,13 +546,32 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
               paddingVertical: verticalScale(5),
               justifyContent: 'space-between',
               gap: verticalScale(10),
+              overflow: 'hidden',
             }}>
             <CustomText fontFamily="bold">Exercise</CustomText>
-            {/* <CustomText fontSize={14}>43:00 | -00:59</CustomText> */}
-            <CustomText fontSize={14}>
-              {' '}
-              {formatTime(exerciseTimeInSeconds)}
-            </CustomText>
+
+            <FlatList
+              data={exerciseTimeInSeconds}
+              keyExtractor={item => item.exerciseId}
+              horizontal
+              pagingEnabled
+              snapToAlignment="center"
+              snapToInterval={wp(70)}
+              decelerationRate="fast"
+              showsHorizontalScrollIndicator={false}
+              renderItem={({item}) => (
+                <View
+                  style={{
+                    width: wp(70), // adjust width so one takes center space
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}>
+                  <CustomText fontSize={15} color={COLORS.white}>
+                    {formatTime(item.timeInSeconds)}
+                  </CustomText>
+                </View>
+              )}
+            />
           </View>
         </View>
       </View>
@@ -833,10 +856,14 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
                 ex => ex.id === exerciseItem.exercise_id,
               );
 
+              const getExerciseTime = exerciseTimeInSeconds.find(
+                ex => ex.exerciseId === exerciseItem.exercise_id,
+              );
+
               return {
                 Exercise_id:
                   exerciseObj?.exercise_id || exerciseItem.exercise_id,
-                duration: exerciseTimeInSeconds,
+                duration: getExerciseTime?.timeInSeconds,
                 comments: '',
                 Set: exerciseItem.setsData.map(setItem => ({
                   set_id: setItem.count,

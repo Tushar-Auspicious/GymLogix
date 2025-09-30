@@ -1,12 +1,12 @@
-import type { PayloadAction } from "@reduxjs/toolkit";
-import { createSlice } from "@reduxjs/toolkit";
-import { Asset } from "react-native-image-picker";
-import { Exercise } from "../../Seeds/ExerciseCatalog";
+import type {PayloadAction} from '@reduxjs/toolkit';
+import {createSlice} from '@reduxjs/toolkit';
+import {Asset} from 'react-native-image-picker';
+import {Exercise} from '../../Seeds/ExerciseCatalog';
 
 // Define a type for a Superset
 export type Superset = {
   id: string;
-  type: "superset";
+  type: 'superset';
   exercises: Exercise[];
 };
 
@@ -29,18 +29,11 @@ export type WorkoutData = {
   coverImage: Asset | null;
   images: Asset[];
   instruction: string;
-  goal:
-    | "strength"
-    | "endurance"
-    | "hypertrophy"
-    | "Cardio"
-    | "Flexibility"
-    | "Functionality"
-    | null;
+  goal: string | null;
   mainMuscle: string;
   secondaryMuscle: string[];
   difficulty: number;
-  location: "gym" | "home" | "outdoor" | null;
+  location: string | null;
   durationInWeeks: number;
   daysInWeek: number;
   exerciseList: ExerciseListItem[];
@@ -55,25 +48,25 @@ interface NewWorkoutSlice {
 // Define the initial state using that type
 const initialState: NewWorkoutSlice = {
   workoutData: {
-    name: "",
-    description: "",
+    name: '',
+    description: '',
     coverImage: null,
     images: [],
-    instruction: "",
-    goal: "strength",
-    mainMuscle: "",
+    instruction: '',
+    goal: '',
+    mainMuscle: '',
     secondaryMuscle: [],
     difficulty: 1,
-    location: "gym",
+    location: '',
     durationInWeeks: 0,
     daysInWeek: 3,
     exerciseList: [
       {
-        id: "1",
+        id: '1',
         day: 1,
-        color: "#FF3B5C",
-        dayInstruction: "",
-        dayName: "Day 1",
+        color: '#FF3B5C',
+        dayInstruction: '',
+        dayName: 'Day 1',
         restPeriod: 1,
         exercise: [],
       },
@@ -83,7 +76,7 @@ const initialState: NewWorkoutSlice = {
 };
 
 export const NewWorkoutSlice = createSlice({
-  name: "newWorkout",
+  name: 'newWorkout',
   initialState,
   reducers: {
     setWorkoutData: (state, action: PayloadAction<WorkoutData>) => {
@@ -96,92 +89,87 @@ export const NewWorkoutSlice = createSlice({
         day: state.workoutData.exerciseList.length + 1,
         color: action.payload,
         exercise: [],
-        dayInstruction: "",
+        dayInstruction: '',
         dayName: `Day ${state.workoutData.exerciseList.length + 1}`,
         restPeriod: 1,
       });
     },
     removeDay: (state, action: PayloadAction<string>) => {
       state.workoutData.exerciseList = state.workoutData.exerciseList.filter(
-        (day) => day.id !== action.payload
+        day => day.id !== action.payload,
       );
     },
     updateDayColor: (
       state,
-      action: PayloadAction<{ id: string; color: string }>
+      action: PayloadAction<{id: string; color: string}>,
     ) => {
-      state.workoutData.exerciseList = state.workoutData.exerciseList.map(
-        (day) =>
-          day.id === action.payload.id
-            ? { ...day, color: action.payload.color }
-            : day
+      state.workoutData.exerciseList = state.workoutData.exerciseList.map(day =>
+        day.id === action.payload.id
+          ? {...day, color: action.payload.color}
+          : day,
       );
     },
     updateDayName: (
       state,
-      action: PayloadAction<{ id: string; name: string }>
+      action: PayloadAction<{id: string; name: string}>,
     ) => {
-      state.workoutData.exerciseList = state.workoutData.exerciseList.map(
-        (day) =>
-          day.id === action.payload.id
-            ? { ...day, dayName: action.payload.name }
-            : day
+      state.workoutData.exerciseList = state.workoutData.exerciseList.map(day =>
+        day.id === action.payload.id
+          ? {...day, dayName: action.payload.name}
+          : day,
       );
     },
     updateDayInstruction: (
       state,
-      action: PayloadAction<{ id: string; instruction: string }>
+      action: PayloadAction<{id: string; instruction: string}>,
     ) => {
-      state.workoutData.exerciseList = state.workoutData.exerciseList.map(
-        (day) =>
-          day.id === action.payload.id
-            ? { ...day, dayInstruction: action.payload.instruction }
-            : day
+      state.workoutData.exerciseList = state.workoutData.exerciseList.map(day =>
+        day.id === action.payload.id
+          ? {...day, dayInstruction: action.payload.instruction}
+          : day,
       );
     },
     addExercise: (
       state,
-      action: PayloadAction<{ id: string; exercises: Exercise[] }>
+      action: PayloadAction<{id: string; exercises: Exercise[]}>,
     ) => {
-      state.workoutData.exerciseList = state.workoutData.exerciseList.map(
-        (day) =>
-          day.id === action.payload.id
-            ? {
-                ...day,
-                exercise: [...day.exercise, ...action.payload.exercises],
-              }
-            : day
+      state.workoutData.exerciseList = state.workoutData.exerciseList.map(day =>
+        day.id === action.payload.id
+          ? {
+              ...day,
+              exercise: [...day.exercise, ...action.payload.exercises],
+            }
+          : day,
       );
     },
     removeExercise: (state, action: PayloadAction<string>) => {
       state.workoutData.exerciseList = state.workoutData.exerciseList.map(
-        (day) => ({
+        day => ({
           ...day,
           exercise: day.exercise.filter(
-            (exercise) => exercise.id !== action.payload
+            exercise => exercise.id !== action.payload,
           ),
-        })
+        }),
       );
     },
     updateExercise: (state, action: PayloadAction<Exercise>) => {
       state.workoutData.exerciseList = state.workoutData.exerciseList.map(
-        (day) => ({
+        day => ({
           ...day,
-          exercise: day.exercise.map((exercise) =>
-            exercise.id === action.payload.id ? action.payload : exercise
+          exercise: day.exercise.map(exercise =>
+            exercise.id === action.payload.id ? action.payload : exercise,
           ),
-        })
+        }),
       );
     },
     updateDayRestPeriod: (
       state,
-      action: PayloadAction<{ id: string; restPeriod: number }>
+      action: PayloadAction<{id: string; restPeriod: number}>,
     ) => {
-      state.workoutData.exerciseList = state.workoutData.exerciseList.map(
-        (day) =>
-          day.id === action.payload.id
-            ? { ...day, restPeriod: action.payload.restPeriod }
-            : day
+      state.workoutData.exerciseList = state.workoutData.exerciseList.map(day =>
+        day.id === action.payload.id
+          ? {...day, restPeriod: action.payload.restPeriod}
+          : day,
       );
     },
     updateExerciseOrder: (state, action: PayloadAction<ExerciseListItem[]>) => {
@@ -196,13 +184,13 @@ export const NewWorkoutSlice = createSlice({
 
     createSuperset: (
       state,
-      action: PayloadAction<{ dayId: string; exerciseIds: string[] }>
+      action: PayloadAction<{dayId: string; exerciseIds: string[]}>,
     ) => {
-      const { dayId, exerciseIds } = action.payload;
+      const {dayId, exerciseIds} = action.payload;
 
       // Find the day
       const dayIndex = state.workoutData.exerciseList.findIndex(
-        (day) => day.id === dayId
+        day => day.id === dayId,
       );
 
       if (dayIndex === -1 || exerciseIds.length < 2) return;
@@ -214,15 +202,15 @@ export const NewWorkoutSlice = createSlice({
       const remainingExercises: WorkoutExerciseItem[] = [];
 
       // Separate exercises to include in superset from those to keep as is
-      day.exercise.forEach((item) => {
-        if ("type" in item && item.type === "superset") {
+      day.exercise.forEach(item => {
+        if ('type' in item && item.type === 'superset') {
           // If it's already a superset, check if any of its exercises are selected
-          const selectedExercises = item.exercises.filter((ex) =>
-            exerciseIds.includes(ex.id)
+          const selectedExercises = item.exercises.filter(ex =>
+            exerciseIds.includes(ex.id),
           );
 
           const unselectedExercises = item.exercises.filter(
-            (ex) => !exerciseIds.includes(ex.id)
+            ex => !exerciseIds.includes(ex.id),
           );
 
           // Add selected exercises to the new superset
@@ -232,7 +220,7 @@ export const NewWorkoutSlice = createSlice({
           if (unselectedExercises.length > 1) {
             remainingExercises.push({
               id: Math.random().toString(),
-              type: "superset",
+              type: 'superset',
               exercises: unselectedExercises,
             });
           } else if (unselectedExercises.length === 1) {
@@ -252,7 +240,7 @@ export const NewWorkoutSlice = createSlice({
       // Create the new superset
       const newSuperset: Superset = {
         id: Math.random().toString(),
-        type: "superset",
+        type: 'superset',
         exercises: exercisesToInclude,
       };
 
@@ -270,13 +258,13 @@ export const NewWorkoutSlice = createSlice({
         dayId: string;
         supersetId: string;
         exerciseId: string;
-      }>
+      }>,
     ) => {
-      const { dayId, supersetId, exerciseId } = action.payload;
+      const {dayId, supersetId, exerciseId} = action.payload;
 
       // Find the day
       const dayIndex = state.workoutData.exerciseList.findIndex(
-        (day) => day.id === dayId
+        day => day.id === dayId,
       );
 
       if (dayIndex === -1) return;
@@ -285,15 +273,15 @@ export const NewWorkoutSlice = createSlice({
       const updatedExercises: WorkoutExerciseItem[] = [];
 
       // Process each exercise or superset in the day
-      day.exercise.forEach((item) => {
+      day.exercise.forEach(item => {
         if (
-          "type" in item &&
-          item.type === "superset" &&
+          'type' in item &&
+          item.type === 'superset' &&
           item.id === supersetId
         ) {
           // This is the superset we want to modify
           const remainingExercises = item.exercises.filter(
-            (ex) => ex.id !== exerciseId
+            ex => ex.id !== exerciseId,
           );
 
           // If we have more than one exercise left, keep it as a superset
@@ -324,13 +312,13 @@ export const NewWorkoutSlice = createSlice({
     // Delete an entire superset
     deleteSuperset: (
       state,
-      action: PayloadAction<{ dayId: string; supersetId: string }>
+      action: PayloadAction<{dayId: string; supersetId: string}>,
     ) => {
-      const { dayId, supersetId } = action.payload;
+      const {dayId, supersetId} = action.payload;
 
       // Find the day
       const dayIndex = state.workoutData.exerciseList.findIndex(
-        (day) => day.id === dayId
+        day => day.id === dayId,
       );
 
       if (dayIndex === -1) return;
@@ -339,12 +327,12 @@ export const NewWorkoutSlice = createSlice({
 
       // Filter out the superset to delete
       const updatedExercises = day.exercise.filter(
-        (item) =>
+        item =>
           !(
-            "type" in item &&
-            item.type === "superset" &&
+            'type' in item &&
+            item.type === 'superset' &&
             item.id === supersetId
-          )
+          ),
       );
 
       // Update the day with the filtered exercises
@@ -354,7 +342,7 @@ export const NewWorkoutSlice = createSlice({
       };
     },
 
-    resetNewWorkoutSlice: (state) => {
+    resetNewWorkoutSlice: state => {
       state.workoutData = initialState.workoutData;
       state.activeStep = initialState.activeStep;
     },

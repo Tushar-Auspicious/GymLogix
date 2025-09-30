@@ -1,5 +1,5 @@
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import React, {FC} from 'react';
+import React, {FC, useEffect, useState} from 'react';
 import {
   FlatList,
   Image,
@@ -37,10 +37,10 @@ export type WorkoutPlansListProps = {
 
 const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
+  const {planData} = useAppSelector(state => state.planData);
   const {activeWorkoutprogramIndex, currentProgramList} = useAppSelector(
     state => state.initial,
   );
-  const {planData} = useAppSelector(state => state.planData);
 
   const renderBanner = () => {
     const item = planData
@@ -61,7 +61,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
           <TouchableOpacity
             onPress={() => {
               dispatch(
-                setCurrentprogramId(item![0].id || item![0]?.allData?.id),
+                setCurrentprogramId(item[0].allData.plan_id || item[0]?.planId),
               );
               dispatch(setActiveWorkoutprogramIndex(2));
             }}
@@ -86,11 +86,11 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
     const gymPlans =
       planData?.filter(item => {
         const tags =
-          item.tags ||
-          item.allData?.tags ||
-          item.allData?.content?.tags ||
-          item.tags ||
-          [];
+          item.tags !== undefined && item.tags.length > 1
+            ? item.tags
+            : item.allData?.content.tags
+            ? item.allData?.content.tags
+            : item.allData?.tags || [];
         return tags.includes('gym');
       }) || [];
     return (
@@ -100,7 +100,9 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
             <Pressable
               key={item.id || item.allData?.id + index.toString()}
               onPress={() => {
-                dispatch(setCurrentprogramId(item.id || item.allData?.id));
+                dispatch(
+                  setCurrentprogramId(item.allData?.plan_id || item.planId),
+                );
                 dispatch(setActiveWorkoutprogramIndex(2));
               }}>
               <ImageBackground
@@ -117,16 +119,20 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
                     {item.title}
                   </CustomText>
                   <View style={styles.tagContainer}>
-                    {item.tags.map((tag, index) => (
-                      <CustomText
-                        key={index}
-                        style={styles.tag}
-                        fontFamily="italicBold"
-                        fontSize={12}
-                        color={COLORS.black}>
-                        {tag}
-                      </CustomText>
-                    ))}
+                    {item.tags !== undefined && item.tags.length > 1
+                      ? item.tags
+                      : item.allData?.content.tags
+                      ? item.allData?.content.tags
+                      : item.allData?.tags.map((tag, index) => (
+                          <CustomText
+                            key={index}
+                            style={styles.tag}
+                            fontFamily="italicBold"
+                            fontSize={12}
+                            color={COLORS.black}>
+                            {tag}
+                          </CustomText>
+                        ))}
                   </View>
                 </View>
               </ImageBackground>
@@ -154,20 +160,27 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
 
   const renderTrendingPrograms = () => {
     const trending = planData?.filter(item => {
-      const tags = item.allData?.content?.tags || item.tags || [];
+      const tags =
+        (item.tags !== undefined && item.tags.length > 1
+          ? item.tags
+          : item.allData?.tags
+          ? item.allData?.tags
+          : item.allData?.content.tags) || [];
       return tags.includes('trending');
     });
     return (
       <FlatList
         data={trending}
         horizontal
-        keyExtractor={item => (item.id || item.allData?.id)?.toString()}
+        keyExtractor={item => item.allData?.plan_id || item.id.toString()}
         renderItem={({item}) => {
           return (
             <Pressable
               onPress={() => {
                 dispatch(setActiveWorkoutprogramIndex(2));
-                dispatch(setCurrentprogramId(item.id || item.allData?.id));
+                dispatch(
+                  setCurrentprogramId(item.allData?.plan_id || item.planId),
+                );
               }}
               style={styles.trendingProgramItem}>
               <Image
@@ -177,7 +190,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
               <CustomText
                 fontFamily="semiBold"
                 style={styles.trendingProgramTitle}>
-                {item.title}
+                {item.title || 'Unkown workout'}
               </CustomText>
             </Pressable>
           );
@@ -193,17 +206,17 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
         {planData
           ?.filter(item => {
             const tags =
-              item.tags ||
-              item.allData?.tags ||
-              item.allData?.content?.tags ||
-              item.tags ||
-              [];
+              (item.tags !== undefined && item.tags.length > 1
+                ? item.tags
+                : item.allData?.tags
+                ? item.allData?.tags
+                : item.allData?.content.tags) || [];
             return tags.includes('strength');
           })
           .map((item, index) => {
             return (
               <ImageBackground
-                key={item.id || item.allData?.id + index.toString()}
+                key={item.id || item.allData?.plan_id + index.toString()}
                 source={{
                   uri: item.coverImage,
                 }}
@@ -211,7 +224,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
                 imageStyle={styles.programImageStyle}>
                 <Pressable
                   onPress={() => {
-                    dispatch(setCurrentprogramId(item.id || item.allData?.id));
+                    dispatch(setCurrentprogramId(item.allData?.plan_id));
                     dispatch(setActiveWorkoutprogramIndex(2));
                   }}
                   style={[styles.gradient, styles.programTextContainer]}>
@@ -222,7 +235,12 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
                     Full Program Hyper Throphy
                   </CustomText>
                   <View style={styles.tagContainer}>
-                    {item.tags.map((tag, index) => (
+                    {(item.tags !== undefined && item.tags.length > 1
+                      ? item.tags
+                      : item.allData?.tags
+                      ? item.allData?.tags
+                      : item.allData?.content.tags
+                    )?.map((tag, index) => (
                       <CustomText
                         key={index}
                         style={styles.tag}
@@ -262,7 +280,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
         {data.map((item, index) => {
           return (
             <ImageBackground
-              key={item.id + index.toString()}
+              key={item.id || item.allData.plan_id.toString()}
               source={{
                 uri: item.coverImage,
               }}
@@ -270,7 +288,9 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
               imageStyle={styles.programImageStyle}>
               <Pressable
                 onPress={() => {
-                  dispatch(setCurrentprogramId(item.id || item.allData?.id));
+                  dispatch(
+                    setCurrentprogramId(item.allData?.plan_id || item.planId),
+                  );
                   dispatch(setActiveWorkoutprogramIndex(2));
                 }}
                 style={[
@@ -283,7 +303,12 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
                 ]}>
                 <CustomText fontFamily="bold">{item?.title}</CustomText>
                 <View style={styles.tagContainer}>
-                  {item?.tags.map((tag: string, index: number) => (
+                  {(item.tags !== undefined && item.tags.length > 1
+                    ? item?.tags
+                    : item.allData.content.tags
+                    ? item.allData.content.tags
+                    : item.allData?.tags
+                  ).map((tag: string, index: number) => (
                     <CustomText
                       key={index}
                       style={styles.tag}
@@ -330,8 +355,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
             {/* Gym program -----> */}
             {planData &&
               planData.filter(item => {
-                const tags =
-                  item.allData?.content?.tags || item.allData?.tags || [];
+                const tags = item.tags ? item.tags : item.allData?.tags || [];
                 return tags.includes('gym');
               }).length > 0 && (
                 <>
@@ -347,8 +371,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
             {/* Trending program -----> */}
             {planData &&
               planData.filter(item => {
-                const tags =
-                  item.allData?.content?.tags || item.allData?.tags || [];
+                const tags = item.tags ? item.tags : item.allData?.tags || [];
                 return tags.includes('trending');
               }).length > 0 && (
                 <>
@@ -364,8 +387,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
             {/* strength program -----> */}
             {planData &&
               planData.filter(item => {
-                const tags =
-                  item.allData?.content?.tags || item.allData?.tags || [];
+                const tags = item.tags ? item.tags : item.allData?.tags || [];
                 return tags.includes('strength');
               }).length > 0 && (
                 <>

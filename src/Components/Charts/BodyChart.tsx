@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import ICONS from '../../Assets/Icons';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, verticalScale} from '../../Utilities/Metrics';
 import SkeletonFront from '../Cards/SkeletonFront';
@@ -18,14 +17,14 @@ export type BodyChartProps = {
   primary_muscle: any;
 };
 const BodyChart: FC<BodyChartProps> = ({primary_muscle}) => {
+  const {exerciseData} = useAppSelector(state => state.exerciseData);
   const [bodyChartTabs, setBodyChartTabs] = useState(1);
   const [isFront, setIsFront] = useState(true);
-
-  const {exerciseData} = useAppSelector(state => state.exerciseData);
 
   const musclesArray = Array.isArray(primary_muscle)
     ? primary_muscle
     : [primary_muscle];
+
   const mappedExercises = musclesArray.map((exercise: any) => {
     const sets = exercise.Set || [];
 
@@ -101,7 +100,7 @@ const BodyChart: FC<BodyChartProps> = ({primary_muscle}) => {
             frontMusclesData={mappedExercises.length > 0 && mappedExercises}
             selectedMuscles={
               mappedExercises &&
-              mappedExercises.map(item => item.mainMuscle?.[0])
+              mappedExercises.map(item => item.mainMuscle?.[0]?.toLowerCase())
             }
             bodyChart={bodyChartTabs}
           />
@@ -110,7 +109,7 @@ const BodyChart: FC<BodyChartProps> = ({primary_muscle}) => {
             backMusclesData={mappedExercises.length > 0 && mappedExercises}
             selectedMuscles={
               mappedExercises &&
-              mappedExercises.map(item => item.mainMuscle?.[0])
+              mappedExercises.map(item => item.mainMuscle?.[0]?.toLowerCase())
             }
             bodyChart={bodyChartTabs}
           />

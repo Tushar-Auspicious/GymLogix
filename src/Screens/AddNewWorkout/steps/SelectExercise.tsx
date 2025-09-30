@@ -318,6 +318,7 @@ const SelectExercise: FC<{
     historyExercises,
     listExercises,
     exerciseCategories,
+    filterExercises,
   ]);
 
   return (

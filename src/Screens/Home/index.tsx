@@ -34,25 +34,20 @@ import LottieView from 'lottie-react-native';
 const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
   const animationRef = useRef<LottieView>(null);
-
   const workoutInTime = useAppSelector(
     state => state.logWorkoutData.workoutTime,
   );
   const workoutInProgress = useAppSelector(
     state => state.logWorkoutData.workoutProgress,
   );
-
   const workoutInProgressName = useAppSelector(
     state => state.logWorkoutData.currentWorkout,
   );
-
   const {userData} = useAppSelector(state => state.userData);
   const {totalMacros} = useAppSelector(state => state.macros);
-
   const {scheduleData} = useAppSelector(state => state.scheduleData);
   const [selectedItem, setSelectedItem] = useState<string[]>([]);
   const {exerciseData} = useAppSelector(state => state.exerciseData);
-
   const {dates, month, homeActiveIndex, logMealActiveIndex} = useAppSelector(
     state => state.initial,
   );

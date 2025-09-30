@@ -120,6 +120,18 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
     );
   };
 
+  const muscleMap: Record<string, string> = {
+    glutes: 'glutes',
+    'lower back': 'erectorSpinae', // 👈 map to the actual supported muscle name
+    hamstrings: 'hamstrings',
+    // add more mappings if needed
+  };
+
+  const selectedMuscles = workoutData.targetedMuscles
+
+    ?.map((m: string) => muscleMap[m.toLowerCase().trim()])
+    .filter(Boolean);
+
   const renderTargetedMuscleCard = () => {
     return (
       <View
@@ -148,7 +160,7 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
               width={wp(45)}
               height={verticalScale(230)}
               containerWidth={wp(45)}
-              selectedMuscles={workoutData.targetedMuscles}
+              selectedMuscles={selectedMuscles}
               viewBox="0 30 369 70"
               bodyChart={() => {}}
               frontMusclesData={() => {}}
@@ -166,7 +178,7 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
               width={wp(45)}
               height={verticalScale(230)}
               containerWidth={wp(45)}
-              selectedMuscles={workoutData.targetedMuscles}
+              selectedMuscles={selectedMuscles}
               viewBox="0 30 369 70"
               bodyChart={() => {}}
               backMusclesData={() => {}}

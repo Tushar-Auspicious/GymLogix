@@ -25,7 +25,7 @@ import {horizontalScale, hp, verticalScale} from '../../Utilities/Metrics';
 import ProgramExcercise from './ProgramExcerciseList';
 import {fetchData, postData} from '../../APIServices/api';
 import ENDPOINTS from '../../APIServices/endPoints';
-import {KeyboardAvoidingContainer} from '../../Components/KeyboardAvoidingComponent';
+import {logProfileData} from 'react-native-calendars/src/Profiler';
 
 type WorkoutProgramDetailsProps = {
   onPressBack: () => void;
@@ -98,14 +98,10 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
   const navigation = useNavigation<any>();
   const {currentProgramId} = useAppSelector(state => state.initial);
   const {planData} = useAppSelector(state => state.planData);
-
   const {userData} = useAppSelector(state => state.userData);
-
   const {exerciseData} = useAppSelector(state => state.exerciseData);
-
   const [currentProgramDetails, setCurrentProgramDetails] =
     useState<null | ActivePlanListItem>(null);
-
   const [activeProgramTab, setActiveProgramTab] = useState<
     'Excercise' | 'Details' | "Coach's corner"
   >('Excercise');
@@ -116,19 +112,20 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  const [workoutData, setWorkoutData] = useState(null);
-
-  const [isPlanActive, setIsPlanActive] = useState(false);
-
+  const [workoutPlan, setworkoutPlan] = useState<[] | null>([]);
   const [isKyeboard, setisKyeboard] = useState(false);
-
+  const [workoutData, setWorkoutData] = useState(null);
+  const [isPlanActive, setIsPlanActive] = useState(false);
   const flatListRef = useRef<FlatList>(null); // Reference to FlatList for scrolling
 
   const renderLevelWithStars = () => {
-    const level: string = 'Intermediate';
+    const level: any = currentProgramDetails?.allData?.content?.difficulty;
     const isFilled =
-      level === 'Beginner' ? 1 : level === 'Intermediate' ? 2 : 3;
+      level === 'beginners' || level === 'beginner'
+        ? 1
+        : level === 'intermediate'
+        ? 2
+        : 3;
 
     return (
       <View style={styles.levelContainer}>
@@ -167,11 +164,15 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
 
   useEffect(() => {
     const foundProgram = planData?.find(
-      item =>
-        item.id === currentProgramId || item.allData?.id === currentProgramId,
+      item => item.allData?.plan_id === currentProgramId,
     );
 
-    const isActive = userData?.activated_plan?.includes(currentProgramId);
+    const isActivateIds = (userData?.activated_plan || []).map(
+      (id: string | number) => Number(id),
+    );
+
+    const isActive = isActivateIds.includes(Number(currentProgramId));
+
     setIsPlanActive(isActive ?? false);
 
     const foundProgramWorkoutData = foundProgram?.allData?.content.workouts;
@@ -184,8 +185,6 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
           const match = exerciseData?.find(
             t => t.exercise_id === we.exercise_id,
           );
-
-          // console.log('we ---->', we);
 
           return {
             id: match?.exercise_id,
@@ -239,18 +238,13 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
       return;
     }
     const matchedItem = planData?.find(
-      item =>
-        item.id === currentProgramId || item.allData?.id === currentProgramId,
+      item => item.allData?.plan_id === currentProgramId,
     );
 
     const data = {
-      plan_id: matchedItem?.allData?.plan_id
-        ? matchedItem?.allData?.plan_id
-        : matchedItem?.allData?.id,
+      plan_id: matchedItem?.allData?.plan_id,
       message: message,
     };
-
-    console.log('sent data --->', data);
 
     try {
       const response = await postData<any>(
@@ -274,13 +268,10 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
   const GET_MESSAGES = async (pageNumber: number = 1) => {
     try {
       const matchedItem = planData?.find(
-        item =>
-          item.id === currentProgramId || item.allData?.id === currentProgramId,
+        item => item.allData?.plan_id === currentProgramId,
       );
       const data = {
-        plan_id: matchedItem?.allData?.plan_id
-          ? matchedItem?.allData?.plan_id
-          : matchedItem?.allData?.id,
+        plan_id: matchedItem?.allData?.plan_id,
       };
 
       if (pageNumber > 1) setLoadingMore(true);
@@ -292,7 +283,7 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
       const formatted =
         response.data?.messages?.flatMap((item: any, parentIndex: number) =>
           item.messages.map((msg: any, index: number) => ({
-            id: `${item.id}-${msg.created_at}-${index}-${parentIndex}`,
+            id: `${item.plan_id}-${msg.created_at}-${index}-${parentIndex}`,
             text: msg.text,
             created_by: msg.created_by,
             created_at: msg.created_at,
@@ -369,9 +360,11 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
                   {currentProgramDetails?.title}
                 </CustomText>
                 <View style={styles.tagContainer}>
-                  {(
-                    currentProgramDetails?.tags ||
-                    currentProgramDetails?.allData?.content?.tags
+                  {(currentProgramDetails?.tags
+                    ? currentProgramDetails?.tags
+                    : currentProgramDetails?.allData?.content.tags
+                    ? currentProgramDetails?.allData?.content.tags
+                    : currentProgramDetails?.allData?.tags
                   )?.map((tag, index) => (
                     <View key={index} style={styles.tag}>
                       <CustomText fontSize={12}>{tag}</CustomText>

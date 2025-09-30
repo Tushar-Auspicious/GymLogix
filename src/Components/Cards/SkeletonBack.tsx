@@ -58,6 +58,8 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
     return Number((total / oneRMValues.length).toFixed(2));
   }
 
+  console.log('BACKMUSCLE', backMusclesData);
+
   return (
     <View
       style={[
@@ -617,14 +619,20 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
                 backMusclesData.some(
                   (item: any) =>
                     item.mainMuscle !== undefined &&
-                    item.mainMuscle.includes('hamstrings'),
+                    item.mainMuscle
+                      .toString()
+                      .toLowerCase()
+                      .includes('hamstrings'),
                 )
                   ? bodyChart == 1
                     ? `${backMuscles.hamstrings} (${
                         backMusclesData.find(
                           (item: any) =>
                             item.mainMuscle !== undefined &&
-                            item.mainMuscle.includes('hamstrings'),
+                            item.mainMuscle
+                              .toString()
+                              .toLowerCase()
+                              .includes('hamstrings'),
                         )?.totalWeight ?? 0
                       }kg)`
                     : bodyChart == 2
@@ -632,7 +640,10 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
                         backMusclesData.find(
                           (item: any) =>
                             item.mainMuscle !== undefined &&
-                            item.mainMuscle.includes('hamstrings'),
+                            item.mainMuscle
+                              .toString()
+                              .toLowerCase()
+                              .includes('hamstrings'),
                         )?.totalReps ?? 0
                       } rep)`
                     : bodyChart == 3
@@ -640,7 +651,10 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
                         backMusclesData.find(
                           (item: any) =>
                             item.mainMuscle !== undefined &&
-                            item.mainMuscle.includes('hamstrings'),
+                            item.mainMuscle
+                              .toString()
+                              .toLowerCase()
+                              .includes('hamstrings'),
                         ),
                       )} RM)`
                     : 'Hams...'

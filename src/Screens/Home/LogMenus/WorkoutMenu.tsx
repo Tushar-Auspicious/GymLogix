@@ -109,9 +109,16 @@ const WorkoutMenu = () => {
               padding: verticalScale(10),
               justifyContent: 'space-between',
             }}>
-            <CustomText fontFamily="bold">{item.title}</CustomText>
+            <CustomText fontFamily="bold">
+              {item.title || 'Unknown Exercise'}
+            </CustomText>
             <View style={styles.tagContainer}>
-              {item.allData?.content?.tags.map((tag: string, index: number) => (
+              {(item.tags !== undefined && item.tags.length > 1
+                ? item.tags
+                : item.allData?.tags
+                ? item.allData?.tags
+                : item.allData.content.tags
+              ).map((tag: string, index: number) => (
                 <CustomText
                   key={index}
                   style={styles.tag}
@@ -179,10 +186,12 @@ const WorkoutMenu = () => {
   };
 
   const renderPlanList = () => {
-    const activatedPlanIds = userData?.activated_plan || [];
+    const activatedPlanIds = (userData?.activated_plan || []).map(
+      (id: string | number) => Number(id),
+    );
 
     const filteredPlans = planData?.filter(item =>
-      activatedPlanIds.includes(item.allData?.id),
+      activatedPlanIds.includes(Number(item.allData?.plan_id)),
     );
 
     return (
@@ -295,9 +304,12 @@ const WorkoutMenu = () => {
     );
   }
 
-  const activatedPlanIds = userData?.activated_plan || [];
+  const activatedPlanIds = (userData?.activated_plan || []).map(
+    (id: string | number) => Number(id),
+  );
+
   const filteredPlans = planData?.filter(item =>
-    activatedPlanIds.includes(item.allData?.id),
+    activatedPlanIds.includes(Number(item.allData?.plan_id)),
   );
 
   return (

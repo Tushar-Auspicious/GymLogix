@@ -10,11 +10,11 @@ type DetailData = {
 
 const DetailsView: FC<DetailData> = ({data}) => {
   const renderLevelWithStars = () => {
-    const level: string = getContent?.allData.content.difficulty;
+    const level: string = getContent?.allData.content.difficulty.toString();
     const isFilled =
-      level === 'Beginner'
+      level === 'beginners' || level === 'beginners'
         ? 1
-        : level === 'Intermediate'
+        : level === 'intermediate'
         ? 2
         : level === 'advance'
         ? 3

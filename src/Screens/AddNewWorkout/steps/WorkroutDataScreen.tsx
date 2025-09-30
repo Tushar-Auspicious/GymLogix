@@ -315,6 +315,7 @@ const WorkroutDataScreen: FC<{
             padding: verticalScale(5),
             borderWidth: 1,
             borderColor: isSelected ? COLORS.yellow : COLORS.white,
+            marginBottom: verticalScale(4),
           }}
           onPress={() => handleExercisePress(exercise, dayId)}
           onLongPress={() => handleLongExercisePress(exercise, dayId)}

@@ -4,7 +4,8 @@ import {IngredientItem, Ingredients} from './MealPlansData';
 import {Data} from '../Typings/ApiResponse/GetPlanResponse';
 
 export type ActivePlanListItem = {
-  id: string | number;
+  id: string;
+  planId: number;
   coverImage: string;
   title: string;
   tags: string[];
@@ -21,6 +22,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Balanced Nutrition Plan',
     tags: ['Diet', 'Health', 'Wellness'],
     type: 'food',
+    planId: 1,
   },
   {
     id: '2',
@@ -29,6 +31,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Strength Training Basics',
     tags: ['Gym', 'Strength', 'Workout'],
     type: 'workout',
+    planId: 2,
   },
   {
     id: '3',
@@ -37,6 +40,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Cardio Blast Session',
     tags: ['Cardio', 'Fitness', 'Endurance'],
     type: 'workout',
+    planId: 3,
   },
   {
     id: '4',
@@ -45,6 +49,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Full Body HIIT Routine',
     tags: ['HIIT', 'Fitness', 'Home'],
     type: 'workout',
+    planId: 4,
   },
   {
     id: '5',
@@ -53,6 +58,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Post-Workout Recovery Meal',
     tags: ['food', 'Recovery', 'Health'],
     type: 'food',
+    planId: 5,
   },
   {
     id: '6',
@@ -61,6 +67,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Morning Yoga Flow',
     tags: ['Yoga', 'Flexibility', 'Mindfulness'],
     type: 'workout',
+    planId: 6,
   },
   {
     id: '7',
@@ -69,6 +76,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Outdoor Running Challenge',
     tags: ['Running', 'Outdoor', 'Cardio'],
     type: 'workout',
+    planId: 7,
   },
   {
     id: '8',
@@ -77,6 +85,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Advanced Weightlifting Program',
     tags: ['Weights', 'Strength', 'Gym'],
     type: 'workout',
+    planId: 8,
   },
   {
     id: '9',
@@ -85,6 +94,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Mindful Meditation Break',
     tags: ['Meditation', 'Relaxation', 'Wellness'],
     type: 'workout',
+    planId: 9,
   },
   {
     id: '10',
@@ -93,6 +103,7 @@ const ActivePlansData: ActivePlanListItem[] = [
     title: 'Dynamic Stretching Warm-Up',
     tags: ['Stretching', 'Warm-Up', 'Flexibility'],
     type: 'workout',
+    planId: 10,
   },
 ];
 
@@ -341,6 +352,7 @@ const trainingPrograms: ActivePlanListItem[] = [
     title: 'Strength Training Basics',
     tags: ['Gym', 'Strength', 'Beginner'],
     type: 'workout',
+    planId: 1,
   },
   {
     id: '2',
@@ -349,6 +361,7 @@ const trainingPrograms: ActivePlanListItem[] = [
     title: 'Advanced Weightlifting Program',
     tags: ['Weights', 'Strength', 'Advanced'],
     type: 'workout',
+    planId: 2,
   },
   {
     id: '3',
@@ -357,6 +370,7 @@ const trainingPrograms: ActivePlanListItem[] = [
     title: 'Powerlifting Fundamentals',
     tags: ['Powerlifting', 'Strength', 'Gym'],
     type: 'workout',
+    planId: 3,
   },
   {
     id: '4',
@@ -365,6 +379,7 @@ const trainingPrograms: ActivePlanListItem[] = [
     title: 'Leg Day Intensive',
     tags: ['Legs', 'Strength', 'Gym'],
     type: 'workout',
+    planId: 4,
   },
   {
     id: '5',
@@ -373,6 +388,7 @@ const trainingPrograms: ActivePlanListItem[] = [
     title: 'Upper Body Sculpt',
     tags: ['Upper Body', 'Muscle', 'Gym'],
     type: 'workout',
+    planId: 5,
   },
   {
     id: '6',
@@ -381,6 +397,7 @@ const trainingPrograms: ActivePlanListItem[] = [
     title: 'Core Strength Circuit',
     tags: ['Core', 'Strength', 'Gym'],
     type: 'workout',
+    planId: 6,
   },
   {
     id: '7',
@@ -389,6 +406,7 @@ const trainingPrograms: ActivePlanListItem[] = [
     title: 'Full Body Hypertrophy',
     tags: ['Hypertrophy', 'Muscle', 'Gym'],
     type: 'workout',
+    planId: 7,
   },
   {
     id: '8',
@@ -397,6 +415,7 @@ const trainingPrograms: ActivePlanListItem[] = [
     title: 'Functional Fitness Routine',
     tags: ['Functional', 'Strength', 'Gym'],
     type: 'workout',
+    planId: 8,
   },
   {
     id: '9',
@@ -405,6 +424,7 @@ const trainingPrograms: ActivePlanListItem[] = [
     title: 'Push-Pull Split',
     tags: ['Push-Pull', 'Strength', 'Gym'],
     type: 'workout',
+    planId: 9,
   },
   // {
   //   id: "10",

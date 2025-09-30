@@ -47,7 +47,7 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
 
   const [loading, setLoading] = useState(false);
   const [loginDetails, setLoginDetails] = useState({
-    email: 'jack@yopmail.com',
+    email: 'joe@yopmail.com',
     password: '12345678',
   });
 
@@ -258,7 +258,8 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
       dispatch(
         setPlanData(
           response.data.data.map(item => ({
-            id: item._id ? item._id : item.id ? item.id : item.plan_id,
+            id: item.id,
+            planId: item.plan_id!,
             title: item.name || '',
             coverImage:
               item.image_url ||

@@ -73,6 +73,7 @@ const INSIGHT = () => {
     },
     // ...etc
   };
+
   const getWorkoutName = (html: string) => {
     try {
       const match = html.match(/Workout Name<\/th>\s*<td[^>]*>(.*?)<\/td>/);
@@ -131,14 +132,24 @@ const INSIGHT = () => {
     <View style={styles.main}>
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
         <ScrollView contentContainerStyle={{gap: verticalScale(10)}}>
-          {insightData.map((insight: any) => {
-            const title = getWorkoutName(insight.html);
-            return renderAccordion(
-              insight.insight_id.toString(),
-              insight.html,
-              title,
-            );
-          })}
+          {insightData && insightData.length > 0 ? (
+            insightData.map((insight: any) => {
+              const title = getWorkoutName(insight.html);
+              return renderAccordion(
+                insight.insight_id.toString(),
+                insight.html,
+                title,
+              );
+            })
+          ) : (
+            <CustomText
+              style={styles.NoInsight}
+              fontSize={16}
+              fontFamily="bold"
+              color={COLORS.yellow}>
+              No Insights Available
+            </CustomText>
+          )}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -160,5 +171,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  NoInsight: {
+    flex: 1,
+    textAlign: 'center',
   },
 });

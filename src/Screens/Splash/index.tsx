@@ -403,7 +403,8 @@ const Splash: FC<SplashProps> = ({navigation}) => {
           dispatch(
             setPlanData(
               response.data.data.map(item => ({
-                id: item._id ? item._id : item.id ? item.id : item.plan_id,
+                id: item.id!,
+                planId: item.plan_id!,
                 title: item.name || '',
                 coverImage:
                   item.image_url ||
@@ -423,7 +424,8 @@ const Splash: FC<SplashProps> = ({navigation}) => {
         dispatch(
           setPlanData(
             localWorkoutData.map((item: any) => ({
-              id: item._id ? item._id : item.id ? item.id : item.plan_id,
+              id: item.id,
+              planId: item.plan_id,
               title: item.name || '',
               coverImage:
                 item.image_url ||

@@ -1,4 +1,4 @@
-import React, {FC, useState} from 'react';
+import React, {FC, useEffect, useState} from 'react';
 import {Alert, ImageBackground, StyleSheet, View} from 'react-native';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import LinearGradient from 'react-native-linear-gradient';
@@ -32,7 +32,7 @@ import WorkroutDataScreen from './steps/WorkroutDataScreen';
 import {KeyboardAvoidingContainer} from '../../Components/KeyboardAvoidingComponent';
 import ExerciseSettings from './steps/ExerciseSettings';
 import SelectAlternateExercise from './steps/SelectAlternateExercise';
-import {postData, postFormData} from '../../APIServices/api';
+import {fetchData, postData, postFormData} from '../../APIServices/api';
 import ENDPOINTS from '../../APIServices/endPoints';
 import {setPlanData} from '../../Redux/slices/PlanDataSlice';
 import {
@@ -45,8 +45,6 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
   const {workoutData, activeStep} = useAppSelector(state => state.newWorkout);
   const [fileData, setFileData] = useState<any | null>(null);
-
-  console.log('wokrout data --->', workoutData);
 
   const [isUploadOptionModal, setIsUploadOptionModal] = useState(false);
 
@@ -100,6 +98,9 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
       closeModal();
     });
   };
+
+  console.log('GOAl', workoutData.goal);
+  console.log('LOCATION', workoutData.location);
 
   const handleCameraPick = async () => {
     try {
@@ -284,7 +285,7 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
             },
           ],
         })),
-        tags: ['trending'],
+        tags: ['gym', 'trending'],
       },
     };
 
@@ -293,26 +294,41 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
       console.log('new workout --->', response);
       if (response?.data?.data) {
         const newPlan = response.data.data;
+        console.log('NEWWWWWWWW--->', newPlan);
 
         // Save locally
         const existing =
           (await getLocalStorageData(STORAGE_KEYS.localWorkoutData)) || [];
-        const updated = [newPlan, ...existing.filter(Boolean)];
+        const updated = [...existing.filter(Boolean), newPlan];
         await storeLocalStorageData(STORAGE_KEYS.localWorkoutData, updated);
 
-        console.log('newPlan', updated);
-
         // Dispatch updated plan list
+
+        // console.log(
+        //   'Updateddddddddddddd',
+        //   updated.map(item => ({
+        //     id: item._id ? item._id : '',
+        //     planId: item.plan_id,
+        //     title: item.name || '',
+        //     coverImage:
+        //       item.image_url ||
+        //       'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+        //     tags: item.content?.tags,
+        //     type: item.type === 'workout' ? 'workout' : 'food',
+        //     allData: item,
+        //   })),
+        // );
 
         dispatch(
           setPlanData(
             updated.map(item => ({
-              id: item._id ? item._id : item.id ? item.id : item.plan_id,
+              id: item.id ? item.id : '',
+              planId: item.plan_id,
               title: item.name || '',
               coverImage:
                 item.image_url ||
                 'https://images.unsplash.com/photo-1577221084712-45b0445d2b00?q=80&w=1598&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-              tags: item.tags,
+              tags: item.content?.tags,
               type: item.type === 'workout' ? 'workout' : 'food',
               allData: item,
             })),

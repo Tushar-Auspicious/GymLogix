@@ -178,39 +178,38 @@ const AddNewExercise = ({}) => {
 
   const handleImagePick = () => {
     launchImageLibrary({mediaType: 'photo', quality: 0.8}, async response => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorCode) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else if (response.assets && response.assets.length > 0) {
-        const asset = response.assets[0];
+      try {
+        if (response.didCancel) {
+          console.log('User cancelled image picker');
+        } else if (response.errorCode) {
+          console.log('ImagePicker Error: ', response.errorMessage);
+        } else if (response.assets && response.assets.length > 0) {
+          const asset = response.assets[0];
 
-        setCoverImage(asset);
+          setCoverImage(asset);
 
-        const formData = new FormData();
-        const assesData = asset;
-        formData.append('asset', {
-          uri: assesData.uri,
-          type: assesData.type,
-          name: assesData.fileName,
-        });
+          const formData = new FormData();
+          formData.append('asset', {
+            uri: asset.uri,
+            type: asset.type,
+            name: asset.fileName,
+          });
 
-        const apiResponse = await postFormData<any>(
-          ENDPOINTS.uploadFile,
-          formData,
-        );
+          const apiResponse = await postFormData<any>(
+            ENDPOINTS.uploadFile,
+            formData,
+          );
 
-        if (apiResponse.data) {
-          const getImageUrl = apiResponse.data.url;
-
-          if (getImageUrl) {
-            console.log('getImageUrl--->', getImageUrl);
-
-            setUploadFileData(getImageUrl);
+          if (apiResponse?.data?.url) {
+            console.log('getImageUrl--->', apiResponse.data.url);
+            setUploadFileData(apiResponse.data.url);
           }
         }
+      } catch (error) {
+        console.error('Error in handleImagePick:', error);
+      } finally {
+        closeModal();
       }
-      closeModal();
     });
   };
 
@@ -253,6 +252,8 @@ const AddNewExercise = ({}) => {
       closeModal();
     } catch (error) {
       console.log('Camera capture failed:', error);
+    } finally {
+      closeModal();
     }
   };
 
