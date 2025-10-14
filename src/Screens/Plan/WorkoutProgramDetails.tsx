@@ -331,6 +331,9 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
     }, 1000);
   };
 
+  console.log('curreee', currentProgramId);
+  console.log('activateeddddd', userData?.activated_plan);
+
   return (
     <KeyboardAvoidingView
       style={{flex: 1}}
@@ -377,9 +380,12 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
         </ImageBackground>
 
         <View style={styles.tabContainer}>
-          {TabOptions.filter(
-            tab => tab !== "Coach's corner" || userData?.user_id,
-          ).map(
+          {TabOptions.filter(tab => {
+            if (tab !== "Coach's corner") return true;
+
+            const activatedIds = (userData?.activated_plan || []).map(Number);
+            return activatedIds.includes(Number(currentProgramId));
+          }).map(
             (
               tab: 'Excercise' | 'Details' | "Coach's corner",
               index: number,

@@ -47,8 +47,8 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
 
   const [loading, setLoading] = useState(false);
   const [loginDetails, setLoginDetails] = useState({
-    email: 'joe@yopmail.com',
-    password: '12345678',
+    email: '',
+    password: '',
   });
 
   const [errors, setErrors] = useState({
@@ -111,6 +111,7 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
 
         if (cleanToken) {
           const response = await fetchData<UserResponse>(ENDPOINTS.getUser);
+          console.log(response, 'UUUU ̰');
 
           if (response.data.user) {
             dispatch(setUserData(response.data.user));
@@ -130,7 +131,7 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
         });
       }
     } catch (error: any) {
-      console.log(error.reason);
+      console.log(error);
       showCustomToast('error', error.reason || 'Something went wrong');
     } finally {
       setLoading(false);
@@ -176,7 +177,7 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
               item.fat || 0,
               item.protein || 0,
             ],
-            quantity: item.serving_size_amount.toString(),
+            quantity: item.serving_size_amount?.toString(),
             measurementUnit: item.serving_size_measurement,
             size: item.serving_weight_grams,
           })),
@@ -220,13 +221,13 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
               );
 
               return {
-                id: food.food_id.toString(),
+                id: food.food_id?.toString(),
                 idFood: Number(food.food_id),
                 title: match?.name || 'Unknown',
                 image:
                   match?.image_url ||
                   'https://nix-tag-images.s3.amazonaws.com/384_highres.jpg',
-                quantity: match?.serving_size_amount.toString()!,
+                quantity: match?.serving_size_amount?.toString()!,
                 percentage: 0,
                 calories: [
                   Number(match?.calories) || 0,

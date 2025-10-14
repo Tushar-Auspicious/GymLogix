@@ -261,7 +261,7 @@ const NutritionProgramDetails: FC<NutritionProgramDetailsProps> = ({
                 ))}
               </View>
               <CustomText fontFamily="bold">
-                {currentProgramDetails?.title}
+                {currentProgramDetails?.[0].title}
               </CustomText>
             </View>
           </View>

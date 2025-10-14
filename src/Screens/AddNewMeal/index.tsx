@@ -419,7 +419,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
     dispatch(resetMeal());
   };
 
-  console.log('abhfhaf', fileData);
+  console.log('ingredients ----> ', ingredients);
 
   return (
     <View style={styles.contentContainer}>
@@ -612,7 +612,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
         </View>
 
         {/* Meal Images Section */}
-        <View
+        {/* <View
           style={[
             styles.imagesContainer,
             {
@@ -651,7 +651,6 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
             </View>
           ))}
 
-          {/* Add image button */}
           {mealImages.length < 4 && (
             <TouchableOpacity
               style={styles.addImageButton}
@@ -659,7 +658,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
               <CustomIcon Icon={ICONS.PlusIcon} height={24} width={24} />
             </TouchableOpacity>
           )}
-        </View>
+        </View> */}
 
         {/* Ingredients Section */}
         <View style={[styles.section, {paddingHorizontal: 20}]}>
@@ -686,6 +685,9 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
             data={ingredients}
             contentContainerStyle={{gap: horizontalScale(10)}}
             renderItem={({item: ingredient, index}) => {
+              // Calculate the adjusted size based on quantity
+              const adjustedSize =
+                ingredient.size * parseInt(ingredient.quantity);
               return (
                 <View key={index} style={styles.ingredientRow}>
                   <Image
@@ -698,7 +700,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
                     </CustomText>
                   </View>
                   <CustomText fontFamily="medium" fontSize={14}>
-                    {ingredient.quantity}
+                    {`${adjustedSize}gm`}
                   </CustomText>
 
                   <TouchableOpacity

@@ -370,9 +370,9 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
     setIngredients(meal?.ingredients!);
   }, [meal?.ingredients]);
 
-  console.log('ndywf', meal?.coverImage?.uri);
-  console.log('plii', fileData);
   // console.log('aeax', meal?.coverImage);
+
+  console.log('INgreidts ---->', ingredients);
 
   return (
     <View style={styles.contentContainer}>
@@ -648,15 +648,15 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
                       {ingredient.title}
                     </CustomText>
                     <CustomText fontFamily="medium" fontSize={14}>
-                      {ingredient.size * ingredient.quantity + ' gram'}
+                      {ingredient.size * ingredient?.quantity + ' gram'}
                     </CustomText>
                   </View>
-                  <CustomText
+                  {/* <CustomText
                     fontFamily="medium"
                     fontSize={14}
                     style={{flex: 1}}>
                     {`${ingredient.quantity} ${ingredient.measurementUnit}`}
-                  </CustomText>
+                  </CustomText> */}
 
                   <TouchableOpacity
                     style={{marginLeft: horizontalScale(20)}}

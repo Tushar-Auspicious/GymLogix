@@ -84,8 +84,6 @@ const ActivePlanList: FC<ActivePlanListProps> = ({}) => {
     activatePlanIds.includes(Number(item.allData?.plan_id)),
   );
 
-  console.log('FIKLTERE', filterPlans);
-
   const convertData = filterPlans?.map(item => ({
     id: item.id ?? '',
     planId: item.planId,
@@ -119,13 +117,15 @@ const ActivePlanList: FC<ActivePlanListProps> = ({}) => {
     );
   }
 
+  console.log('coverdattata', convertData);
+
   return (
     <View
       style={{
         paddingHorizontal: horizontalScale(10),
         paddingTop: verticalScale(10),
         backgroundColor: COLORS.darkBrown,
-        flex: convertData && convertData?.length > 0 ? 0 : 1,
+        flex: convertData && convertData?.length > 0 ? 1 : 1,
         justifyContent:
           convertData && convertData?.length > 0 ? 'flex-start' : 'center',
       }}>

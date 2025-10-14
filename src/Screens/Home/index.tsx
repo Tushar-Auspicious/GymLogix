@@ -48,9 +48,21 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const {scheduleData} = useAppSelector(state => state.scheduleData);
   const [selectedItem, setSelectedItem] = useState<string[]>([]);
   const {exerciseData} = useAppSelector(state => state.exerciseData);
-  const {dates, month, homeActiveIndex, logMealActiveIndex} = useAppSelector(
-    state => state.initial,
-  );
+  const {dates, month, homeActiveIndex, logMealActiveIndex, initialIndex} =
+    useAppSelector(state => state.initial);
+
+  const selectedDay = dates[initialIndex];
+
+  // Filter function
+  const filteredSchedule = useMemo(() => {
+    if (!selectedDay || !scheduleData) return [];
+    const selectedDateString = new Date(selectedDay.timestamp).toDateString(); // normalize
+
+    return scheduleData.filter(item => {
+      const itemDateString = new Date(item.schedule_at).toDateString();
+      return itemDateString === selectedDateString;
+    });
+  }, [selectedDay, scheduleData]);
 
   // Format seconds into hh:mm:ss
   const formatTime = (totalSeconds: number): string => {
@@ -227,8 +239,15 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   };
 
   const renderHistory = () => {
+    if (!filteredSchedule || filteredSchedule.length === 0) {
+      return (
+        <CustomText style={styles.NoScheduleText} fontSize={12}>
+          No scheduled items. Your scheduled items will appear here.
+        </CustomText>
+      );
+    }
     // Flatten scheduleData so that exercises & parts each become their own row
-    const flattenedData = scheduleData?.flatMap((item: any) => {
+    const flattenedData = filteredSchedule.flatMap((item: any) => {
       if (item.type === 'workout') {
         return item.content?.Exercises?.content?.map((ex: any) => {
           const match = exerciseData?.find(
@@ -236,7 +255,7 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
           );
           return {
             ...item,
-            _parentId: item.id || item._id, // keep reference to parent
+            _parentId: item.id || item._id,
             displayName: match?.name || `Exercise ${ex.Exercise_id}`,
           };
         });
@@ -250,7 +269,6 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
         }));
       }
 
-      // for food/notes etc just keep as is
       return [
         {
           ...item,

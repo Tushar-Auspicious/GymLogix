@@ -1,26 +1,17 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
-import ICONS from "../Assets/Icons";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {FlatList, StyleSheet, TouchableOpacity, View} from 'react-native';
+import Animated, {useAnimatedStyle, withSpring} from 'react-native-reanimated';
+import ICONS from '../Assets/Icons';
 import {
   setDates,
   setHomeActiveIndex,
   setInitialIndex,
-} from "../Redux/slices/initialSlice";
-import { useAppDispatch, useAppSelector } from "../Redux/store";
-import COLORS from "../Utilities/Colors";
-import { horizontalScale, hp, verticalScale } from "../Utilities/Metrics";
-import CustomIcon from "./CustomIcon";
-import { CustomText } from "./CustomText";
+} from '../Redux/slices/initialSlice';
+import {useAppDispatch, useAppSelector} from '../Redux/store';
+import COLORS from '../Utilities/Colors';
+import {horizontalScale, hp, verticalScale} from '../Utilities/Metrics';
+import CustomIcon from './CustomIcon';
+import {CustomText} from './CustomText';
 
 export interface DayItem {
   day: string;
@@ -45,7 +36,7 @@ const DayCard = React.memo(
     selectedDate: DayItem | null;
   }) => {
     const animatedStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: withSpring(item.isToday ? 1.05 : 1) }],
+      transform: [{scale: withSpring(item.isToday ? 1.05 : 1)}],
     }));
 
     const dayCardBackgroundColor = useMemo(() => {
@@ -89,8 +80,7 @@ const DayCard = React.memo(
             {
               backgroundColor: dayCardBackgroundColor,
             },
-          ]}
-        >
+          ]}>
           <CustomText fontFamily="italic" fontSize={12} color={textColor}>
             {item.day}
           </CustomText>
@@ -100,28 +90,37 @@ const DayCard = React.memo(
         </Animated.View>
       </TouchableOpacity>
     );
-  }
+  },
 );
 
 const CalendarList = () => {
   const flatListRef = useRef<FlatList<DayItem>>(null);
   const dispatch = useAppDispatch();
-  const { dates, initialIndex, homeActiveIndex } = useAppSelector(
-    (state) => state.initial
+  const {dates, initialIndex, homeActiveIndex} = useAppSelector(
+    state => state.initial,
   );
 
-  const [month, setMonth] = useState("");
+  const [month, setMonth] = useState('');
   const [selectedDtae, setSelectedDtae] = useState<DayItem | null>(null);
 
+  // When a day is pressed, update Redux index
   const onPressDate = (item: DayItem) => {
-    setSelectedDtae(item);
+    const index = dates.findIndex(d => d.timestamp === item.timestamp);
+    if (index !== -1) {
+      dispatch(setInitialIndex(index));
+      flatListRef.current?.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    }
   };
 
   const generateDates = useCallback(() => {
     const today = new Date();
     const currentYear = today.getFullYear();
-    const initialMonthName = today.toLocaleString("en-US", {
-      month: "long",
+    const initialMonthName = today.toLocaleString('en-US', {
+      month: 'long',
     });
     setMonth(initialMonthName);
 
@@ -137,10 +136,10 @@ const CalendarList = () => {
     ) {
       const date = new Date(d);
       const dayName = date
-        .toLocaleString("en-US", { weekday: "short" })
+        .toLocaleString('en-US', {weekday: 'short'})
         .toUpperCase();
       const dayDate = date.getDate();
-      const monthName = date.toLocaleString("en-US", { month: "long" });
+      const monthName = date.toLocaleString('en-US', {month: 'long'});
       const isToday = date.toDateString() === today.toDateString();
 
       datesArray.push({
@@ -176,12 +175,12 @@ const CalendarList = () => {
   }, [dates, generateDates]);
 
   const onViewableItemsChanged = useCallback(
-    ({ viewableItems }: { viewableItems: Array<{ item: DayItem }> }) => {
+    ({viewableItems}: {viewableItems: Array<{item: DayItem}>}) => {
       if (viewableItems.length > 0) {
         setMonth(viewableItems[0].item.month);
       }
     },
-    []
+    [],
   );
 
   const getItemLayout = useCallback(
@@ -190,20 +189,20 @@ const CalendarList = () => {
       offset: TOTAL_ITEM_WIDTH * index,
       index,
     }),
-    []
+    [],
   );
 
   const keyExtractor = useCallback((item: DayItem) => `${item.timestamp}`, []);
 
   const renderDay = useCallback(
-    ({ item }: { item: DayItem }) => (
+    ({item, index}: {item: DayItem; index: number}) => (
       <DayCard
         item={item}
         onPressDate={onPressDate}
-        selectedDate={selectedDtae}
+        selectedDate={initialIndex !== -1 ? dates[initialIndex] : null}
       />
     ),
-    [onPressDate, selectedDtae]
+    [dates, initialIndex],
   );
 
   const onScrollToIndexFailed = useCallback(
@@ -213,7 +212,7 @@ const CalendarList = () => {
       averageItemLength: number;
     }) => {
       const offset = info.averageItemLength * info.index;
-      flatListRef.current?.scrollToOffset({ offset, animated: false });
+      flatListRef.current?.scrollToOffset({offset, animated: false});
 
       requestAnimationFrame(() => {
         flatListRef.current?.scrollToIndex({
@@ -223,20 +222,20 @@ const CalendarList = () => {
         });
       });
     },
-    []
+    [],
   );
 
   const viewabilityConfig = useMemo(
     () => ({
       itemVisiblePercentThreshold: 10,
     }),
-    []
+    [],
   );
 
   return (
     <View style={styles.container}>
       {homeActiveIndex !== 0 && (
-        <View style={{ marginLeft: 10 }}>
+        <View style={{marginLeft: 10}}>
           <CustomIcon
             onPress={() => {
               dispatch(setHomeActiveIndex(0));
@@ -286,9 +285,9 @@ const styles = StyleSheet.create({
     gap: verticalScale(20),
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingRight: horizontalScale(10),
   },
   monthButton: {
@@ -303,7 +302,7 @@ const styles = StyleSheet.create({
     padding: 8,
     width: ITEM_WIDTH,
     height: hp(8),
-    alignItems: "center",
+    alignItems: 'center',
     marginHorizontal: ITEM_MARGIN,
     gap: verticalScale(5),
   },
