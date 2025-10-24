@@ -21,6 +21,17 @@ export interface DayItem {
   timestamp: number;
 }
 
+/**
+ * Activity indicators interface for calendar days
+ * Shows small icons on calendar dates when activities are logged
+ */
+interface ActivityIndicators {
+  hasWorkout: boolean; // Shows dumbbell icon for workout activities
+  hasNotes: boolean; // Shows notes icon for note entries
+  hasMeal: boolean; // Shows meal icon for food logging
+  hasMeasurement: boolean; // Shows measurement icon for body measurements
+}
+
 const ITEM_WIDTH = horizontalScale(50);
 const ITEM_MARGIN = horizontalScale(4);
 const TOTAL_ITEM_WIDTH = ITEM_WIDTH + ITEM_MARGIN * 2;
@@ -30,10 +41,12 @@ const DayCard = React.memo(
     item,
     onPressDate,
     selectedDate,
+    activityIndicators,
   }: {
     item: DayItem;
     onPressDate: (item: DayItem) => void;
     selectedDate: DayItem | null;
+    activityIndicators: ActivityIndicators;
   }) => {
     const animatedStyle = useAnimatedStyle(() => ({
       transform: [{scale: withSpring(item.isToday ? 1.05 : 1)}],
@@ -71,6 +84,12 @@ const DayCard = React.memo(
       }
     }, [item.isToday, item.timestamp, selectedDate?.timestamp]);
 
+    const hasAnyActivity =
+      activityIndicators.hasWorkout ||
+      activityIndicators.hasNotes ||
+      activityIndicators.hasMeal ||
+      activityIndicators.hasMeasurement;
+
     return (
       <TouchableOpacity onPress={() => onPressDate(item)} activeOpacity={0.7}>
         <Animated.View
@@ -87,6 +106,36 @@ const DayCard = React.memo(
           <CustomText fontFamily="bold" fontSize={12} color={textColor}>
             {item.date}
           </CustomText>
+
+          {/* Activity Indicators */}
+          {hasAnyActivity && (
+            <View style={styles.activityIndicators}>
+              {activityIndicators.hasWorkout && (
+                <CustomIcon
+                  Icon={ICONS.dumbellBlueIcon}
+                  width={15}
+                  height={15}
+                />
+              )}
+              {/* {activityIndicators.hasMeal && (
+                <CustomIcon Icon={ICONS.MealLogIcon} width={15} height={15} />
+              )}
+              {activityIndicators.hasMeasurement && (
+                <CustomIcon
+                  Icon={ICONS.MeasurementLogIcon}
+                  width={15}
+                  height={15}
+                />
+              )} */}
+              {activityIndicators.hasNotes && (
+                <CustomIcon
+                  Icon={ICONS.dumbellRedWithCalendarIcon}
+                  width={15}
+                  height={15}
+                />
+              )}
+            </View>
+          )}
         </Animated.View>
       </TouchableOpacity>
     );
@@ -99,9 +148,39 @@ const CalendarList = () => {
   const {dates, initialIndex, homeActiveIndex} = useAppSelector(
     state => state.initial,
   );
+  const {scheduleData} = useAppSelector(state => state.scheduleData);
 
   const [month, setMonth] = useState('');
   const [selectedDtae, setSelectedDtae] = useState<DayItem | null>(null);
+
+  // Function to get activity indicators for a specific date
+  const getActivityIndicators = useCallback(
+    (timestamp: number) => {
+      if (!scheduleData) {
+        return {
+          hasWorkout: false,
+          hasNotes: false,
+          hasMeal: false,
+          hasMeasurement: false,
+        };
+      }
+
+      const dateString = new Date(timestamp).toDateString();
+
+      const dayActivities = scheduleData.filter(item => {
+        const itemDateString = new Date(item.schedule_at).toDateString();
+        return itemDateString === dateString;
+      });
+
+      return {
+        hasWorkout: dayActivities.some(item => item.type === 'workout'),
+        hasNotes: dayActivities.some(item => item.type === 'note'),
+        hasMeal: dayActivities.some(item => item.type === 'food'),
+        hasMeasurement: dayActivities.some(item => item.type === 'measurement'),
+      };
+    },
+    [scheduleData],
+  );
 
   // When a day is pressed, update Redux index
   const onPressDate = (item: DayItem) => {
@@ -200,9 +279,10 @@ const CalendarList = () => {
         item={item}
         onPressDate={onPressDate}
         selectedDate={initialIndex !== -1 ? dates[initialIndex] : null}
+        activityIndicators={getActivityIndicators(item.timestamp)}
       />
     ),
-    [dates, initialIndex],
+    [dates, initialIndex, getActivityIndicators],
   );
 
   const onScrollToIndexFailed = useCallback(
@@ -301,10 +381,21 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 8,
     width: ITEM_WIDTH,
-    height: hp(8),
+    height: hp(9),
     alignItems: 'center',
     marginHorizontal: ITEM_MARGIN,
     gap: verticalScale(5),
+    position: 'relative',
+  },
+  activityIndicators: {
+    position: 'absolute',
+    justifyContent: 'flex-start',
+    bottom: 3,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 1,
+    maxWidth: ITEM_WIDTH - 8,
+    width: '100%',
   },
 });
 

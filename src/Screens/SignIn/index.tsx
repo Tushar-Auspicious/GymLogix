@@ -22,7 +22,7 @@ import STORAGE_KEYS from '../../Utilities/Constants';
 import {LoginResponse} from '../../Typings/ApiResponse/LoginResponse';
 import {UserResponse} from '../../Typings/ApiResponse/UserResponse';
 import {fetchData, postData} from '../../APIServices/api';
-import {useAppDispatch, useAppSelector} from '../../Redux/store';
+import {useAppDispatch} from '../../Redux/store';
 import {setUserData} from '../../Redux/slices/UserSlice';
 import {FoodResponse} from '../../Typings/ApiResponse/FoodResponse';
 import {setFoodData} from '../../Redux/slices/foodSlice';

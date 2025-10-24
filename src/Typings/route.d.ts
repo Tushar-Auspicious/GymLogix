@@ -41,6 +41,8 @@ export type MainStackParams = {
     programId: string | number;
     day: WeeklyStructure[];
     selectedProgram: any;
+    ScheduleHistoryData: any;
+    isFrom: boolean;
   };
   workoutResult: {
     workoutData: any;

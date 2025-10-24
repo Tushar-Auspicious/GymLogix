@@ -25,6 +25,7 @@ import insightReducer from './slices/InsightSlice';
 import quickReducer from './slices/QuickMeals';
 import macroReducer from './slices/macroSlice';
 import logWorkoutReducer from './slices/LogWorkoutSlice';
+import workoutDataReducer from './slices/workoutDataSlice';
 
 export const store = configureStore({
   reducer: {
@@ -48,6 +49,7 @@ export const store = configureStore({
     quickMeals: quickReducer,
     macros: macroReducer,
     logWorkoutData: logWorkoutReducer,
+    workoutData: workoutDataReducer,
   },
 });
 

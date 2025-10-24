@@ -9,10 +9,13 @@ import COLORS from '../../Utilities/Colors';
 import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
 import SkeletonBack from '../../Components/Cards/SkeletonBack';
 import SkeletonFront from '../../Components/Cards/SkeletonFront';
-import {useAppSelector} from '../../Redux/store';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
+import PrimaryButton from '../../Components/PrimaryButton';
+import {setHomeActiveIndex} from '../../Redux/slices/initialSlice';
 
 const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
   const {workoutData} = route.params;
+  const dispatch = useAppDispatch();
 
   console.log('WWWWW', workoutData);
 
@@ -122,15 +125,16 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
 
   const muscleMap: Record<string, string> = {
     glutes: 'glutes',
-    'lower back': 'erectorSpinae', // 👈 map to the actual supported muscle name
+    'lower back': 'erectorSpinae',
     hamstrings: 'hamstrings',
-    // add more mappings if needed
+    shoulders: 'shoulders',
+    traps: 'trapezius',
   };
-
   const selectedMuscles = workoutData.targetedMuscles
-
     ?.map((m: string) => muscleMap[m.toLowerCase().trim()])
     .filter(Boolean);
+
+  console.log('selectedddd', selectedMuscles);
 
   const renderTargetedMuscleCard = () => {
     return (
@@ -215,6 +219,17 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
           {renderCards()}
           {renderBestResultCard()}
           {renderTargetedMuscleCard()}
+
+          <PrimaryButton
+            onPress={() => {
+              navigation.replace('tabs', {
+                screen: 'HOME',
+              });
+              dispatch(setHomeActiveIndex(0));
+            }}
+            title="Continue"
+            backgroundColor={COLORS.yellow}
+          />
         </ScrollView>
       </SafeAreaView>
     </View>

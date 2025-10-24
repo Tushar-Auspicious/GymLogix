@@ -1,34 +1,34 @@
-import React, { FC } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import ICONS from "../../Assets/Icons";
-import AddLogButton from "../../Components/AddLogButton";
-import CustomIcon from "../../Components/CustomIcon";
-import { CustomText } from "../../Components/CustomText";
+import React, {FC} from 'react';
+import {Pressable, StyleSheet, View} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import ICONS from '../../Assets/Icons';
+import AddLogButton from '../../Components/AddLogButton';
+import CustomIcon from '../../Components/CustomIcon';
+import {CustomText} from '../../Components/CustomText';
 import {
   setActiveNutritionprogramIndex,
   setActivePlanIndex,
   setActiveWorkoutprogramIndex,
   setCurrentprogramId,
   setPlanTab,
-} from "../../Redux/slices/initialSlice";
+} from '../../Redux/slices/initialSlice';
 import {
   resetNewWorkoutSlice,
   setActiveStep,
-} from "../../Redux/slices/newWorkoutSlice";
-import { useAppDispatch, useAppSelector } from "../../Redux/store";
-import { ActivePlansData, myMealsList } from "../../Seeds/Plans";
-import { PlanTabScreenProps } from "../../Typings/route";
-import COLORS from "../../Utilities/Colors";
-import { horizontalScale, verticalScale } from "../../Utilities/Metrics";
-import ActivePlanList from "./ActivePlanList";
-import MealPlansList from "./MealPlansList";
-import NutritionPlanList from "./NutritionPlanList";
-import NutritionProgramDetails from "./NutritionProgramDetails";
-import WorkoutPlansList from "./WorkoutPlansList";
-import WorkoutProgramDetails from "./WorkoutProgramDetails";
+} from '../../Redux/slices/newWorkoutSlice';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
+import {ActivePlansData, myMealsList} from '../../Seeds/Plans';
+import {PlanTabScreenProps} from '../../Typings/route';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, verticalScale} from '../../Utilities/Metrics';
+import ActivePlanList from './ActivePlanList';
+import MealPlansList from './MealPlansList';
+import NutritionPlanList from './NutritionPlanList';
+import NutritionProgramDetails from './NutritionProgramDetails';
+import WorkoutPlansList from './WorkoutPlansList';
+import WorkoutProgramDetails from './WorkoutProgramDetails';
 
-const PLAN: FC<PlanTabScreenProps> = ({ navigation }) => {
+const PLAN: FC<PlanTabScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
   const {
     planTab,
@@ -36,11 +36,11 @@ const PLAN: FC<PlanTabScreenProps> = ({ navigation }) => {
     currentProgramId,
     activeWorkoutprogramIndex,
     activeNutritionprogramIndex,
-  } = useAppSelector((state) => state.initial);
+  } = useAppSelector(state => state.initial);
 
   const topTabsData = [
     {
-      label: "Active Plans",
+      label: 'Active Plans',
       value: 0,
       onClick: () => {
         dispatch(setPlanTab(0));
@@ -50,7 +50,7 @@ const PLAN: FC<PlanTabScreenProps> = ({ navigation }) => {
       },
     },
     {
-      label: "My Meals",
+      label: 'My Meals',
       value: 1,
       onClick: () => {
         dispatch(setPlanTab(1));
@@ -60,7 +60,7 @@ const PLAN: FC<PlanTabScreenProps> = ({ navigation }) => {
       },
     },
     {
-      label: "Training",
+      label: 'Training',
       value: 2,
       onClick: () => {
         dispatch(setPlanTab(2));
@@ -70,7 +70,7 @@ const PLAN: FC<PlanTabScreenProps> = ({ navigation }) => {
       },
     },
     {
-      label: "Nutrition",
+      label: 'Nutrition',
       value: 3,
       onClick: () => {
         dispatch(setPlanTab(3));
@@ -85,14 +85,13 @@ const PLAN: FC<PlanTabScreenProps> = ({ navigation }) => {
     return (
       <View style={styles.topTabsContainer}>
         <View style={styles.tabsWrapper}>
-          {topTabsData.map((tab) => (
+          {topTabsData.map(tab => (
             <Pressable key={tab.value} onPress={tab.onClick}>
               <CustomText
                 fontSize={13}
                 fontFamily="medium"
                 color={COLORS.whiteTail}
-                style={[styles.tab, planTab === tab.value && styles.activeTab]}
-              >
+                style={[styles.tab, planTab === tab.value && styles.activeTab]}>
                 {tab.label}
               </CustomText>
             </Pressable>
@@ -135,25 +134,25 @@ const PLAN: FC<PlanTabScreenProps> = ({ navigation }) => {
   const LOGGING_MENU_ITEMS = [
     {
       icon: ICONS.WorkoutLogIcon,
-      label: "New workout Plan",
+      label: 'New workout Plan',
       onPress: () => {
-        navigation.navigate("addNewWorkout");
+        navigation.navigate('addNewWorkout');
         dispatch(resetNewWorkoutSlice());
         dispatch(setActiveStep(1));
       },
     },
     {
       icon: ICONS.MealLogIcon,
-      label: "New Meal",
+      label: 'New Meal',
       onPress: () => {
-        navigation.navigate("addNewMeal");
+        navigation.navigate('addNewMeal');
       },
     },
   ];
 
   return (
     <View style={styles.main}>
-      <SafeAreaView edges={["top", "left", "right"]} style={styles.safeArea}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
         {renderTopTabs()}
         {renderPlanList()}
         {planTab !== 1 &&
@@ -179,16 +178,16 @@ const styles = StyleSheet.create({
     gap: verticalScale(20),
   },
   topTabsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: horizontalScale(10),
     paddingTop: verticalScale(10),
     gap: horizontalScale(10),
   },
   tabsWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     flex: 1,
   },
   tab: {

@@ -10,24 +10,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {CustomText} from '../../../Components/CustomText';
-import PrimaryButton from '../../../Components/PrimaryButton';
-import {useAppDispatch, useAppSelector} from '../../../Redux/store';
-import {selectAllTrainingPlans} from '../../../Redux/slices/trainingPlansSlice';
-import COLORS from '../../../Utilities/Colors';
-import {horizontalScale, verticalScale} from '../../../Utilities/Metrics';
 import {fetchData} from '../../../APIServices/api';
 import ENDPOINTS from '../../../APIServices/endPoints';
-import {getLocalStorageData} from '../../../Utilities/Storage';
-import STORAGE_KEYS from '../../../Utilities/Constants';
-import {setUserData} from '../../../Redux/slices/UserSlice';
-import {UserResponse} from '../../../Typings/ApiResponse/UserResponse';
+import {CustomText} from '../../../Components/CustomText';
+import PrimaryButton from '../../../Components/PrimaryButton';
+import {workoutTimer} from '../../../Components/WorkoutTimer';
 import {
   setCurrentWorkout,
   setWorkoutProgress,
-  setWorkoutTime,
 } from '../../../Redux/slices/LogWorkoutSlice';
-import {workoutTimer} from '../../../Components/WorkoutTimer';
+import {selectAllTrainingPlans} from '../../../Redux/slices/trainingPlansSlice';
+import {setUserData} from '../../../Redux/slices/UserSlice';
+import {useAppDispatch, useAppSelector} from '../../../Redux/store';
+import {UserResponse} from '../../../Typings/ApiResponse/UserResponse';
+import COLORS from '../../../Utilities/Colors';
+import STORAGE_KEYS from '../../../Utilities/Constants';
+import {horizontalScale, verticalScale} from '../../../Utilities/Metrics';
+import {getLocalStorageData} from '../../../Utilities/Storage';
 
 const WorkoutMenu = () => {
   const dispatch = useAppDispatch();
@@ -150,9 +149,10 @@ const WorkoutMenu = () => {
                 return (
                   <TouchableOpacity
                     onPress={() => toggleDaySelection(section.name)}
-                    key={sectionIndex.toString()}
+                    key={sectionIndex?.toString()}
                     style={{
-                      padding: verticalScale(5),
+                      paddingHorizontal: horizontalScale(8),
+                      paddingVertical: verticalScale(2),
                       backgroundColor: isDaySelected
                         ? COLORS.skinColor
                         : COLORS.brown,
@@ -198,9 +198,12 @@ const WorkoutMenu = () => {
       <FlatList
         data={filteredPlans}
         renderItem={renderNestedItem}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={item => item.id?.toString()}
         contentContainerStyle={{
           gap: verticalScale(15),
+        }}
+        style={{
+          flexGrow: 1,
         }}
       />
     );
@@ -315,7 +318,7 @@ const WorkoutMenu = () => {
   return (
     <View style={styles.main}>
       {filteredPlans && filteredPlans?.length > 0 ? (
-        <View>
+        <View style={{gap: verticalScale(10), flex: 1}}>
           {renderPlanList()}
           <PrimaryButton
             title="Start Workout"
@@ -397,9 +400,6 @@ const WorkoutMenu = () => {
               });
             }}
             disabled={!selectedPlan || !selectedDay} // Disable if no plan or day is selected
-            style={{
-              marginVertical: verticalScale(10),
-            }}
           />
         </View>
       ) : (

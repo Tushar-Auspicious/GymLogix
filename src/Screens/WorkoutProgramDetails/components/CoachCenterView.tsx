@@ -161,8 +161,7 @@ const CoachCenterView: FC<CoachData> = ({planId}) => {
     <KeyboardAvoidingView
       style={{flex: 1}}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? verticalScale(238) : 0} // adjust offset for header height
-    >
+      keyboardVerticalOffset={Platform.OS === 'ios' ? verticalScale(238) : 0}>
       <View style={styles.conversationContainer}>
         {ispremium ? (
           <>

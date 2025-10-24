@@ -1,8 +1,5 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
-import {
-  ExerciseAPIData,
-  ExerciseResponse,
-} from '../../Typings/ApiResponse/ExerciseResponse';
+import {ExerciseAPIData} from '../../Typings/ApiResponse/ExerciseResponse';
 
 interface exerciseState {
   exerciseData: ExerciseAPIData[] | null;
@@ -19,8 +16,11 @@ const exerciseSlice = createSlice({
     setExerciseData(state, action: PayloadAction<ExerciseAPIData[]>) {
       state.exerciseData = action.payload;
     },
+    updateExerciseOrder(state, action: PayloadAction<ExerciseAPIData[]>) {
+      state.exerciseData = action.payload;
+    },
   },
 });
 
-export const {setExerciseData} = exerciseSlice.actions;
+export const {setExerciseData, updateExerciseOrder} = exerciseSlice.actions;
 export default exerciseSlice.reducer;

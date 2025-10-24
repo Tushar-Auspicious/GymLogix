@@ -15,6 +15,8 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import {fetchData, postData} from '../../APIServices/api';
+import ENDPOINTS from '../../APIServices/endPoints';
 import ICONS from '../../Assets/Icons';
 import CustomIcon from '../../Components/CustomIcon';
 import {CustomText} from '../../Components/CustomText';
@@ -23,9 +25,6 @@ import {ActivePlanListItem} from '../../Seeds/Plans';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, hp, verticalScale} from '../../Utilities/Metrics';
 import ProgramExcercise from './ProgramExcerciseList';
-import {fetchData, postData} from '../../APIServices/api';
-import ENDPOINTS from '../../APIServices/endPoints';
-import {logProfileData} from 'react-native-calendars/src/Profiler';
 
 type WorkoutProgramDetailsProps = {
   onPressBack: () => void;
@@ -111,8 +110,6 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
   const PAGE_SIZE = 20;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [workoutPlan, setworkoutPlan] = useState<[] | null>([]);
   const [isKyeboard, setisKyeboard] = useState(false);
   const [workoutData, setWorkoutData] = useState(null);
   const [isPlanActive, setIsPlanActive] = useState(false);
@@ -558,7 +555,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: horizontalScale(5),
     marginTop: 5,
-    flexWrap: 'wrap',
+    // flexWrap: 'wrap',
+    // flex: 1,
   },
   tag: {
     backgroundColor: COLORS.brown,

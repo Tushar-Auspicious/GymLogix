@@ -23,6 +23,10 @@ const HistoryView: FC<HistoryViewProps> = ({planDayData, dayWorkoutData}) => {
       dayWorkoutData[0].workout_id === item.content.Workout_id,
   );
 
+  console.log('planDayData', planDayData);
+  console.log('dayWorkoutData', dayWorkoutData);
+  console.log('getScheduleHistory', getScheduleHistory);
+
   return (
     <ScrollView
       style={{
@@ -33,9 +37,9 @@ const HistoryView: FC<HistoryViewProps> = ({planDayData, dayWorkoutData}) => {
         rowGap: verticalScale(10),
       }}>
       {getScheduleHistory && getScheduleHistory?.length > 0 ? (
-        getScheduleHistory?.map((item, index) => {
+        getScheduleHistory.map((item, index) => {
           const getScheduleExerciseId =
-            item.content.Exercises.content[0].Exercise_id;
+            item?.content?.Exercises?.content?.[0]?.Exercise_id;
 
           const findScheduleExercise = exerciseData?.find(
             ex => ex.exercise_id === getScheduleExerciseId,
@@ -88,14 +92,18 @@ const HistoryView: FC<HistoryViewProps> = ({planDayData, dayWorkoutData}) => {
                   {findScheduleExercise?.name || 'Unknown'}
                 </CustomText>
                 <CustomText fontFamily="italic" fontSize={14}>
-                  {new Date(item.updated_at).toLocaleString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {(() => {
+                    const date = new Date(item.updated_at);
+                    const weekday = date.toLocaleDateString('en-US', {
+                      weekday: 'short',
+                    });
+                    const day = date.getDate();
+                    const month = date.toLocaleDateString('en-US', {
+                      month: 'short',
+                    });
+                    const year = date.getFullYear();
+                    return `${weekday} ${day} ${month} ${year}`;
+                  })()}
                 </CustomText>
               </View>
             </View>

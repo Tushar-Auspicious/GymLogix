@@ -78,6 +78,8 @@ import Membership1Icon from './membrship1.svg';
 import Membership2Icon from './membership2.svg';
 import Membershi3Icon from './membership3.svg';
 import Membershi4Icon from './membership4.svg';
+import dumbellBlueIcon from './dumbellBlueIcon.svg';
+import dumbellRedWithCalendarIcon from './dumbellRedWithCalendarIcon.svg';
 
 const ICONS = {
   Logo,
@@ -160,6 +162,8 @@ const ICONS = {
   Membership2Icon,
   Membershi3Icon,
   Membershi4Icon,
+  dumbellBlueIcon,
+  dumbellRedWithCalendarIcon,
 };
 
 export default ICONS;

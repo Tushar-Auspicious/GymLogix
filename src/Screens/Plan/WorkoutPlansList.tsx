@@ -46,10 +46,13 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
     const item = planData
       ?.filter(item => item.type === 'workout')
       .map(item => item);
+
+    const showableBannerItem = item?.filter(item => item.title);
+
     return (
       <ImageBackground
         source={{
-          uri: item![0].coverImage,
+          uri: showableBannerItem![0].coverImage,
         }}
         style={styles.bannerImage}
         imageStyle={styles.bannerImageStyle}>
@@ -61,7 +64,10 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
           <TouchableOpacity
             onPress={() => {
               dispatch(
-                setCurrentprogramId(item[0].allData.plan_id || item[0]?.planId),
+                setCurrentprogramId(
+                  showableBannerItem![0].allData.plan_id ||
+                    showableBannerItem![0]?.planId,
+                ),
               );
               dispatch(setActiveWorkoutprogramIndex(2));
             }}
@@ -71,8 +77,8 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
               fontFamily="bold"
               style={styles.bannerText}>
               {`${
-                item![0].allData?.name
-                  ? item![0].allData?.name
+                showableBannerItem![0].allData?.name
+                  ? showableBannerItem![0].allData?.name
                   : 'Full Program Hyper Throphy'
               }`}
             </CustomText>
@@ -96,6 +102,8 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
     return (
       <View style={styles.sectionContainer}>
         {gymPlans.map((item, index) => {
+          console.log('item', item);
+
           return (
             <Pressable
               key={item.id || item.allData?.id + index.toString()}
@@ -119,20 +127,22 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
                     {item.title}
                   </CustomText>
                   <View style={styles.tagContainer}>
-                    {item.tags !== undefined && item.tags.length > 1
+                    {(item.tags && item.tags.length > 0
                       ? item.tags
-                      : item.allData?.content.tags
-                      ? item.allData?.content.tags
-                      : item.allData?.tags.map((tag, index) => (
-                          <CustomText
-                            key={index}
-                            style={styles.tag}
-                            fontFamily="italicBold"
-                            fontSize={12}
-                            color={COLORS.black}>
-                            {tag}
-                          </CustomText>
-                        ))}
+                      : item.allData?.content?.tags &&
+                        item.allData.content.tags.length > 0
+                      ? item.allData.content.tags
+                      : item.allData?.tags
+                    ).map((tag, index) => (
+                      <CustomText
+                        key={index}
+                        style={styles.tag}
+                        fontFamily="italicBold"
+                        fontSize={12}
+                        color={COLORS.black}>
+                        {tag}
+                      </CustomText>
+                    ))}
                   </View>
                 </View>
               </ImageBackground>
@@ -232,7 +242,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
                     fontSize={20}
                     fontFamily="bold"
                     style={styles.programTitle}>
-                    Full Program Hyper Throphy
+                    {item.title}
                   </CustomText>
                   <View style={styles.tagContainer}>
                     {(item.tags !== undefined && item.tags.length > 1

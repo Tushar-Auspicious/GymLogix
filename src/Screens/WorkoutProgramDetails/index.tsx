@@ -30,12 +30,14 @@ import ENDPOINTS from '../../APIServices/endPoints';
 import {ScheduleResponse} from '../../Typings/ApiResponse/ScheduleResponse';
 import {addSchedule} from '../../Redux/slices/ScheduleSlice';
 import {
+  clearDraftWorkout,
   resetWorkout,
   setDraftWorkout,
   setWorkoutProgress,
   setWorkoutTime,
 } from '../../Redux/slices/LogWorkoutSlice';
 import {workoutTimer} from '../../Components/WorkoutTimer';
+import Toast from 'react-native-toast-message';
 
 // Define a type for a Superset
 type Superset = {
@@ -151,6 +153,9 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   const [exerciseLog, setExerciseLog] = useState<any>([]);
   const [scheduleMap, setScheduleMap] = useState<{[key: string]: string}>({});
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [completedExercises, setCompletedExercises] = useState<string[]>([]);
+  // Access isFinish from Redux
+  const isFinish = useAppSelector(state => state.workoutData.isFinish);
 
   const [exerciseTimeInSeconds, setExerciseTimeInSeconds] = useState<
     ExerciseTime[]
@@ -199,7 +204,10 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   // Use the live Redux data instead of static route data
   const day = currentDayData;
 
+  console.log('dayyyy', day[0]);
+
   // // Start timer on mount
+
   useEffect(() => {
     timerRef.current = setInterval(() => {
       setElapsedSeconds(prev => prev + 1);
@@ -443,6 +451,7 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             draftWorkoutData={draftWorkout}
             exerciseTimeInSeconds={exerciseTimeInSeconds}
             setExerciseTimeInSeconds={setExerciseTimeInSeconds}
+            isFinish={isFinish}
           />
         ) : (
           <ExerciseView
@@ -460,6 +469,7 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             programId={programId}
             currentDayIndex={0}
             dayData={day}
+            completedExercises={completedExercises}
           />
         );
       case 2:
@@ -476,6 +486,14 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   };
 
   const renderBottomSection = () => {
+    // compute exists here
+    const exists =
+      selectedExerciseDetails && isFinish[0]?.exercises
+        ? isFinish[0].exercises.some(
+            (ex: any) => ex.exercise_id === selectedExerciseDetails.id,
+          )
+        : false;
+
     return (
       <View style={{alignItems: 'center', gap: verticalScale(10)}}>
         {showExerciseDetail ? (
@@ -491,17 +509,34 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             <PrimaryButton
               title="FINISH EXERCISE"
               onPress={() => {
-                // LOG_EXERCISE();
-                setShowExerciseDetail(false);
+                if (selectedExerciseDetails) {
+                  // Add the exercise name or ID to completedExercises
+                  setCompletedExercises(prev => [
+                    ...prev,
+                    selectedExerciseDetails.name || selectedExerciseDetails.id,
+                  ]);
+                  setShowExerciseDetail(false);
+                }
               }}
               backgroundColor={COLORS.teal}
+              disabled={!exists}
             />
           )
         ) : isSupersetSelected ? (
           <PrimaryButton
             title="FINISH SUPERSET"
             onPress={() => {
-              setIsSupersetSelected(false);
+              if (selectedExerciseDetails) {
+                setExerciseData(prev =>
+                  prev.map(item =>
+                    item.exercise_id === selectedExerciseDetails.exercise_id
+                      ? {...item, isCompleted: true}
+                      : item,
+                  ),
+                );
+              }
+
+              setShowExerciseDetail(false);
             }}
             backgroundColor={COLORS.skyBlue}
           />
@@ -536,43 +571,46 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
               {formatTime(elapsedSeconds)}
             </CustomText>
           </View>
-          <View
-            style={{
-              borderWidth: 1,
-              borderRadius: verticalScale(100),
-              borderColor: COLORS.white,
-              flex: 1,
-              alignItems: 'center',
-              paddingVertical: verticalScale(5),
-              justifyContent: 'space-between',
-              gap: verticalScale(10),
-              overflow: 'hidden',
-            }}>
-            <CustomText fontFamily="bold">Exercise</CustomText>
+          {exerciseTimeInSeconds.length && (
+            <View
+              style={{
+                borderWidth: 1,
+                borderRadius: verticalScale(100),
+                borderColor: COLORS.white,
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: verticalScale(5),
+                justifyContent: 'space-between',
+                gap: verticalScale(10),
+                overflow: 'hidden',
+              }}>
+              <CustomText fontFamily="bold">Exercise</CustomText>
 
-            <FlatList
-              data={exerciseTimeInSeconds}
-              keyExtractor={item => item.exerciseId}
-              horizontal
-              pagingEnabled
-              snapToAlignment="center"
-              snapToInterval={wp(70)}
-              decelerationRate="fast"
-              showsHorizontalScrollIndicator={false}
-              renderItem={({item}) => (
-                <View
-                  style={{
-                    width: wp(70), // adjust width so one takes center space
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}>
-                  <CustomText fontSize={15} color={COLORS.white}>
-                    {formatTime(item.timeInSeconds)}
-                  </CustomText>
-                </View>
-              )}
-            />
-          </View>
+              <FlatList
+                data={exerciseTimeInSeconds}
+                keyExtractor={item => item.exerciseId}
+                horizontal
+                pagingEnabled
+                snapToAlignment="center"
+                snapToInterval={wp(70)}
+                decelerationRate="fast"
+                showsHorizontalScrollIndicator={false}
+                renderItem={({item}) => (
+                  <View
+                    style={{
+                      width:
+                        exerciseTimeInSeconds.length === 1 ? wp(45) : wp(70),
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}>
+                    <CustomText fontSize={15} color={COLORS.white}>
+                      {formatTime(item.timeInSeconds)}
+                    </CustomText>
+                  </View>
+                )}
+              />
+            </View>
+          )}
         </View>
       </View>
     );
@@ -638,12 +676,20 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
 
     // console.log('Last schedule (same plan + workout):', lastSchedule);
 
+    // Filter exercises to ensure they match the current workout_id
+    const currentWorkoutId = day[0]?.workout_id;
+    const filteredExercises = exercises.filter(
+      (ex: any) => ex.workout_id === currentWorkoutId,
+    );
+
     // --- Previous Schedule Data (if exists) ---
     const prevExercises = lastSchedule?.content?.Exercises?.content || [];
     const prevDuration = lastSchedule?.content?.duration || 0;
 
     // Collect exercise IDs from the workout day
-    const getExerciseIDS = exercises.map((item: any) => item.exercise_id);
+    const getExerciseIDS = filteredExercises.map(
+      (item: any) => item.exercise_id,
+    );
 
     // Match them with exercise metadata (for names, muscles, etc.)
     const findTargetedMuscle = exercisesData.exerciseData?.filter(item =>
@@ -659,16 +705,16 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
         previous: formatTime(prevDuration),
       },
       Volume: {
-        current: `${exercises.length} exercises`,
+        current: `${filteredExercises.length} exercises`,
         previous: `${prevExercises.length} exercises`,
       },
       Effort: {
-        current: exercises.length,
+        current: filteredExercises.length,
         previous: prevExercises.length,
       },
       Distance: {
         current:
-          exercises.reduce(
+          filteredExercises.reduce(
             (acc: any, ex: any) =>
               acc +
               ex.sets.reduce(
@@ -689,7 +735,7 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
           ) + ' m',
       },
       Sets: {
-        current: exercises.reduce(
+        current: filteredExercises.reduce(
           (acc: any, ex: any) => acc + (ex.recommendedSets || 0),
           0,
         ),
@@ -699,7 +745,7 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
         ),
       },
       Reps: {
-        current: exercises.reduce(
+        current: filteredExercises.reduce(
           (acc: any, ex: any) => acc + (ex.recommendedReps || 0),
           0,
         ),
@@ -714,18 +760,21 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
 
     // --- Best Records (dynamic) ---
     // Find exercise with max total weight lifted
-    const bestWeightExercise = exercises.reduce((best: any, ex: any) => {
-      const totalWeight = ex.sets.reduce(
-        (acc: number, s: any) => acc + (s.weight || 0) * (s.reps || 0),
-        0,
-      );
-      return totalWeight > (best.totalWeight || 0)
-        ? {...ex, totalWeight}
-        : best;
-    }, {});
+    const bestWeightExercise = filteredExercises.reduce(
+      (best: any, ex: any) => {
+        const totalWeight = ex.sets.reduce(
+          (acc: number, s: any) => acc + (s.weight || 0) * (s.reps || 0),
+          0,
+        );
+        return totalWeight > (best.totalWeight || 0)
+          ? {...ex, totalWeight}
+          : best;
+      },
+      {},
+    );
 
     // Find exercise with max reps achieved
-    const bestRepsExercise = exercises.reduce((best: any, ex: any) => {
+    const bestRepsExercise = filteredExercises.reduce((best: any, ex: any) => {
       const totalReps = ex.sets.reduce(
         (acc: number, s: any) => acc + (s.reps || 0),
         0,
@@ -782,23 +831,13 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   };
 
   const LOG_WORKOUT = async () => {
-    // if (draftWorkout.length === 0) {
-    //   return;
-    // }
-
-    // const getWorkoutData = getTagsData.workouts.find(
-    //   (item: any) => item.name === day[0].day,
-    // );
-
-    // const gettingSetExerciseIds = exerciseWithSetData?.map(
-    //   item => item.exerciseId,
-    // );
-
-    // const getExercisesFinishTime = day.map(dayItem =>
-    //   dayItem.exercises.filter((ex: any) =>
-    //     gettingSetExerciseIds.includes(ex.id),
-    //   ),
-    // );
+    if (draftWorkout.length === 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Please add at least one set',
+      });
+      return;
+    }
 
     const now = new Date(); // current date
     const scheduleDate = new Date(
@@ -897,12 +936,12 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
         dispatch(setWorkoutProgress('done'));
 
         // Optionally, reset after navigation
-        setTimeout(() => {
-          dispatch(resetWorkout());
-        }, 1000); // small delay if you want user to see 'done' status
+
+        dispatch(resetWorkout());
+        dispatch(clearDraftWorkout());
+        setexerciseWithSetData([]);
 
         const day = mapWorkoutResponseToDay(response.data.data);
-
         const workoutResultData = buildWorkoutResultData(day);
 
         navigation.navigate('workoutResult', {
@@ -991,7 +1030,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
           </LinearGradient>
         </ImageBackground>
         {!showExerciseDetail && renderTabs()}
-
         <View style={{flex: 1, paddingBottom: verticalScale(10)}}>
           {renderMainView()}
         </View>

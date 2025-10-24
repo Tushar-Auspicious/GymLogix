@@ -1,13 +1,9 @@
-import React, {
-  FC,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import LottieView from 'lottie-react-native';
+import React, {FC, useCallback, useMemo, useRef, useState} from 'react';
 import {ScrollView, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {fetchData} from '../../APIServices/api';
+import ENDPOINTS from '../../APIServices/endPoints';
 import ICONS from '../../Assets/Icons';
 import AddLogButton from '../../Components/AddLogButton';
 import CalendarList from '../../Components/CalendarList';
@@ -18,18 +14,15 @@ import {
   setHomeActiveIndex,
   setLogMealActiveIndex,
 } from '../../Redux/slices/initialSlice';
+import {setScheduleData} from '../../Redux/slices/ScheduleSlice';
 import {useAppDispatch, useAppSelector} from '../../Redux/store';
 import {HomeTabScreenProps} from '../../Typings/route';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
 import MealLogmenu from './LogMenus/MealLogmenu';
-import NotesLogMenu from './LogMenus/NotesLogMenu';
 import MeasurementlogMenu from './LogMenus/MeasurementlogMenu';
+import NotesLogMenu from './LogMenus/NotesLogMenu';
 import WorkoutMenu from './LogMenus/WorkoutMenu';
-import {fetchData} from '../../APIServices/api';
-import ENDPOINTS from '../../APIServices/endPoints';
-import {setScheduleData} from '../../Redux/slices/ScheduleSlice';
-import LottieView from 'lottie-react-native';
 
 const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
@@ -48,6 +41,10 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const {scheduleData} = useAppSelector(state => state.scheduleData);
   const [selectedItem, setSelectedItem] = useState<string[]>([]);
   const {exerciseData} = useAppSelector(state => state.exerciseData);
+  const {planData} = useAppSelector(state => state.planData);
+  const [expandedNotes, setExpandedNotes] = useState<{[key: string]: boolean}>(
+    {},
+  );
   const {dates, month, homeActiveIndex, logMealActiveIndex, initialIndex} =
     useAppSelector(state => state.initial);
 
@@ -76,6 +73,90 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
       minutes.toString().padStart(2, '0'),
       seconds.toString().padStart(2, '0'),
     ].join(':');
+  };
+
+  const transformDayData = (dayData: any, selectedDay: string) => {
+    // Find the selected workout by name
+    const workout = dayData.content.workouts.find(
+      (w: any) => w.name === selectedDay,
+    );
+
+    if (!workout) {
+      return {
+        day: selectedDay,
+        type: 'Unknown Type',
+        focus: ['General'],
+        color: '#8A2BE2',
+        exercises: [],
+        planData: dayData?.content,
+        coverImage: dayData?.image_url,
+      };
+    }
+
+    // Flatten all workout_exercises only for this day
+    const exercisesFound =
+      workout.exercises?.flatMap((ex: any) => ex.workout_exercises) || [];
+
+    const exerciseIds = exerciseData?.map((ex: any) => ex.exercise_id) || [];
+
+    // Filter only if they exist in master exerciseData
+    const validExercises = exercisesFound.filter((we: any) =>
+      exerciseIds.includes(we.exercise_id),
+    );
+
+    // Map exercises to desired format
+    const exercisesMapped = validExercises.map((ex: any) => {
+      const fullExercise = exerciseData?.find(
+        (e: any) => e.exercise_id === ex.exercise_id,
+      );
+
+      return {
+        id: fullExercise?.id || ex.exercise_id,
+        name: fullExercise?.name || 'Unknown Exercise',
+        coverImage: {
+          uri: fullExercise?.images_urls?.[0] || '',
+          type: 'image/jpeg',
+          fileName: fullExercise?.images_urls?.[0]
+            ? fullExercise.images_urls[0].split('/').pop()
+            : 'default.jpg',
+        },
+        images: fullExercise?.images_urls || [],
+        instruction: fullExercise?.instruction || '',
+        description: fullExercise?.description || '',
+        mainMuscle: fullExercise?.main_muscle || '',
+        secondaryMuscle: fullExercise?.secondary_muscles,
+        targetMuscles: fullExercise?.secondary_muscles,
+        force: fullExercise?.force,
+        location: fullExercise?.mechanics,
+        type: fullExercise?.type,
+        equipment: fullExercise?.equipment,
+
+        //  Add workout-specific info
+        recommendedSets: ex.sets,
+        recommendedReps: ex.reps,
+        timing_warmup: ex.timing_warmup,
+        timing_workset: ex.timing_workset,
+        timing_finish: ex.timing_finish,
+        is_time: ex.Is_time,
+        is_weight: ex.is_weight,
+        is_distance: ex.Is_distance,
+        alternate_exercise_id: ex.alternate_exercise_id,
+      };
+    });
+
+    return {
+      day: workout.name,
+      type: workout?.comments || 'Unknown Type',
+      focus: [
+        ...new Set(
+          exercisesMapped.map((ex: any) => ex.mainMuscle || 'General'),
+        ),
+      ],
+      color: workout?.color || '#8A2BE2',
+      exercises: exercisesMapped,
+      planData: dayData?.content,
+      coverImage: dayData?.image_url,
+    };
   };
 
   const progressLine = () => {
@@ -198,7 +279,31 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
         <PrimaryButton
           title="Continue"
           onPress={() => {
-            dispatch(setHomeActiveIndex(1));
+            if (workoutInProgress === 'inprogress' && workoutInProgressName) {
+              const {planId, dayName} = workoutInProgressName;
+
+              // Find the program
+              const selectedProgram = planData?.find(
+                item => item.allData?.plan_id === planId,
+              );
+
+              if (!selectedProgram) return;
+
+              // Transform the selected day's data
+              const transformedDayData: any = transformDayData(
+                selectedProgram.allData,
+                dayName!,
+              );
+
+              // Navigate to workout details
+              navigation.navigate('workoutProgramDetails', {
+                programId: planId!,
+                day: [transformedDayData],
+                selectedProgram: selectedProgram,
+                ScheduleHistoryData: {},
+                isFrom: false,
+              });
+            }
           }}
           style={{
             alignSelf: 'flex-end',
@@ -238,6 +343,64 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
     }
   };
 
+  // const transformHistoryDayData = (historyItem: any, exerciseData: any) => {
+  //   const loggedExercises = historyItem?.content?.Exercises?.content || [];
+
+  //   console.log('historyItem', historyItem);
+  //   console.log('exerciseData', exerciseData);
+
+  //   // Collect only exercises that actually exist in master list
+  //   const validExercises = loggedExercises
+  //     .map((log: any) => {
+  //       const fullExercise = exerciseData?.find(
+  //         (e: any) => e.exercise_id === log.Exercise_id,
+  //       );
+
+  //       if (!fullExercise) return null;
+
+  //       return {
+  //         id: fullExercise?.id || log.Exercise_id,
+  //         name: fullExercise?.name || 'Unknown Exercise',
+  //         coverImage: {
+  //           uri: fullExercise?.images_urls?.[0] || '',
+  //           type: 'image/jpeg',
+  //           fileName: fullExercise?.images_urls?.[0]
+  //             ? fullExercise.images_urls[0].split('/').pop()
+  //             : 'default.jpg',
+  //         },
+  //         images: fullExercise?.images_urls || [],
+  //         instruction: fullExercise?.instruction || '',
+  //         description: fullExercise?.description || '',
+  //         mainMuscle: fullExercise?.main_muscle || '',
+  //         secondaryMuscle: fullExercise?.secondary_muscles,
+  //         targetMuscles: fullExercise?.secondary_muscles,
+  //         force: fullExercise?.force,
+  //         location: fullExercise?.mechanics,
+  //         type: fullExercise?.type,
+  //         equipment: fullExercise?.equipment,
+
+  //         // history-specific logged info
+  //         completedSets: log.Sets,
+  //         completedReps: log.Reps,
+  //         completedWeight: log.Weight,
+  //         completedTime: log.Time,
+  //       };
+  //     })
+  //     .filter(Boolean);
+
+  //   return {
+  //     day: historyItem.content?.Workout_name || 'Logged Workout',
+  //     type: 'Completed Workout',
+  //     focus: [
+  //       ...new Set(validExercises.map((ex: any) => ex.mainMuscle || 'General')),
+  //     ],
+  //     color: '#8A2BE2',
+  //     exercises: validExercises,
+  //     planData: historyItem?.content,
+  //     coverImage: historyItem?.image_url,
+  //   };
+  // };
+
   const renderHistory = () => {
     if (!filteredSchedule || filteredSchedule.length === 0) {
       return (
@@ -246,43 +409,38 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
         </CustomText>
       );
     }
+
     // Flatten scheduleData so that exercises & parts each become their own row
-    const flattenedData = filteredSchedule.flatMap((item: any) => {
-      if (item.type === 'workout') {
-        return item.content?.Exercises?.content?.map((ex: any) => {
-          const match = exerciseData?.find(
-            (e: any) => e.exercise_id === ex.Exercise_id,
-          );
+    const flattenedData = filteredSchedule
+      .filter(item => item.type === 'workout' || item.type === 'note')
+      .flatMap((item: any) => {
+        if (item.type === 'workout') {
+          return item.content?.Exercises?.content?.map((ex: any) => {
+            const match = exerciseData?.find(
+              (e: any) => e.exercise_id === ex.Exercise_id,
+            );
+            return {
+              ...item,
+              _parentId: item.id || item._id,
+              displayName: match?.name || `Exercise ${ex.Exercise_id}`,
+              type: 'workout',
+            };
+          });
+        }
+
+        if (item.type === 'note') {
           return {
             ...item,
             _parentId: item.id || item._id,
-            displayName: match?.name || `Exercise ${ex.Exercise_id}`,
+            displayName: item.content.notes,
+            type: 'note',
           };
-        });
-      }
+        }
+      });
 
-      if (item.type === 'measurement') {
-        return item.content?.list?.map((p: any) => ({
-          ...item,
-          _parentId: item.id || item._id,
-          displayName: p.part,
-        }));
-      }
-
-      return [
-        {
-          ...item,
-          _parentId: item.id || item._id,
-          displayName: item.content?.name,
-        },
-      ];
-    });
     return (
       <View
-        style={{
-          rowGap: verticalScale(10),
-          paddingBottom: verticalScale(10),
-        }}>
+        style={{rowGap: verticalScale(10), paddingBottom: verticalScale(10)}}>
         <CustomText fontFamily="bold">History</CustomText>
         {flattenedData && flattenedData.length > 0 ? (
           <>
@@ -298,21 +456,44 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
             )}
 
             {flattenedData.map((item: any) => {
-              const itemId = item._parentId; // always use parent id for selection
+              const itemId = item._parentId;
               const isSelected = selectedItem.includes(itemId);
+              const isExpanded = expandedNotes[itemId];
 
               return (
                 <TouchableOpacity
-                  delayLongPress={200} // optional: makes long press feel snappier
+                  delayLongPress={200}
+                  // onPress={() => {
+                  //   if (item.type !== 'workout') return;
+
+                  //   const planID = item.content.plan_id;
+                  //   const selectedProgram = planData?.find(
+                  //     p => p.allData?.plan_id === planID,
+                  //   );
+
+                  //   // build filtered data for this logged day
+                  //   const transformedDayData = transformHistoryDayData(
+                  //     item,
+                  //     exerciseData,
+                  //   );
+
+                  //   console.log('transsssssssss', transformedDayData);
+
+                  //   navigation.navigate('workoutProgramDetails', {
+                  //     programId: planID,
+                  //     day: [transformedDayData], // same structure as transformDayData
+                  //     selectedProgram: selectedProgram,
+                  //     ScheduleHistoryData: item,
+                  //     isFrom: true,
+                  //   });
+                  // }}
                   onLongPress={() => {
-                    setSelectedItem(
-                      prev =>
-                        prev.includes(itemId)
-                          ? prev.filter(id => id !== itemId) // unselect
-                          : [...prev, itemId], // select
+                    setSelectedItem(prev =>
+                      prev.includes(itemId)
+                        ? prev.filter(id => id !== itemId)
+                        : [...prev, itemId],
                     );
                   }}
-                  onPress={() => {}}
                   key={itemId}
                   style={{
                     padding: 10,
@@ -329,6 +510,7 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
                       paddingVertical: verticalScale(10),
                       paddingHorizontal: horizontalScale(10),
                       borderRadius: 10,
+                      alignSelf: 'flex-start',
                     }}>
                     <View
                       style={{
@@ -337,14 +519,14 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
                         justifyContent: 'center',
                         alignItems: 'center',
                         backgroundColor:
-                          item.type === 'food'
+                          item.type === 'note'
                             ? COLORS.darkPink
                             : COLORS.sharpBlue,
                         borderRadius: 100,
                       }}>
                       <CustomIcon
                         Icon={
-                          item.type === 'food'
+                          item.type === 'note'
                             ? ICONS.CalendarWithDumbellIcon
                             : ICONS.DumbellWhiteIcon
                         }
@@ -355,16 +537,36 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
                   </View>
                   <View
                     style={{
+                      flex: 1,
                       gap: verticalScale(5),
                       paddingVertical: verticalScale(2),
-                      flex: 1,
                     }}>
-                    <CustomText
-                      fontFamily="medium"
-                      fontSize={15}
-                      numberOfLines={2}>
-                      {item.displayName}
+                    {/* Note or workout title */}
+                    <CustomText fontFamily="medium" fontSize={15}>
+                      {item.type === 'note' && !isExpanded
+                        ? item.displayName.slice(0, 150) + '...'
+                        : item.displayName}
                     </CustomText>
+
+                    {/* Read More / Read Less for notes */}
+                    {item.type === 'note' && item.displayName.length > 150 && (
+                      <TouchableOpacity
+                        onPress={() =>
+                          setExpandedNotes(prev => ({
+                            ...prev,
+                            [itemId]: !prev[itemId],
+                          }))
+                        }>
+                        <CustomText
+                          fontSize={12}
+                          fontFamily="bold"
+                          style={{color: COLORS.sharpBlue}}>
+                          {isExpanded ? 'Read Less' : 'Read More'}
+                        </CustomText>
+                      </TouchableOpacity>
+                    )}
+
+                    {/* Schedule date/time */}
                     <CustomText fontFamily="italic" fontSize={14}>
                       {new Date(item.schedule_at).toLocaleString('en-US', {
                         weekday: 'short',
@@ -450,7 +652,7 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
       default:
         return <></>;
     }
-  }, [homeActiveIndex, selectedItem, workoutInTime]);
+  }, [homeActiveIndex, selectedItem, workoutInTime, expandedNotes]);
 
   return (
     <View style={styles.main}>

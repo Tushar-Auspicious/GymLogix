@@ -29,6 +29,7 @@ import {
   addExercise,
   ExerciseListItem,
   setActiveStep,
+  updateDayExercises,
 } from '../../../Redux/slices/newWorkoutSlice';
 import {useAppDispatch, useAppSelector} from '../../../Redux/store';
 import {Exercise} from '../../../Seeds/ExerciseCatalog';
@@ -374,12 +375,25 @@ const SelectExercise: FC<{
               exerciseId => !existingExerciseIds.includes(exerciseId),
             ).length;
 
-            if (newlySelectedCount === 0) {
-              return 'Add Exercise';
-            } else if (newlySelectedCount === 1) {
-              return 'Add 1 Exercise';
+            const deselectedCount = existingExerciseIds.filter(
+              exerciseId => !selectedExercises.includes(exerciseId),
+            ).length;
+
+            // If there are changes (additions or removals)
+            if (newlySelectedCount > 0 || deselectedCount > 0) {
+              if (newlySelectedCount > 0 && deselectedCount > 0) {
+                return 'Update Exercises';
+              } else if (newlySelectedCount > 0) {
+                return newlySelectedCount === 1
+                  ? 'Add 1 Exercise'
+                  : `Add ${newlySelectedCount} Exercises`;
+              } else {
+                return deselectedCount === 1
+                  ? 'Remove 1 Exercise'
+                  : `Remove ${deselectedCount} Exercises`;
+              }
             } else {
-              return `Add ${newlySelectedCount} Exercises`;
+              return 'Back';
             }
           })()}
           onPress={() => {
@@ -388,24 +402,41 @@ const SelectExercise: FC<{
               selectedDayForAddExercise,
             );
 
-            // Find only the newly selected exercises (not the ones that were already there)
+            // Find newly selected exercises (to add)
             const newlySelectedExerciseIds = selectedExercises.filter(
               exerciseId => !existingExerciseIds.includes(exerciseId),
             );
 
-            // Only add the newly selected exercises
-            if (newlySelectedExerciseIds.length > 0) {
-              dispatch(
-                addExercise({
-                  id: selectedDayForAddExercise!.id,
-                  exercises: allExercises.filter(exercise =>
-                    newlySelectedExerciseIds.includes(exercise.id),
-                  ),
-                }),
-              );
-            }
+            // Find deselected exercises (to remove)
+            const deselectedExerciseIds = existingExerciseIds.filter(
+              exerciseId => !selectedExercises.includes(exerciseId),
+            );
 
-            dispatch(setActiveStep(activeStep - 1));
+            // If there are changes (additions or removals), update the day's exercises
+            if (
+              newlySelectedExerciseIds.length > 0 ||
+              deselectedExerciseIds.length > 0
+            ) {
+              // Get all exercises that should be in the final list
+              const finalExerciseIds = selectedExercises;
+              const finalExercises = allExercises.filter(exercise =>
+                finalExerciseIds.includes(exercise.id),
+              );
+
+              // Update the entire exercise list for the day ̰
+
+              // Only add the newly selected exercises
+              if (newlySelectedExerciseIds.length > 0) {
+                dispatch(
+                  updateDayExercises({
+                    id: selectedDayForAddExercise!.id,
+                    exercises: finalExercises,
+                  }),
+                );
+              }
+
+              dispatch(setActiveStep(activeStep - 1));
+            }
           }}
           disabled={false} // Always allow going back
         />

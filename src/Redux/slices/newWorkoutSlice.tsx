@@ -152,6 +152,19 @@ export const NewWorkoutSlice = createSlice({
         }),
       );
     },
+    updateDayExercises: (
+      state,
+      action: PayloadAction<{id: string; exercises: Exercise[]}>,
+    ) => {
+      state.workoutData.exerciseList = state.workoutData.exerciseList.map(day =>
+        day.id === action.payload.id
+          ? {
+              ...day,
+              exercise: action.payload.exercises,
+            }
+          : day,
+      );
+    },
     updateExercise: (state, action: PayloadAction<Exercise>) => {
       state.workoutData.exerciseList = state.workoutData.exerciseList.map(
         day => ({
@@ -354,6 +367,7 @@ export const {
   addDay,
   removeDay,
   addExercise,
+  updateDayExercises,
   removeExercise,
   updateExercise,
   updateExerciseOrder,

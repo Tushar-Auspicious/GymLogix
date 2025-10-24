@@ -22,11 +22,7 @@ import CustomIcon from '../../../Components/CustomIcon';
 import PickerComponent from '../../../Components/CustomPIcker';
 import {CustomText} from '../../../Components/CustomText';
 import PrimaryButton from '../../../Components/PrimaryButton';
-import {
-  SetDetail,
-  WorkoutDay,
-  workoutHistory,
-} from '../../../Seeds/TrainingPLans';
+import {SetDetail} from '../../../Seeds/TrainingPLans';
 import COLORS from '../../../Utilities/Colors';
 import {
   calculate1RM,
@@ -52,6 +48,7 @@ import {
   setDraftWorkout,
   updateExercise,
 } from '../../../Redux/slices/LogWorkoutSlice';
+import {updateIsFinish} from '../../../Redux/slices/workoutDataSlice';
 
 // Extended SetDetail interface to support drop sets
 export interface ExtendedSetDetail extends SetDetail {
@@ -140,12 +137,12 @@ const ExerciseDetails: FC<{
     null,
   );
   const [setsTab, setSetsTab] = useState(1);
-  // State for managing newly added sets that should appear at the top of all tabs
-  const [addedSets, setAddedSets] = useState<ExtendedSetDetail[]>([]);
   // State for managing the selected difficulty for new sets
   const [selectedDifficulty, setSelectedDifficulty] = useState<
     'Warmup' | 'Easy' | 'Medium' | 'Hard'
   >('Medium');
+
+  const isFinish = useAppSelector(state => state.workoutData.isFinish);
 
   // State to store current picker values
   const [currentPickerValues, setCurrentPickerValues] = useState({
@@ -221,7 +218,53 @@ const ExerciseDetails: FC<{
     return filteredData;
   };
 
-  const filteredWorkoutData = getFilteredDraftWorkoutData();
+  // Memoize filteredWorkoutData
+  const filteredWorkoutData = useMemo(
+    () => getFilteredDraftWorkoutData(),
+    [
+      draftWorkoutData, // Add other dependencies as needed
+    ],
+  );
+
+  useEffect(() => {
+    if (filteredWorkoutData.length > 0) {
+      const updated = [...isFinish]; // Clone current isFinish from Redux
+
+      filteredWorkoutData.forEach(newWorkout => {
+        const existingWorkoutIndex = updated.findIndex(
+          w => w.workoutPlanId === newWorkout.workoutPlanId,
+        );
+
+        if (existingWorkoutIndex !== -1) {
+          const existingExercises =
+            updated[existingWorkoutIndex].exercises || [];
+          const mergedExercises = [...existingExercises];
+
+          newWorkout.exercises.forEach((newEx: any) => {
+            const exIndex = mergedExercises.findIndex(
+              ex => ex.exercise_id === newEx.exercise_id,
+            );
+
+            if (exIndex !== -1) {
+              mergedExercises[exIndex] = newEx;
+            } else {
+              mergedExercises.push(newEx);
+            }
+          });
+
+          updated[existingWorkoutIndex] = {
+            ...updated[existingWorkoutIndex],
+            exercises: mergedExercises,
+          };
+        } else {
+          updated.push(newWorkout);
+        }
+      });
+
+      // Dispatch the updated isFinish to Redux
+      dispatch(updateIsFinish(updated));
+    }
+  }, [filteredWorkoutData]);
 
   const getScheduleHistory: any = scheduleData?.filter(
     item =>
@@ -516,6 +559,7 @@ const ExerciseDetails: FC<{
       schedule: typeof scheduleData,
       targetExercise: typeof exerciseData,
     ) => {
+      if (!schedule) return [];
       return schedule
         .flatMap(item => {
           const date = item.schedule_at;
@@ -555,10 +599,12 @@ const ExerciseDetails: FC<{
         style={{
           rowGap: verticalScale(10),
           flex: 1,
+          paddingHorizontal: horizontalScale(12),
         }}>
         <FlatList
           data={allExercisesHistory}
           contentContainerStyle={{gap: verticalScale(10)}}
+          showsVerticalScrollIndicator={false}
           renderItem={({item}) => {
             return (
               <View
@@ -609,32 +655,55 @@ const ExerciseDetails: FC<{
                       {item.name}
                     </CustomText>
                     <CustomText fontFamily="italic" fontSize={12}>
-                      {item.date}
+                      {new Date(item.date)
+                        .toLocaleString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false,
+                        })
+                        .replace(/,/g, '')}
                     </CustomText>
                   </View>
                 </View>
 
-                {/* <View
+                <View
                   style={{
                     gap: verticalScale(6),
                     paddingHorizontal: horizontalScale(10),
                   }}>
-                  {item.details.map((exercise: any, index: any) => (
-                    <View
-                      key={exercise.time + index.toString()}
-                      style={{
-                        flexDirection: 'row',
-                        gap: horizontalScale(5),
-                      }}>
-                      <CustomText
-                        fontFamily="medium"
-                        fontSize={13}
-                        color={COLORS.whiteTail}>
-                        {` ${exercise.reps} `}
-                      </CustomText>
-                    </View>
-                  ))}
-                </View> */}
+                  {item.details.map((exercise: any, index: any) => {
+                    const minutes = Math.floor(exercise.time / 60);
+                    const seconds = exercise.time % 60;
+                    const formattedTime = `${String(minutes).padStart(
+                      2,
+                      '0',
+                    )}:${String(seconds).padStart(2, '0')}`;
+
+                    return (
+                      <View
+                        key={exercise.time + index.toString()}
+                        style={{
+                          flexDirection: 'row',
+                          gap: horizontalScale(5),
+                        }}>
+                        <CustomText
+                          fontFamily="medium"
+                          fontSize={13}
+                          color={COLORS.whiteTail}>
+                          {`${index + 1}. ${exercise.weight}${
+                            exercise.weight_type
+                          } ${exercise.distance}m ${formattedTime} x${
+                            exercise.reps
+                          }`}
+                        </CustomText>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
             );
           }}
@@ -786,106 +855,83 @@ const ExerciseDetails: FC<{
       dropSets: [],
     };
 
-    setAddedSets(prevSets => {
-      // Initialize updatedExerciseWithSetData as an array
-      const updatedExerciseWithSetData = exerciseWithSetData
-        ? [...exerciseWithSetData]
-        : [];
-      const exerciseIndex = updatedExerciseWithSetData.findIndex(
-        exercise => exercise.exerciseId === exerciseData.id,
+    // Find existing exercise in Redux store
+    const existingWorkout = draftWorkout.find(
+      w => w.workoutPlanId === planId && w.workoutId === workoutId,
+    );
+    const existingExercise = existingWorkout?.exercises.find(
+      ex => ex.exercise_id === exerciseData.id,
+    );
+
+    // Combine existing sets from Redux with new set or drop set
+    let combinedSetsData: SetData[];
+    if (isDropSet && existingExercise && existingExercise.setsData.length > 0) {
+      combinedSetsData = existingExercise.setsData.map((set, index) =>
+        index === 0
+          ? {...set, dropSets: [...(set.dropSets || []), newSet]}
+          : set,
       );
+    } else {
+      combinedSetsData = existingExercise
+        ? [...existingExercise.setsData, newSet]
+        : [newSet];
+    }
 
-      // Ensure prevSets is an array, default to empty array if null/undefined
-      const safePrevSets = prevSets || [];
-      let updatedSets: ExtendedSetDetail[];
+    const newExerciseLog: ExerciseLog = {
+      exercise_id: exerciseData.id,
+      setsData: combinedSetsData,
+      isDropSet: isDropSet,
+      logTime: formatDateTime(getDate),
+    };
 
-      if (isDropSet && safePrevSets.length > 0) {
-        // Handle drop set
-        updatedSets = [...safePrevSets];
-        const lastSetIndex = 0; // Last created set is at index 0
+    // Update local state to match Redux
+    const updatedExerciseWithSetData = exerciseWithSetData
+      ? [...exerciseWithSetData]
+      : [];
+    const exerciseIndex = updatedExerciseWithSetData.findIndex(
+      exercise => exercise.exerciseId === exerciseData.id,
+    );
 
-        if (updatedSets[lastSetIndex].dropSets) {
-          updatedSets[lastSetIndex].dropSets!.push(newSet);
-        } else {
-          updatedSets[lastSetIndex].dropSets = [newSet];
-        }
-      } else {
-        // Add as a new regular set
-        updatedSets = [newSet, ...safePrevSets];
-      }
-      // Find existing exercise in Redux store
-      const existingWorkout = draftWorkout.find(
-        w => w.workoutPlanId === planId && w.workoutId === workoutId,
-      );
-      const existingExercise = existingWorkout?.exercises.find(
-        ex => ex.exercise_id === exerciseData.id,
-      );
-
-      // Combine existing sets from Redux with new set or drop set
-      let combinedSetsData: SetData[];
-      if (
-        isDropSet &&
-        existingExercise &&
-        existingExercise.setsData.length > 0
-      ) {
-        combinedSetsData = existingExercise.setsData.map((set, index) =>
-          index === 0
-            ? {...set, dropSets: [...(set.dropSets || []), newSet]}
-            : set,
-        );
-      } else {
-        combinedSetsData = existingExercise
-          ? [...existingExercise.setsData, newSet]
-          : [newSet];
-      }
-
-      const newExerciseLog: ExerciseLog = {
-        exercise_id: exerciseData.id,
+    if (exerciseIndex >= 0) {
+      // Update existing exercise
+      updatedExerciseWithSetData[exerciseIndex] = {
+        exerciseId: exerciseData.id,
         setsData: combinedSetsData,
         isDropSet: isDropSet,
         logTime: formatDateTime(getDate),
       };
+    } else {
+      // Create new exercise entry
+      updatedExerciseWithSetData.push({
+        exerciseId: exerciseData.id,
+        setsData: combinedSetsData,
+        isDropSet: isDropSet,
+        logTime: formatDateTime(getDate),
+      });
+    }
 
-      if (exerciseIndex >= 0) {
-        // Update existing exercise
-        updatedExerciseWithSetData[exerciseIndex] = {
-          exerciseId: exerciseData.id,
-          setsData: combinedSetsData,
-          isDropSet: isDropSet,
-          logTime: formatDateTime(getDate),
-        };
-      } else {
-        // Create new exercise entry
-        updatedExerciseWithSetData.push({
-          exerciseId: exerciseData.id,
-          setsData: combinedSetsData,
-          isDropSet: isDropSet,
-          logTime: formatDateTime(getDate),
-        });
-      }
+    setexerciseWithSetData(updatedExerciseWithSetData);
 
-      setexerciseWithSetData(updatedExerciseWithSetData);
+    // Update Redux store
+    if (!existingWorkout) {
+      dispatch(
+        setDraftWorkout({
+          workoutPlanId: planId,
+          workoutId: workoutId,
+          exercises: [newExerciseLog],
+        }),
+      );
+    } else {
+      dispatch(
+        updateExercise({
+          ...newExerciseLog,
+          workoutPlanId: planId,
+          workoutId: workoutId,
+        }),
+      );
+    }
 
-      if (!existingWorkout) {
-        dispatch(
-          setDraftWorkout({
-            workoutPlanId: planId,
-            workoutId: workoutId,
-            exercises: [newExerciseLog],
-          }),
-        );
-      } else {
-        dispatch(
-          updateExercise({
-            ...newExerciseLog,
-            workoutPlanId: planId,
-            workoutId: workoutId,
-          }),
-        );
-      }
-
-      return updatedSets;
-    });
+    // Redux is now the single source of truth for sets
 
     // Close the AddSetUI
     setShowAddSetUi(false);
@@ -1063,11 +1109,8 @@ const ExerciseDetails: FC<{
         break;
     }
 
-    // Combine added sets (at the top) with historical sets
-    const combinedSets = [...addedSets, ...historicalSets];
-
-    // Return combined sets, or null if no sets exist
-    return combinedSets.length > 0 ? combinedSets : null;
+    // Return historical sets only (Redux is now the single source of truth)
+    return historicalSets.length > 0 ? historicalSets : null;
   };
 
   const renderSets = () => {
@@ -1335,10 +1378,7 @@ const ExerciseDetails: FC<{
                 Distance:
                   set.distance || (set.reps.includes('m') ? set.reps : '123m'), // Use distance field if available, otherwise fallback to reps if it contains 'm', otherwise use default
                 Weight: set.weight,
-                Time:
-                  index < addedSets.length
-                    ? formatTimeForDisplay(set.time)
-                    : set.time, // Format time as MM:SS for newly added sets, keep original format for historical sets
+                Time: formatTimeForDisplay(set.time), // Always format time consistently
                 difficulty:
                   set.difficulty ||
                   (index === 0
@@ -1348,10 +1388,10 @@ const ExerciseDetails: FC<{
                     : index === 2
                     ? 'Medium'
                     : 'Hard'), // Add default difficulty if not present
-                isNewlyAdded: index < addedSets.length, // Mark if this is a newly added set
+                isNewlyAdded: false, // All sets are now from Redux, no distinction needed
                 dropSets: set.dropSets?.map(dropSet => ({
                   ...dropSet,
-                  time: formatTimeForDisplay(dropSet.time), // Format drop set time as MM:SS
+                  time: formatTimeForDisplay(dropSet.time), // Format drop set time consistently
                 })),
               })) ?? []
             }

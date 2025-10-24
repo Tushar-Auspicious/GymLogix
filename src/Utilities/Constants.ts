@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   localExerciseCatalog: `localExerciseCatalog`,
   customExercise: `customExercise`,
   localInsight: 'localInsight',
+  exerciseOrder: `exerciseOrder`,
 };
 
 export default STORAGE_KEYS;
