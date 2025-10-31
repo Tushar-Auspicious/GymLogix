@@ -420,9 +420,17 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
       );
     }
 
+    console.log('FILTERS', filteredSchedule);
+
     // Flatten scheduleData so that exercises & parts each become their own row
     const flattenedData = filteredSchedule
-      .filter(item => item.type === 'workout' || item.type === 'note')
+      .filter(
+        item =>
+          item.type === 'workout' ||
+          item.type === 'note' ||
+          item.type === 'measurement' ||
+          item.type === 'food',
+      )
       .flatMap((item: any) => {
         if (item.type === 'workout') {
           return item.content?.Exercises?.content?.map((ex: any) => {
@@ -446,6 +454,30 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
             type: 'note',
           };
         }
+        if (item.type === 'measurement') {
+          // Example: flatten each body part measurement as its own row
+          return item.content?.list?.map((m: any) => ({
+            ...item,
+            _parentId: item._id || item.id,
+            displayName: `${m.part}: ${m.amount} ${m.unit}`,
+            type: 'measurement',
+          }));
+        }
+
+        if (item.type === 'food') {
+          // ✅ Flatten food entry as a single item
+          const {name, calories, carbs, protein, fat} = item.content || {};
+          return [
+            {
+              ...item,
+              _parentId: item.id || item._id,
+              displayName: `${name} `,
+              type: 'food',
+            },
+          ];
+        }
+
+        return [];
       });
 
     return (
@@ -627,6 +659,8 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
                         backgroundColor:
                           item.type === 'note'
                             ? COLORS.darkPink
+                            : item.type === 'food'
+                            ? COLORS.darkPink
                             : COLORS.sharpBlue,
                         borderRadius: 100,
                       }}>
@@ -634,6 +668,10 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
                         Icon={
                           item.type === 'note'
                             ? ICONS.CalendarWithDumbellIcon
+                            : item.type === 'food'
+                            ? ICONS.mealIcon
+                            : item.type === 'measurement'
+                            ? ICONS.MeasurementLogIcon
                             : ICONS.DumbellWhiteIcon
                         }
                         height={18}

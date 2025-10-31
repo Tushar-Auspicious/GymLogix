@@ -80,14 +80,10 @@ const MealDetails: FC<MealDetailScreenProps> = ({navigation, route}) => {
       ),
     );
 
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-
     const data = {
       type: 'food',
       status: 'done',
-      schedule_at: yesterday.toISOString(),
+      schedule_at: scheduleDate.toISOString(),
       content: {
         plan_id: findPlan?.allData?.plan_id ? findPlan?.allData?.plan_id : '',
         name: meal?.title,

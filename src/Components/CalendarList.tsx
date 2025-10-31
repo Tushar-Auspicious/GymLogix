@@ -141,6 +141,20 @@ const DayCard = React.memo(
                   height={15}
                 />
               )}
+              {activityIndicators.hasMeasurement && (
+                <View style={styles.mealStyle}>
+                  <CustomIcon
+                    Icon={ICONS.MeasurementLogIcon}
+                    width={12}
+                    height={12}
+                  />
+                </View>
+              )}
+              {activityIndicators.hasMeal && (
+                <View style={styles.mealStyle}>
+                  <CustomIcon Icon={ICONS.mealIcon} width={12} height={12} />
+                </View>
+              )}
             </View>
           )}
         </Animated.View>
@@ -394,7 +408,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 8,
     width: ITEM_WIDTH,
-    height: hp(9),
+    height: hp(10.3),
     alignItems: 'center',
     marginHorizontal: ITEM_MARGIN,
     gap: verticalScale(5),
@@ -409,6 +423,12 @@ const styles = StyleSheet.create({
     gap: 1,
     maxWidth: ITEM_WIDTH - 8,
     width: '100%',
+  },
+  mealStyle: {
+    backgroundColor: COLORS.darkPink,
+    borderRadius: 100,
+    paddingVertical: verticalScale(2),
+    paddingHorizontal: horizontalScale(2),
   },
 });
 
