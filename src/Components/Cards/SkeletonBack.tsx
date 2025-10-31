@@ -58,8 +58,6 @@ const SkeletonBack: FC<SkeletonBackProps> = ({
     return Number((total / oneRMValues.length).toFixed(2));
   }
 
-  console.log('BACKMUSCLE', backMusclesData);
-
   return (
     <View
       style={[

@@ -1,5 +1,11 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {FlatList, StyleSheet, TouchableOpacity, View} from 'react-native';
+import {
+  BackHandler,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Animated, {useAnimatedStyle, withSpring} from 'react-native-reanimated';
 import ICONS from '../Assets/Icons';
 import {
@@ -12,6 +18,7 @@ import COLORS from '../Utilities/Colors';
 import {horizontalScale, hp, verticalScale} from '../Utilities/Metrics';
 import CustomIcon from './CustomIcon';
 import {CustomText} from './CustomText';
+import {useNavigation} from '@react-navigation/native';
 
 export interface DayItem {
   day: string;
@@ -145,6 +152,7 @@ const DayCard = React.memo(
 const CalendarList = () => {
   const flatListRef = useRef<FlatList<DayItem>>(null);
   const dispatch = useAppDispatch();
+  const navigation = useNavigation();
   const {dates, initialIndex, homeActiveIndex} = useAppSelector(
     state => state.initial,
   );
@@ -186,12 +194,17 @@ const CalendarList = () => {
   const onPressDate = (item: DayItem) => {
     const index = dates.findIndex(d => d.timestamp === item.timestamp);
     if (index !== -1) {
-      dispatch(setInitialIndex(index));
-      flatListRef.current?.scrollToIndex({
-        index,
-        animated: true,
-        viewPosition: 0.5,
-      });
+      // If same date is clicked again → unselect
+      if (initialIndex === index) {
+        dispatch(setInitialIndex(-1)); // reset selection
+      } else {
+        dispatch(setInitialIndex(index));
+        flatListRef.current?.scrollToIndex({
+          index,
+          animated: true,
+          viewPosition: 0.5,
+        });
+      }
     }
   };
 

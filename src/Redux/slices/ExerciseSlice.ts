@@ -19,8 +19,17 @@ const exerciseSlice = createSlice({
     updateExerciseOrder(state, action: PayloadAction<ExerciseAPIData[]>) {
       state.exerciseData = action.payload;
     },
+    deleteMultipleExercises(state, action: PayloadAction<number[]>) {
+      const idsToDelete = action.payload;
+      if (state.exerciseData) {
+        state.exerciseData = state.exerciseData.filter(
+          (exercise: any) => !idsToDelete.includes(exercise.id),
+        );
+      }
+    },
   },
 });
 
-export const {setExerciseData, updateExerciseOrder} = exerciseSlice.actions;
+export const {setExerciseData, updateExerciseOrder, deleteMultipleExercises} =
+  exerciseSlice.actions;
 export default exerciseSlice.reducer;

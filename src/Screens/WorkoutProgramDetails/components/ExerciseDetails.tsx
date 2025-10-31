@@ -49,6 +49,7 @@ import {
   updateExercise,
 } from '../../../Redux/slices/LogWorkoutSlice';
 import {updateIsFinish} from '../../../Redux/slices/workoutDataSlice';
+import IMAGES from '../../../Assets/Images';
 
 // Extended SetDetail interface to support drop sets
 export interface ExtendedSetDetail extends SetDetail {
@@ -116,6 +117,9 @@ const ExerciseDetails: FC<{
   >;
   exerciseTimeInSeconds: any;
   setExerciseTimeInSeconds: any;
+  hideButton: boolean;
+  ScheduleHistoryData: string;
+  setsData: any;
 }> = ({
   exerciseData,
   showAddSetUi,
@@ -127,6 +131,9 @@ const ExerciseDetails: FC<{
   draftWorkoutData,
   exerciseTimeInSeconds,
   setExerciseTimeInSeconds,
+  hideButton,
+  ScheduleHistoryData,
+  setsData,
 }) => {
   const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState(1);
@@ -271,29 +278,63 @@ const ExerciseDetails: FC<{
       item.type === 'workout' &&
       item.content.plan_id === planDayData.allData.plan_id &&
       item.content.Workout_id === dayData[0].workout_id &&
-      item.content.Exercises.content.some(
-        (ex: any) => ex.Exercise_id === exerciseData.exercise_id,
-      ),
+      item.content.Exercises.content.some((ex: any) => {
+        const targetId = exerciseData.exercise_id ?? exerciseData.id;
+        return targetId != null && ex.Exercise_id === targetId;
+      }),
   );
 
   const muscleData = useMemo(() => {
-    const muscleCount: {[key: string]: number} = {};
-    let totalMuscleMentions = 0;
+    const main = exerciseData?.targetMuscles || [];
+    const secondary =
+      exerciseData?.secondary_muscles || exerciseData?.secondaryMuscle || [];
+    const all = [...main, ...secondary].filter(Boolean);
 
-    getTargetMuscles(exerciseData)?.forEach((muscle: any) => {
-      muscleCount[muscle] = (muscleCount[muscle] || 0) + 1;
-      totalMuscleMentions++;
+    if (all.length === 0) return [];
+
+    const count: Record<string, number> = {};
+    all.forEach(m => {
+      const key = m.toString().toLowerCase().trim();
+      count[key] = (count[key] || 0) + 1;
     });
 
-    const muscles: MuscleData[] = Object.keys(muscleCount).map(muscle => ({
-      name: muscle,
-      percentage: totalMuscleMentions
-        ? Math.round((muscleCount[muscle] / totalMuscleMentions) * 100)
-        : 0,
-    }));
+    return Object.keys(count)
+      .map(name => ({
+        name,
+        percentage: Math.round((count[name] / all.length) * 100),
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
+  }, [
+    exerciseData?.targetMuscles,
+    exerciseData?.secondary_muscles,
+    exerciseData?.secondaryMuscle,
+  ]);
 
-    return muscles.sort((a, b) => b.percentage - a.percentage);
-  }, [exerciseData]);
+  const normalizeMuscleKey = (name: string) => {
+    return name
+      .toLowerCase() // make all lowercase first
+      .split(' ') // split on spaces
+      .map((word, index) =>
+        index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
+      ) // capitalize subsequent words
+      .join(''); // join without spaces
+  };
+
+  const MuscleImages: {[key: string]: any} = {
+    adductors: IMAGES.adductors,
+    back: IMAGES.back,
+    biceps: IMAGES.biceps,
+    calf: IMAGES.calf,
+    forearms: IMAGES.foreArms,
+    glutes: IMAGES.glutes,
+    hamstrings: IMAGES.hamstrings,
+    quads: IMAGES.quads,
+    shoulders: IMAGES.shouder,
+    traps: IMAGES.traps,
+    tricpes: IMAGES.tricpes,
+    twins: IMAGES.twins,
+    lowerBack: IMAGES.glutes,
+  };
 
   const renderTabs = () => {
     return (
@@ -325,9 +366,65 @@ const ExerciseDetails: FC<{
       // add more mappings if needed
     };
 
-    const selectedMuscles = exerciseData.secondary_muscles
-      ?.map((m: string) => muscleMap[m.toLowerCase().trim()])
-      .filter(Boolean);
+    const selectedMuscles = exerciseData?.secondary_muscles?.length
+      ? exerciseData.secondary_muscles
+          .map(
+            (m: string) =>
+              muscleMap[m.toLowerCase().trim()] || m.toLowerCase().trim(),
+          )
+          .filter(Boolean)
+      : exerciseData?.secondaryMuscle
+          ?.map(
+            (m: string) =>
+              muscleMap[m.toLowerCase().trim()] || m.toLowerCase().trim(),
+          )
+          .filter(Boolean);
+
+    console.log('exercise', exerciseData);
+
+    const getExerciseImageUri = (exerciseData: any) => {
+      if (
+        Array.isArray(exerciseData?.images_urls) &&
+        exerciseData.images_urls.length > 0
+      ) {
+        return exerciseData.images_urls[0];
+      }
+
+      if (
+        Array.isArray(exerciseData?.images) &&
+        exerciseData.images.length > 0
+      ) {
+        const firstImage = exerciseData.images[0];
+        if (typeof firstImage === 'string') return firstImage;
+        if (firstImage?.uri) return firstImage.uri;
+      }
+
+      return 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop';
+    };
+
+    const imageUri = getExerciseImageUri(exerciseData);
+
+    const getMainExerciseImage = (exerciseData: any) => {
+      if (
+        Array.isArray(exerciseData?.images_urls) &&
+        exerciseData.images_urls.length > 0
+      ) {
+        return exerciseData.images_urls[0];
+      }
+
+      if (
+        Array.isArray(exerciseData?.images) &&
+        exerciseData.images.length > 0
+      ) {
+        const firstImage = exerciseData.images[0];
+        if (typeof firstImage === 'string') return firstImage;
+        if (firstImage?.uri) return firstImage.uri;
+      }
+
+      return 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop';
+    };
+
+    const mainImageUri = getMainExerciseImage(exerciseData);
 
     return (
       <ScrollView
@@ -350,7 +447,9 @@ const ExerciseDetails: FC<{
             fontFamily="italicBold"
             fontSize={14}
             color={COLORS.whiteTail}>
-            {exerciseData?.mechanics}
+            {exerciseData?.mechanics
+              ? exerciseData?.mechanics
+              : exerciseData?.location}
           </CustomText>
           <CustomText
             style={styles.tag}
@@ -368,20 +467,15 @@ const ExerciseDetails: FC<{
           </CustomText>
         </View>
         <FlatList
-          data={
-            exerciseData.images_urls[0] ||
-            'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
-          }
+          data={[imageUri]}
           horizontal
           contentContainerStyle={{gap: horizontalScale(10)}}
-          renderItem={() => {
+          renderItem={item => {
             return (
               <View style={{flexDirection: 'row', gap: horizontalScale(10)}}>
                 <Image
                   source={{
-                    uri:
-                      exerciseData.images_urls[0] ||
-                      'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                    uri: item.item,
                   }}
                   style={{
                     height: 120,
@@ -395,11 +489,7 @@ const ExerciseDetails: FC<{
           }}
         />
         <Image
-          source={{
-            uri:
-              exerciseData.images_urls[0] ||
-              'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-          }}
+          source={{uri: mainImageUri}}
           style={{height: hp(40), width: wp(90), borderRadius: 20}}
         />
 
@@ -467,7 +557,10 @@ const ExerciseDetails: FC<{
                 width={wp(45)}
                 height={verticalScale(230)}
                 containerWidth={wp(45)}
-                selectedMuscles={exerciseData.main_muscle.toLowerCase()}
+                selectedMuscles={(exerciseData?.main_muscle
+                  ? exerciseData?.main_muscle
+                  : exerciseData?.mainMuscle
+                ).toLowerCase()}
                 viewBox="0 30 369 70"
                 bodyChart={() => {}}
                 frontMusclesData={() => {}}
@@ -485,7 +578,10 @@ const ExerciseDetails: FC<{
                 width={wp(45)}
                 height={verticalScale(230)}
                 containerWidth={wp(45)}
-                selectedMuscles={exerciseData.main_muscle.toLowerCase()}
+                selectedMuscles={(exerciseData?.main_muscle
+                  ? exerciseData?.main_muscle
+                  : exerciseData?.mainMuscle
+                ).toLowerCase()}
                 viewBox="0 30 369 70"
                 bodyChart={() => {}}
                 backMusclesData={() => {}}
@@ -560,15 +656,20 @@ const ExerciseDetails: FC<{
       targetExercise: typeof exerciseData,
     ) => {
       if (!schedule) return [];
-      return schedule
-        .flatMap(item => {
-          const date = item.schedule_at;
 
-          // Find only matching exercises
+      // Step 1: Get raw history (your original logic)
+      let history = schedule
+        .flatMap(item => {
+          const date = item.schedule_at || item.updated_at;
+
           return item.content.Exercises.content
-            .filter((ex: any) => ex.Exercise_id === targetExercise.exercise_id)
+            .filter(
+              (ex: any) =>
+                ex.Exercise_id ===
+                (targetExercise.exercise_id ?? targetExercise.id),
+            )
             .map((exercise: any) => ({
-              name: targetExercise.name, // use the dynamic exercise data
+              name: targetExercise.name,
               date,
               details: exercise.Set.map((set: any) => ({
                 weight: set.weight,
@@ -585,14 +686,31 @@ const ExerciseDetails: FC<{
         })
         .sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-        ); // sort by date descending
+        );
+
+      // Step 2: Apply date filter ONLY if ScheduleHistoryData is provided
+      if (hideButton === true && ScheduleHistoryData) {
+        const targetDate = ScheduleHistoryData.split('T')[0];
+
+        history = history.filter(item => {
+          const itemDate = (item.date || '').split('T')[0];
+          return itemDate === targetDate;
+        });
+      }
+
+      return history;
     };
 
-    // Step 3: Generate the history
+    // Generate the history using your ORIGINAL getScheduleHistory
     const allExercisesHistory = buildWorkoutHistoryForExercise(
       getScheduleHistory,
       exerciseData,
     );
+
+    // Custom "No history" message
+    const noHistoryMsg = ScheduleHistoryData
+      ? `No history for ${new Date(ScheduleHistoryData).toLocaleDateString()}`
+      : 'No history available for now';
 
     return (
       <View
@@ -628,26 +746,16 @@ const ExerciseDetails: FC<{
                       height: 35,
                       justifyContent: 'center',
                       alignItems: 'center',
-                      backgroundColor:
-                        item.type === 'food'
-                          ? COLORS.darkPink
-                          : COLORS.sharpBlue,
+                      backgroundColor: COLORS.sharpBlue,
                       borderRadius: 100,
                     }}>
                     <CustomIcon
-                      Icon={
-                        item.type === 'food'
-                          ? ICONS.CalendarWithDumbellIcon
-                          : ICONS.DumbellWhiteIcon
-                      }
+                      Icon={ICONS.DumbellWhiteIcon}
                       height={27}
                       width={27}
                     />
                   </View>
-                  <View
-                    style={{
-                      gap: verticalScale(5),
-                    }}>
+                  <View style={{gap: verticalScale(5)}}>
                     <CustomText
                       fontFamily="semiBold"
                       fontSize={14}
@@ -713,7 +821,7 @@ const ExerciseDetails: FC<{
               color={COLORS.yellow}
               fontFamily="bold"
               style={styles.noHistoryText}>
-              No History available for now
+              {noHistoryMsg}
             </CustomText>
           }
         />
@@ -775,29 +883,30 @@ const ExerciseDetails: FC<{
   };
 
   // Function to convert seconds to MM:SS format for display
-  const formatTimeForDisplay = (timeString: string): string => {
-    // Extract numeric value from time string (remove 's' suffix if present)
-    const timeStr = timeString.toLowerCase().trim();
+  const formatTimeForDisplay = (
+    timeString: string | number | undefined,
+  ): string => {
+    if (timeString === undefined || timeString === null) return '00:00';
+
+    const timeStr = String(timeString).toLowerCase().trim();
     let totalSeconds = 0;
 
     if (timeStr.endsWith('s')) {
       totalSeconds = parseInt(timeStr.replace('s', ''));
     } else if (timeStr.includes(':')) {
       // Already in MM:SS format, return as is
-      return timeString;
+      return timeStr;
     } else {
-      // Try to parse as number
       totalSeconds = parseInt(timeStr);
     }
 
     if (isNaN(totalSeconds)) {
-      return timeString; // Return original if can't parse
+      return '00:00';
     }
 
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
 
-    // Format as MM:SS
     return `${minutes.toString().padStart(2, '0')}:${seconds
       .toString()
       .padStart(2, '0')}`;
@@ -1113,11 +1222,504 @@ const ExerciseDetails: FC<{
     return historicalSets.length > 0 ? historicalSets : null;
   };
 
+  // const renderSets = () => {
+  //   // Get history sets based on the selected tab
+  //   const historySets = getHistorySets();
+
+  //   return showAddSetUi ? (
+  //     <View
+  //       style={{
+  //         flex: 1,
+  //         justifyContent: 'center',
+  //         gap: verticalScale(40),
+  //       }}>
+  //       <PickerComponent
+  //         difficulty={selectedDifficulty}
+  //         onValuesChange={handlePickerValuesChange}
+  //       />
+  //       {/* Difficulty selector */}
+  //       <View style={styles.difficultyContainer}>
+  //         {['Warmup', 'Easy', 'Medium', 'Hard'].map(difficulty => (
+  //           <TouchableOpacity
+  //             key={difficulty}
+  //             style={[
+  //               styles.difficultyButton,
+  //               {
+  //                 backgroundColor:
+  //                   selectedDifficulty === difficulty
+  //                     ? difficulty === 'Warmup'
+  //                       ? '#777777'
+  //                       : difficulty === 'Easy'
+  //                       ? '#28A745'
+  //                       : difficulty === 'Medium'
+  //                       ? '#FFC107'
+  //                       : '#DC3545'
+  //                     : 'transparent',
+  //                 borderColor:
+  //                   difficulty === 'Warmup'
+  //                     ? '#777777'
+  //                     : difficulty === 'Easy'
+  //                     ? '#28A745'
+  //                     : difficulty === 'Medium'
+  //                     ? '#FFC107'
+  //                     : '#DC3545',
+  //               },
+  //             ]}
+  //             onPress={() =>
+  //               setSelectedDifficulty(
+  //                 difficulty as 'Warmup' | 'Easy' | 'Medium' | 'Hard',
+  //               )
+  //             }>
+  //             <CustomText
+  //               fontSize={12}
+  //               fontFamily="medium"
+  //               color={
+  //                 selectedDifficulty === difficulty
+  //                   ? COLORS.black
+  //                   : difficulty === 'Warmup'
+  //                   ? '#777777'
+  //                   : COLORS.white
+  //               }>
+  //               {difficulty}
+  //             </CustomText>
+  //           </TouchableOpacity>
+  //         ))}
+  //       </View>
+
+  //       <View
+  //         style={{
+  //           width: wp(80),
+  //           flexDirection: 'row',
+  //           justifyContent: 'space-between',
+  //           paddingHorizontal: horizontalScale(10),
+  //           alignSelf: 'center',
+  //         }}>
+  //         <PrimaryButton
+  //           title="Add Drop Set"
+  //           onPress={() => handleAddSet(true, true)} // Use picker values and mark as drop set
+  //           isFullWidth={false}
+  //           style={{
+  //             alignSelf: 'flex-end',
+  //             paddingVertical: verticalScale(7),
+  //             paddingHorizontal: horizontalScale(15),
+  //             borderRadius: verticalScale(10),
+  //           }}
+  //           backgroundColor="#3683DC"
+  //         />
+  //         <PrimaryButton
+  //           title="Add Set"
+  //           onPress={() => {
+  //             handleAddSet(true);
+  //           }} // Use picker values
+  //           isFullWidth={false}
+  //           style={{
+  //             alignSelf: 'flex-end',
+  //             paddingVertical: verticalScale(7),
+  //             paddingHorizontal: horizontalScale(22),
+  //             borderRadius: verticalScale(10),
+  //           }}
+  //         />
+  //       </View>
+  //     </View>
+  //   ) : (
+  //     <View style={{flex: 1, gap: verticalScale(10)}}>
+  //       <View>
+  //         <FlatList
+  //           horizontal
+  //           contentContainerStyle={{
+  //             gap: horizontalScale(5),
+  //             marginVertical: verticalScale(20),
+  //             paddingHorizontal: horizontalScale(10),
+  //           }}
+  //           data={setsTabData}
+  //           renderItem={({item}) => {
+  //             return (
+  //               <Pressable
+  //                 key={item.value}
+  //                 onPress={() => setSetsTab(item.value)}
+  //                 style={[
+  //                   styles.setsTabButton,
+  //                   {
+  //                     backgroundColor:
+  //                       setsTab === item?.value
+  //                         ? COLORS.whiteTail
+  //                         : 'transparent',
+  //                   },
+  //                 ]}>
+  //                 <CustomText
+  //                   fontSize={12}
+  //                   fontFamily="semiBold"
+  //                   color={
+  //                     setsTab === item?.value ? COLORS.black : COLORS.whiteTail
+  //                   }>
+  //                   {item?.label}
+  //                 </CustomText>
+  //               </Pressable>
+  //             );
+  //           }}
+  //         />
+  //       </View>
+
+  //       <View style={{flex: 1}}>
+  //         {historySets && historySets?.length > 0 && (
+  //           <View style={{width: wp(100), flexDirection: 'row'}}>
+  //             <View
+  //               style={{
+  //                 width: wp(10),
+  //                 alignItems: 'flex-start',
+  //               }}
+  //             />
+  //             <View
+  //               style={{
+  //                 flexDirection: 'row',
+  //                 alignItems: 'center',
+  //                 paddingBottom: verticalScale(10),
+  //                 width: wp(85),
+  //                 justifyContent: 'space-evenly',
+  //                 marginBottom: verticalScale(5),
+  //               }}>
+  //               <CustomText
+  //                 fontSize={14}
+  //                 fontFamily="semiBold"
+  //                 style={{
+  //                   flex: 1,
+  //                   textAlign: 'center',
+  //                 }}>
+  //                 Reps
+  //               </CustomText>
+  //               <CustomText
+  //                 fontSize={14}
+  //                 fontFamily="semiBold"
+  //                 style={{
+  //                   flex: 1,
+  //                   textAlign: 'center',
+  //                 }}>
+  //                 Distance
+  //               </CustomText>
+  //               <CustomText
+  //                 fontSize={14}
+  //                 fontFamily="semiBold"
+  //                 style={{
+  //                   flex: 1,
+  //                   textAlign: 'center',
+  //                 }}>
+  //                 Weight(kg)
+  //               </CustomText>
+  //               <CustomText
+  //                 fontSize={14}
+  //                 fontFamily="semiBold"
+  //                 style={{
+  //                   flex: 1,
+  //                   textAlign: 'center',
+  //                 }}>
+  //                 Time
+  //               </CustomText>
+  //             </View>
+  //           </View>
+  //         )}
+  //         <FlatList
+  //           data={
+  //             historySets!?.map((set, index) => ({
+  //               Set: index + 1,
+  //               Reps: set.reps,
+  //               Distance:
+  //                 set.distance || (set.reps.includes('m') ? set.reps : '123m'), // Use distance field if available, otherwise fallback to reps if it contains 'm', otherwise use default
+  //               Weight: set.weight,
+  //               Time: formatTimeForDisplay(set.time), // Always format time consistently
+  //               difficulty:
+  //                 set.difficulty ||
+  //                 (index === 0
+  //                   ? 'Warmup'
+  //                   : index === 1
+  //                   ? 'Easy'
+  //                   : index === 2
+  //                   ? 'Medium'
+  //                   : 'Hard'), // Add default difficulty if not present
+  //               isNewlyAdded: false, // All sets are now from Redux, no distinction needed
+  //               dropSets: set.dropSets?.map(dropSet => ({
+  //                 ...dropSet,
+  //                 time: formatTimeForDisplay(dropSet.time), // Format drop set time consistently
+  //               })),
+  //             })) ?? []
+  //           }
+  //           renderItem={({item}) => {
+  //             // Define colors based on difficulty
+  //             const difficultyColors = {
+  //               Warmup: '#6C757D', // Gray
+  //               Easy: '#28A745', // Green
+  //               Medium: '#FFC107', // Yellow
+  //               Hard: '#DC3545', // Red
+  //             };
+
+  //             // Use difficulty color or fallback to index-based color
+  //             const setColor =
+  //               difficultyColors[
+  //                 item.difficulty as keyof typeof difficultyColors
+  //               ];
+
+  //             // Determine text color based on whether it's newly added
+  //             const textColor = item.isNewlyAdded
+  //               ? COLORS.white
+  //               : COLORS.nickel;
+
+  //             return (
+  //               <View
+  //                 style={{
+  //                   flexDirection: 'row',
+  //                   alignItems: 'center',
+  //                   width: wp(100),
+  //                 }}>
+  //                 <View
+  //                   style={{
+  //                     width: wp(10),
+  //                     alignItems: 'flex-start',
+  //                   }}>
+  //                   <View
+  //                     style={{
+  //                       backgroundColor: setColor,
+  //                       borderTopEndRadius: 5,
+  //                       borderBottomEndRadius: 5,
+  //                       paddingHorizontal: horizontalScale(5),
+  //                       paddingVertical: verticalScale(5),
+  //                       width: horizontalScale(25),
+  //                       height:
+  //                         verticalScale(38) * (item.dropSets?.length! + 1),
+  //                       justifyContent: 'center',
+  //                     }}>
+  //                     <CustomText
+  //                       style={{
+  //                         textAlign: 'center',
+  //                       }}
+  //                       fontSize={20}
+  //                       fontFamily="medium"
+  //                       color={COLORS.white}>
+  //                       {item.Set}
+  //                     </CustomText>
+  //                   </View>
+  //                 </View>
+  //                 <View>
+  //                   <View
+  //                     style={{
+  //                       width: wp(85),
+  //                       flexDirection: 'row',
+  //                       gap: horizontalScale(10),
+  //                       justifyContent: 'space-evenly',
+  //                       alignItems: 'center',
+  //                       borderTopWidth: 0.5,
+  //                       borderTopColor: COLORS.whiteTail,
+  //                       paddingVertical: verticalScale(7),
+  //                     }}>
+  //                     <CustomText
+  //                       fontSize={20}
+  //                       fontFamily="medium"
+  //                       color={textColor}
+  //                       style={{
+  //                         flex: 1,
+  //                         textAlign: 'center',
+  //                       }}>
+  //                       {item.Reps}
+  //                     </CustomText>
+  //                     <CustomText
+  //                       fontSize={20}
+  //                       fontFamily="medium"
+  //                       color={textColor}
+  //                       style={{
+  //                         flex: 1,
+  //                         textAlign: 'center',
+  //                       }}>
+  //                       {item.Distance}
+  //                     </CustomText>
+  //                     <CustomText
+  //                       fontSize={20}
+  //                       fontFamily="medium"
+  //                       color={textColor}
+  //                       style={{
+  //                         flex: 1,
+  //                         textAlign: 'center',
+  //                       }}>
+  //                       {item.Weight}
+  //                     </CustomText>
+  //                     <CustomText
+  //                       fontSize={20}
+  //                       fontFamily="medium"
+  //                       color={textColor}
+  //                       style={{
+  //                         flex: 1,
+  //                         textAlign: 'center',
+  //                       }}>
+  //                       {item.Time}
+  //                     </CustomText>
+  //                   </View>
+  //                   {item.dropSets &&
+  //                     item.dropSets.map((dropSet, index) => (
+  //                       <View
+  //                         key={`dropset-${item.Set}-${index}`}
+  //                         style={{
+  //                           width: wp(85),
+  //                           flexDirection: 'row',
+  //                           gap: horizontalScale(10),
+  //                           justifyContent: 'space-evenly',
+  //                           alignItems: 'center',
+  //                           borderTopWidth: 0.5,
+  //                           borderTopColor: COLORS.whiteTail,
+  //                           paddingVertical: verticalScale(7),
+  //                         }}>
+  //                         <CustomText
+  //                           fontSize={20}
+  //                           fontFamily="medium"
+  //                           color={textColor}
+  //                           style={{
+  //                             flex: 1,
+  //                             textAlign: 'center',
+  //                           }}>
+  //                           {dropSet.reps}
+  //                         </CustomText>
+  //                         <CustomText
+  //                           fontSize={20}
+  //                           fontFamily="medium"
+  //                           color={textColor}
+  //                           style={{
+  //                             flex: 1,
+  //                             textAlign: 'center',
+  //                           }}>
+  //                           {dropSet.distance ||
+  //                             (dropSet.reps.includes('m')
+  //                               ? dropSet.reps
+  //                               : '123m')}
+  //                         </CustomText>
+  //                         <CustomText
+  //                           fontSize={20}
+  //                           fontFamily="medium"
+  //                           color={textColor}
+  //                           style={{
+  //                             flex: 1,
+  //                             textAlign: 'center',
+  //                           }}>
+  //                           {dropSet.weight}
+  //                         </CustomText>
+  //                         <CustomText
+  //                           fontSize={20}
+  //                           fontFamily="medium"
+  //                           color={textColor}
+  //                           style={{
+  //                             flex: 1,
+  //                             textAlign: 'center',
+  //                           }}>
+  //                           {dropSet.time}
+  //                         </CustomText>
+  //                       </View>
+  //                     ))}
+  //                 </View>
+  //               </View>
+  //             );
+  //           }}
+  //           ListEmptyComponent={({}) => {
+  //             return (
+  //               <View style={styles.noHistoryContainer}>
+  //                 <CustomText
+  //                   fontSize={16}
+  //                   fontFamily="medium"
+  //                   color={COLORS.whiteTail}
+  //                   style={{textAlign: 'center'}}>
+  //                   No history found.{'\n'} Click "Add" to create a new set.
+  //                 </CustomText>
+  //               </View>
+  //             );
+  //           }}
+  //           ListFooterComponent={() => {
+  //             return (
+  //               <View
+  //                 style={{
+  //                   width: wp(100),
+  //                   paddingHorizontal: horizontalScale(10),
+  //                   gap: verticalScale(15),
+  //                 }}>
+  //                 {/* Add buttons */}
+  //                 {!hideButton && (
+  //                   <View style={styles.addButtonsContainer}>
+  //                     <PrimaryButton
+  //                       title="Add"
+  //                       onPress={() => {
+  //                         setShowAddSetUi(true);
+  //                       }}
+  //                       isFullWidth={false}
+  //                       style={{
+  //                         alignSelf: 'flex-end',
+  //                         paddingVertical: verticalScale(3),
+  //                         paddingHorizontal: horizontalScale(15),
+  //                         borderRadius: verticalScale(5),
+  //                       }}
+  //                       backgroundColor="#FF9500"
+  //                     />
+  //                   </View>
+  //                 )}
+  //               </View>
+  //             );
+  //           }}
+  //         />
+  //       </View>
+  //     </View>
+  //   );
+  // };
+
   const renderSets = () => {
-    // Get history sets based on the selected tab
-    const historySets = getHistorySets();
+    let historySets: any[] = [];
+
+    if (hideButton) {
+      //  When hideButton is true → show setsData (from backend)
+      const matchedExercise = setsData?.find((item: any) =>
+        item.Exercise_id === exerciseData?.exercise_id
+          ? exerciseData?.exercise_id
+          : exerciseData?.id,
+      );
+
+      historySets =
+        matchedExercise?.Set?.map((set: any, index: number) => ({
+          Set: index + 1,
+          Reps: set.reps,
+          Distance:
+            set.distance ||
+            (set.reps?.toString().toLowerCase().includes('m')
+              ? set.reps
+              : '123m'),
+          Weight: `${set.weight}${set.weight_type || 'kg'}`,
+          Time: formatTimeForDisplay(set.time),
+          difficulty: set.difficulty || 'Medium',
+          isNewlyAdded: false,
+          dropSets: [],
+        })) || [];
+    } else {
+      //  When hideButton is false → use your original getHistorySets()
+      const fetchedHistorySets = getHistorySets();
+      historySets =
+        fetchedHistorySets?.map((set: any, index: number) => ({
+          Set: index + 1,
+          Reps: set.reps,
+          Distance:
+            set.distance ||
+            (set.reps?.toString()?.includes('m') ? set.reps : '123m'),
+          Weight: set.weight,
+          Time: formatTimeForDisplay(set.time),
+          difficulty:
+            set.difficulty ||
+            (index === 0
+              ? 'Warmup'
+              : index === 1
+              ? 'Easy'
+              : index === 2
+              ? 'Medium'
+              : 'Hard'),
+          isNewlyAdded: false,
+          dropSets:
+            set.dropSets?.map((dropSet: any) => ({
+              ...dropSet,
+              time: formatTimeForDisplay(dropSet.time),
+            })) || [],
+        })) ?? [];
+    }
 
     return showAddSetUi ? (
+      //  your Add Set UI (unchanged)
       <View
         style={{
           flex: 1,
@@ -1187,7 +1789,7 @@ const ExerciseDetails: FC<{
           }}>
           <PrimaryButton
             title="Add Drop Set"
-            onPress={() => handleAddSet(true, true)} // Use picker values and mark as drop set
+            onPress={() => handleAddSet(true, true)}
             isFullWidth={false}
             style={{
               alignSelf: 'flex-end',
@@ -1199,9 +1801,7 @@ const ExerciseDetails: FC<{
           />
           <PrimaryButton
             title="Add Set"
-            onPress={() => {
-              handleAddSet(true);
-            }} // Use picker values
+            onPress={() => handleAddSet(true)}
             isFullWidth={false}
             style={{
               alignSelf: 'flex-end',
@@ -1213,115 +1813,73 @@ const ExerciseDetails: FC<{
         </View>
       </View>
     ) : (
+      //  Table View UI (unchanged, except data now comes from above)
       <View style={{flex: 1, gap: verticalScale(10)}}>
-        {/* <View
-          style={{ width: wp(100), paddingHorizontal: horizontalScale(10) }}
-        >
-          <FlatList
-            horizontal
-            data={muscleData}
-            renderItem={({ item }) => (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: horizontalScale(5),
-                }}
-              >
-                <Image
-                  source={{
-                    uri: "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-                  }}
-                  style={{
-                    height: 60,
-                    width: 60,
-                    borderRadius: 100,
-                    borderWidth: 1,
-                    borderColor: COLORS.whiteTail,
-                  }}
-                />
-                <View
-                  style={{
-                    gap: verticalScale(5),
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <CustomText fontFamily="medium">{item.name}</CustomText>
+        {muscleData.length > 0 && (
+          <View>
+            <FlatList
+              horizontal
+              data={muscleData}
+              renderItem={({item}) => {
+                const normalizedKey = normalizeMuscleKey(item.name);
+                const imageSource = MuscleImages[normalizedKey] || {
+                  uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                };
+                return (
                   <View
                     style={{
-                      backgroundColor: COLORS.nickel,
-                      paddingVertical: verticalScale(4),
-                      paddingHorizontal: horizontalScale(20),
-                      justifyContent: "center",
-                      alignItems: "center",
-                      borderRadius: 100,
-                    }}
-                  >
-                    <CustomText
-                      color={COLORS.white}
-                      fontFamily="medium"
-                      fontSize={10}
-                    >
-                      {`${item.percentage}%`}
-                    </CustomText>
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: horizontalScale(5),
+                      borderRadius: verticalScale(10),
+                      padding: verticalScale(5),
+                    }}>
+                    <Image
+                      source={imageSource}
+                      style={{
+                        height: 60,
+                        width: 60,
+                        borderRadius: 100,
+                        borderWidth: 1,
+                        borderColor: COLORS.whiteTail,
+                      }}
+                    />
+                    <View
+                      style={{
+                        gap: verticalScale(5),
+                        alignItems: 'flex-start',
+                      }}>
+                      <CustomText fontFamily="medium">{item.name}</CustomText>
+                      <View
+                        style={{
+                          backgroundColor: COLORS.nickel,
+                          paddingVertical: verticalScale(4),
+                          paddingHorizontal: horizontalScale(20),
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          borderRadius: 100,
+                        }}>
+                        <CustomText
+                          color={COLORS.white}
+                          fontFamily="medium"
+                          fontSize={10}>
+                          {`${item.percentage}%`}
+                        </CustomText>
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </View>
-            )}
-            keyExtractor={(item, index) => item.name + index.toString()}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{
-              gap: horizontalScale(10),
-              paddingHorizontal: horizontalScale(5),
-            }}
-          />
-        </View> */}
-        <View>
-          <FlatList
-            horizontal
-            contentContainerStyle={{
-              gap: horizontalScale(5),
-              marginVertical: verticalScale(20),
-              paddingHorizontal: horizontalScale(10),
-            }}
-            data={setsTabData}
-            renderItem={({item}) => {
-              return (
-                <Pressable
-                  key={item.value}
-                  onPress={() => setSetsTab(item.value)}
-                  style={[
-                    styles.setsTabButton,
-                    {
-                      backgroundColor:
-                        setsTab === item?.value
-                          ? COLORS.whiteTail
-                          : 'transparent',
-                    },
-                  ]}>
-                  <CustomText
-                    fontSize={12}
-                    fontFamily="semiBold"
-                    color={
-                      setsTab === item?.value ? COLORS.black : COLORS.whiteTail
-                    }>
-                    {item?.label}
-                  </CustomText>
-                </Pressable>
-              );
-            }}
-          />
-        </View>
-
-        <View style={{flex: 1}}>
-          {historySets && historySets?.length > 0 && (
+                );
+              }}
+              keyExtractor={(item, index) => item.name + index.toString()}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                gap: horizontalScale(10),
+                paddingHorizontal: horizontalScale(5),
+                marginVertical: verticalScale(20),
+              }}
+            />
             <View style={{width: wp(100), flexDirection: 'row'}}>
-              <View
-                style={{
-                  width: wp(10),
-                  alignItems: 'flex-start',
-                }}
-              />
+              {/* <View style={{width: wp(10), alignItems: 'flex-start'}}></View> */}
               <View
                 style={{
                   flexDirection: 'row',
@@ -1331,284 +1889,166 @@ const ExerciseDetails: FC<{
                   justifyContent: 'space-evenly',
                   marginBottom: verticalScale(5),
                 }}>
-                <CustomText
-                  fontSize={14}
-                  fontFamily="semiBold"
-                  style={{
-                    flex: 1,
-                    textAlign: 'center',
-                  }}>
-                  Reps
-                </CustomText>
-                <CustomText
-                  fontSize={14}
-                  fontFamily="semiBold"
-                  style={{
-                    flex: 1,
-                    textAlign: 'center',
-                  }}>
-                  Distance
-                </CustomText>
-                <CustomText
-                  fontSize={14}
-                  fontFamily="semiBold"
-                  style={{
-                    flex: 1,
-                    textAlign: 'center',
-                  }}>
-                  Weight(kg)
-                </CustomText>
-                <CustomText
-                  fontSize={14}
-                  fontFamily="semiBold"
-                  style={{
-                    flex: 1,
-                    textAlign: 'center',
-                  }}>
-                  Time
-                </CustomText>
+                {['Reps', 'Distance', 'Weight(kg)', 'Time'].map(label => (
+                  <CustomText
+                    key={label}
+                    fontSize={14}
+                    fontFamily="semiBold"
+                    style={{flex: 1, textAlign: 'center'}}>
+                    {label}
+                  </CustomText>
+                ))}
               </View>
             </View>
-          )}
-          <FlatList
-            data={
-              historySets!?.map((set, index) => ({
-                Set: index + 1,
-                Reps: set.reps,
-                Distance:
-                  set.distance || (set.reps.includes('m') ? set.reps : '123m'), // Use distance field if available, otherwise fallback to reps if it contains 'm', otherwise use default
-                Weight: set.weight,
-                Time: formatTimeForDisplay(set.time), // Always format time consistently
-                difficulty:
-                  set.difficulty ||
-                  (index === 0
-                    ? 'Warmup'
-                    : index === 1
-                    ? 'Easy'
-                    : index === 2
-                    ? 'Medium'
-                    : 'Hard'), // Add default difficulty if not present
-                isNewlyAdded: false, // All sets are now from Redux, no distinction needed
-                dropSets: set.dropSets?.map(dropSet => ({
-                  ...dropSet,
-                  time: formatTimeForDisplay(dropSet.time), // Format drop set time consistently
-                })),
-              })) ?? []
-            }
-            renderItem={({item}) => {
-              // Define colors based on difficulty
-              const difficultyColors = {
-                Warmup: '#6C757D', // Gray
-                Easy: '#28A745', // Green
-                Medium: '#FFC107', // Yellow
-                Hard: '#DC3545', // Red
-              };
+          </View>
+        )}
 
-              // Use difficulty color or fallback to index-based color
-              const setColor =
-                difficultyColors[
-                  item.difficulty as keyof typeof difficultyColors
-                ];
+        <FlatList
+          data={historySets}
+          renderItem={({item}) => {
+            const difficultyColors = {
+              Warmup: '#6C757D',
+              Easy: '#28A745',
+              Medium: '#FFC107',
+              Hard: '#DC3545',
+            };
 
-              // Determine text color based on whether it's newly added
-              const textColor = item.isNewlyAdded
-                ? COLORS.white
-                : COLORS.nickel;
+            const setColor =
+              difficultyColors[
+                item.difficulty as keyof typeof difficultyColors
+              ];
+            const textColor = item.isNewlyAdded ? COLORS.white : COLORS.nickel;
 
-              return (
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    width: wp(100),
-                  }}>
+            // Combine main set + drop sets into one array for rendering
+            const allSets = [
+              {...item, isDropSet: false},
+              ...(item.dropSets?.map((ds: any) => ({...ds, isDropSet: true})) ||
+                []),
+            ];
+
+            return (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  width: wp(100),
+                }}>
+                {/* Set Number Badge (spans all rows) */}
+                <View style={{width: wp(10), alignItems: 'flex-start'}}>
                   <View
                     style={{
-                      width: wp(10),
-                      alignItems: 'flex-start',
+                      backgroundColor: setColor,
+                      borderTopEndRadius: 5,
+                      borderBottomEndRadius: 5,
+                      paddingHorizontal: horizontalScale(5),
+                      paddingVertical: verticalScale(5),
+                      width: horizontalScale(25),
+                      height: verticalScale(38) * allSets.length,
+                      justifyContent: 'center',
                     }}>
-                    <View
-                      style={{
-                        backgroundColor: setColor,
-                        borderTopEndRadius: 5,
-                        borderBottomEndRadius: 5,
-                        paddingHorizontal: horizontalScale(5),
-                        paddingVertical: verticalScale(5),
-                        width: horizontalScale(25),
-                        height:
-                          verticalScale(38) * (item.dropSets?.length! + 1),
-                        justifyContent: 'center',
-                      }}>
-                      <CustomText
-                        style={{
-                          textAlign: 'center',
-                        }}
-                        fontSize={20}
-                        fontFamily="medium"
-                        color={COLORS.white}>
-                        {item.Set}
-                      </CustomText>
-                    </View>
+                    <CustomText
+                      style={{textAlign: 'center'}}
+                      fontSize={20}
+                      fontFamily="medium"
+                      color={COLORS.white}>
+                      {item.Set}
+                    </CustomText>
                   </View>
-                  <View>
+                </View>
+
+                {/* Data Rows (main + drop sets) */}
+                <View style={{flex: 1}}>
+                  {allSets.map((set, index) => (
                     <View
+                      key={
+                        index === 0
+                          ? `main-${item.Set}`
+                          : `drop-${item.Set}-${index}`
+                      }
                       style={{
-                        width: wp(85),
                         flexDirection: 'row',
-                        gap: horizontalScale(10),
                         justifyContent: 'space-evenly',
                         alignItems: 'center',
-                        borderTopWidth: 0.5,
+                        borderTopWidth: index === 0 ? 0 : 0,
                         borderTopColor: COLORS.whiteTail,
                         paddingVertical: verticalScale(7),
+                        backgroundColor: set.isDropSet
+                          ? 'rgba(255,255,255,0.05)'
+                          : 'transparent',
                       }}>
                       <CustomText
                         fontSize={20}
                         fontFamily="medium"
                         color={textColor}
-                        style={{
-                          flex: 1,
-                          textAlign: 'center',
-                        }}>
-                        {item.Reps}
+                        style={{flex: 1, textAlign: 'center'}}>
+                        {set.Reps || set.reps}
                       </CustomText>
                       <CustomText
                         fontSize={20}
                         fontFamily="medium"
                         color={textColor}
-                        style={{
-                          flex: 1,
-                          textAlign: 'center',
-                        }}>
-                        {item.Distance}
+                        style={{flex: 1, textAlign: 'center'}}>
+                        {set.Distance || set.distance || '—'}
                       </CustomText>
                       <CustomText
                         fontSize={20}
                         fontFamily="medium"
                         color={textColor}
-                        style={{
-                          flex: 1,
-                          textAlign: 'center',
-                        }}>
-                        {item.Weight}
+                        style={{flex: 1, textAlign: 'center'}}>
+                        {set.Weight || set.weight}
                       </CustomText>
                       <CustomText
                         fontSize={20}
                         fontFamily="medium"
                         color={textColor}
-                        style={{
-                          flex: 1,
-                          textAlign: 'center',
-                        }}>
-                        {item.Time}
+                        style={{flex: 1, textAlign: 'center'}}>
+                        {set.Time || formatTimeForDisplay(set.time)}
                       </CustomText>
                     </View>
-                    {item.dropSets &&
-                      item.dropSets.map((dropSet, index) => (
-                        <View
-                          key={`dropset-${item.Set}-${index}`}
-                          style={{
-                            width: wp(85),
-                            flexDirection: 'row',
-                            gap: horizontalScale(10),
-                            justifyContent: 'space-evenly',
-                            alignItems: 'center',
-                            borderTopWidth: 0.5,
-                            borderTopColor: COLORS.whiteTail,
-                            paddingVertical: verticalScale(7),
-                          }}>
-                          <CustomText
-                            fontSize={20}
-                            fontFamily="medium"
-                            color={textColor}
-                            style={{
-                              flex: 1,
-                              textAlign: 'center',
-                            }}>
-                            {dropSet.reps}
-                          </CustomText>
-                          <CustomText
-                            fontSize={20}
-                            fontFamily="medium"
-                            color={textColor}
-                            style={{
-                              flex: 1,
-                              textAlign: 'center',
-                            }}>
-                            {dropSet.distance ||
-                              (dropSet.reps.includes('m')
-                                ? dropSet.reps
-                                : '123m')}
-                          </CustomText>
-                          <CustomText
-                            fontSize={20}
-                            fontFamily="medium"
-                            color={textColor}
-                            style={{
-                              flex: 1,
-                              textAlign: 'center',
-                            }}>
-                            {dropSet.weight}
-                          </CustomText>
-                          <CustomText
-                            fontSize={20}
-                            fontFamily="medium"
-                            color={textColor}
-                            style={{
-                              flex: 1,
-                              textAlign: 'center',
-                            }}>
-                            {dropSet.time}
-                          </CustomText>
-                        </View>
-                      ))}
-                  </View>
+                  ))}
                 </View>
-              );
-            }}
-            ListEmptyComponent={({}) => {
-              return (
-                <View style={styles.noHistoryContainer}>
-                  <CustomText
-                    fontSize={16}
-                    fontFamily="medium"
-                    color={COLORS.whiteTail}
-                    style={{textAlign: 'center'}}>
-                    No history found.{'\n'} Click "Add" to create a new set.
-                  </CustomText>
+              </View>
+            );
+          }}
+          ListEmptyComponent={() => (
+            <View style={styles.noHistoryContainer}>
+              <CustomText
+                fontSize={16}
+                fontFamily="medium"
+                color={COLORS.whiteTail}
+                style={{textAlign: 'center'}}>
+                No history found.{'\n'} Click "Add" to create a new set.
+              </CustomText>
+            </View>
+          )}
+          ListFooterComponent={() => (
+            <View
+              style={{
+                width: wp(100),
+                paddingHorizontal: horizontalScale(10),
+                gap: verticalScale(15),
+              }}>
+              {!hideButton && (
+                <View style={styles.addButtonsContainer}>
+                  <PrimaryButton
+                    title="Add"
+                    onPress={() => {
+                      setShowAddSetUi(true);
+                    }}
+                    isFullWidth={false}
+                    style={{
+                      alignSelf: 'flex-end',
+                      paddingVertical: verticalScale(3),
+                      paddingHorizontal: horizontalScale(15),
+                      borderRadius: verticalScale(5),
+                    }}
+                    backgroundColor="#FF9500"
+                  />
                 </View>
-              );
-            }}
-            ListFooterComponent={() => {
-              return (
-                <View
-                  style={{
-                    width: wp(100),
-                    paddingHorizontal: horizontalScale(10),
-                    gap: verticalScale(15),
-                  }}>
-                  {/* Add buttons */}
-                  <View style={styles.addButtonsContainer}>
-                    <PrimaryButton
-                      title="Add"
-                      onPress={() => {
-                        setShowAddSetUi(true);
-                      }}
-                      isFullWidth={false}
-                      style={{
-                        alignSelf: 'flex-end',
-                        paddingVertical: verticalScale(3),
-                        paddingHorizontal: horizontalScale(15),
-                        borderRadius: verticalScale(5),
-                      }}
-                      backgroundColor="#FF9500"
-                    />
-                  </View>
-                </View>
-              );
-            }}
-          />
-        </View>
+              )}
+            </View>
+          )}
+        />
       </View>
     );
   };

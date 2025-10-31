@@ -23,6 +23,7 @@ import ENDPOINTS from '../../../APIServices/endPoints';
 import {useAppDispatch, useAppSelector} from '../../../Redux/store';
 import Toast from 'react-native-toast-message';
 import {addSchedule} from '../../../Redux/slices/ScheduleSlice';
+import {setHomeActiveIndex} from '../../../Redux/slices/initialSlice';
 
 // Define interfaces
 interface DropdownItem {
@@ -36,12 +37,6 @@ interface Values {
 
 const MeasurementlogMenu = () => {
   const dispatch = useAppDispatch();
-  const dropdownData: DropdownItem[] = [
-    {title: 'Waist', unit: 'CM'},
-    {title: 'Body Fat', unit: '%'},
-    {title: 'Biceps', unit: 'CM'},
-    {title: 'Triceps', unit: 'LB'},
-  ];
 
   const {userData} = useAppSelector(state => state.userData);
 
@@ -49,14 +44,22 @@ const MeasurementlogMenu = () => {
 
   const [values, setValues] = useState<Values>({
     Waist: '',
-    'Body Fat': '',
   });
-  const [selectedTitles, setSelectedTitles] = useState<string[]>([
-    'Waist',
-    'Body Fat',
-  ]);
+
+  const [selectedTitles, setSelectedTitles] = useState<string[]>(['Waist']);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
+  const [unitModalVisible, setUnitModalVisible] = useState<boolean>(false);
+  const [activeUnitTitle, setActiveUnitTitle] = useState<string | null>(null);
+
+  const [dropdownData, setDropdownData] = useState<DropdownItem[]>([
+    {title: 'Waist', unit: 'CM'},
+    {title: 'Body Fat', unit: '%'},
+    {title: 'Biceps', unit: 'CM'},
+    {title: 'Triceps', unit: 'LB'},
+  ]);
+
+  const unitOptions = ['CM', 'Inch', '%', 'KG', 'LB'];
 
   const handleValueChange = (title: string, value: string) => {
     setValues(prev => ({...prev, [title]: value}));
@@ -65,6 +68,15 @@ const MeasurementlogMenu = () => {
   const handleAddMeasurement = () => {
     setEditingTitle(null);
     setModalVisible(true);
+  };
+
+  //  Add this function
+  const handleUnitChange = (title: string, newUnit: string) => {
+    setDropdownData(prev =>
+      prev.map(item =>
+        item.title === title ? {...item, unit: newUnit} : item,
+      ),
+    );
   };
 
   const handleSelectTitle = (newTitle: string) => {
@@ -165,7 +177,12 @@ const MeasurementlogMenu = () => {
             }
           }}
         />
-        <TouchableOpacity style={styles.unitButton} disabled>
+        <TouchableOpacity
+          style={styles.unitButton}
+          onPress={() => {
+            setActiveUnitTitle(title);
+            setUnitModalVisible(true);
+          }}>
           <Text style={styles.unitText}>{item.unit}</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -242,6 +259,7 @@ const MeasurementlogMenu = () => {
           text1: 'Measurements Logged Successfully',
           visibilityTime: 2000,
         });
+        dispatch(setHomeActiveIndex(0));
       }
     } catch (error) {
       console.log(error, 'Something went wrong');
@@ -318,6 +336,52 @@ const MeasurementlogMenu = () => {
               onPress={() => {
                 setModalVisible(false);
                 setEditingTitle(null);
+              }}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={unitModalVisible}
+        onRequestClose={() => {
+          setUnitModalVisible(false);
+          setActiveUnitTitle(null);
+        }}>
+        <TouchableOpacity
+          onPress={() => {
+            setUnitModalVisible(false);
+            setActiveUnitTitle(null);
+          }}
+          activeOpacity={1}
+          style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Unit</Text>
+            <FlatList
+              data={unitOptions}
+              keyExtractor={item => item}
+              renderItem={({item}) => (
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    if (activeUnitTitle) {
+                      handleUnitChange(activeUnitTitle, item);
+                    }
+                    setUnitModalVisible(false);
+                    setActiveUnitTitle(null);
+                  }}>
+                  <Text style={styles.dropdownText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+              style={styles.dropdownList}
+            />
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                setUnitModalVisible(false);
+                setActiveUnitTitle(null);
               }}>
               <Text style={styles.closeButtonText}>Close</Text>
             </TouchableOpacity>

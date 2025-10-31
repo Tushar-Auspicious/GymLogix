@@ -3,6 +3,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   Image,
   Pressable,
@@ -25,8 +26,9 @@ import {useAppDispatch, useAppSelector} from '../../../Redux/store';
 import {UserResponse} from '../../../Typings/ApiResponse/UserResponse';
 import COLORS from '../../../Utilities/Colors';
 import STORAGE_KEYS from '../../../Utilities/Constants';
-import {horizontalScale, verticalScale} from '../../../Utilities/Metrics';
+import {horizontalScale, verticalScale, wp} from '../../../Utilities/Metrics';
 import {getLocalStorageData} from '../../../Utilities/Storage';
+import {setHomeActiveIndex} from '../../../Redux/slices/initialSlice';
 
 const WorkoutMenu = () => {
   const dispatch = useAppDispatch();
@@ -65,6 +67,28 @@ const WorkoutMenu = () => {
     };
     getUser();
   }, []);
+
+  useEffect(() => {
+    const backAction = () => {
+      // Run your Redux action
+      dispatch(setHomeActiveIndex(0));
+
+      // If navigation can go back, just go back
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
+
+      // Always return true to prevent default exit behavior
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [navigation, dispatch]);
 
   const toggleDaySelection = (day: string) => {
     if (selectedDay === day) {
@@ -162,6 +186,7 @@ const WorkoutMenu = () => {
                       gap: horizontalScale(10),
                       borderWidth: isDaySelected ? 1 : 0,
                       borderColor: COLORS.yellow,
+                      width: wp(80),
                     }}>
                     <View
                       style={{

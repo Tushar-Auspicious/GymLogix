@@ -43,6 +43,7 @@ export type MainStackParams = {
     selectedProgram: any;
     ScheduleHistoryData: any;
     isFrom: boolean;
+    sets: any;
   };
   workoutResult: {
     workoutData: any;

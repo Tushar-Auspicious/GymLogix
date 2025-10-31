@@ -30,12 +30,15 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const workoutInTime = useAppSelector(
     state => state.logWorkoutData.workoutTime,
   );
+
   const workoutInProgress = useAppSelector(
     state => state.logWorkoutData.workoutProgress,
   );
+
   const workoutInProgressName = useAppSelector(
     state => state.logWorkoutData.currentWorkout,
   );
+
   const {userData} = useAppSelector(state => state.userData);
   const {totalMacros} = useAppSelector(state => state.macros);
   const {scheduleData} = useAppSelector(state => state.scheduleData);
@@ -52,8 +55,12 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
 
   // Filter function
   const filteredSchedule = useMemo(() => {
-    if (!selectedDay || !scheduleData) return [];
-    const selectedDateString = new Date(selectedDay.timestamp).toDateString(); // normalize
+    if (!scheduleData) return [];
+
+    // If no selected day → show all history
+    if (!selectedDay) return scheduleData;
+
+    const selectedDateString = new Date(selectedDay.timestamp).toDateString();
 
     return scheduleData.filter(item => {
       const itemDateString = new Date(item.schedule_at).toDateString();
@@ -295,6 +302,8 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
                 dayName!,
               );
 
+              console.log('transssssssformrmmm', transformedDayData);
+
               // Navigate to workout details
               navigation.navigate('workoutProgramDetails', {
                 programId: planId!,
@@ -302,6 +311,7 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
                 selectedProgram: selectedProgram,
                 ScheduleHistoryData: {},
                 isFrom: false,
+                sets: {},
               });
             }
           }}
@@ -343,63 +353,63 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
     }
   };
 
-  // const transformHistoryDayData = (historyItem: any, exerciseData: any) => {
-  //   const loggedExercises = historyItem?.content?.Exercises?.content || [];
+  const transformHistoryDayData = (historyItem: any, exerciseData: any) => {
+    const loggedExercises = historyItem?.content?.Exercises?.content || [];
 
-  //   console.log('historyItem', historyItem);
-  //   console.log('exerciseData', exerciseData);
+    console.log('historyItem', historyItem);
+    console.log('exerciseData', exerciseData);
 
-  //   // Collect only exercises that actually exist in master list
-  //   const validExercises = loggedExercises
-  //     .map((log: any) => {
-  //       const fullExercise = exerciseData?.find(
-  //         (e: any) => e.exercise_id === log.Exercise_id,
-  //       );
+    // Collect only exercises that actually exist in master list
+    const validExercises = loggedExercises
+      .map((log: any) => {
+        const fullExercise = exerciseData?.find(
+          (e: any) => e.exercise_id === log.Exercise_id,
+        );
 
-  //       if (!fullExercise) return null;
+        if (!fullExercise) return null;
 
-  //       return {
-  //         id: fullExercise?.id || log.Exercise_id,
-  //         name: fullExercise?.name || 'Unknown Exercise',
-  //         coverImage: {
-  //           uri: fullExercise?.images_urls?.[0] || '',
-  //           type: 'image/jpeg',
-  //           fileName: fullExercise?.images_urls?.[0]
-  //             ? fullExercise.images_urls[0].split('/').pop()
-  //             : 'default.jpg',
-  //         },
-  //         images: fullExercise?.images_urls || [],
-  //         instruction: fullExercise?.instruction || '',
-  //         description: fullExercise?.description || '',
-  //         mainMuscle: fullExercise?.main_muscle || '',
-  //         secondaryMuscle: fullExercise?.secondary_muscles,
-  //         targetMuscles: fullExercise?.secondary_muscles,
-  //         force: fullExercise?.force,
-  //         location: fullExercise?.mechanics,
-  //         type: fullExercise?.type,
-  //         equipment: fullExercise?.equipment,
+        return {
+          id: fullExercise?.id || log.Exercise_id,
+          name: fullExercise?.name || 'Unknown Exercise',
+          coverImage: {
+            uri: fullExercise?.images_urls?.[0] || '',
+            type: 'image/jpeg',
+            fileName: fullExercise?.images_urls?.[0]
+              ? fullExercise.images_urls[0].split('/').pop()
+              : 'default.jpg',
+          },
+          images: fullExercise?.images_urls || [],
+          instruction: fullExercise?.instruction || '',
+          description: fullExercise?.description || '',
+          mainMuscle: fullExercise?.main_muscle || '',
+          secondaryMuscle: fullExercise?.secondary_muscles,
+          targetMuscles: fullExercise?.secondary_muscles,
+          force: fullExercise?.force,
+          location: fullExercise?.mechanics,
+          type: fullExercise?.type,
+          equipment: fullExercise?.equipment,
 
-  //         // history-specific logged info
-  //         completedSets: log.Sets,
-  //         completedReps: log.Reps,
-  //         completedWeight: log.Weight,
-  //         completedTime: log.Time,
-  //       };
-  //     })
-  //     .filter(Boolean);
+          // history-specific logged info
+          completedSets: log.Sets,
+          completedReps: log.Reps,
+          completedWeight: log.Weight,
+          completedTime: log.Time,
+        };
+      })
+      .filter(Boolean);
 
-  //   return {
-  //     day: historyItem.content?.Workout_name || 'Logged Workout',
-  //     type: 'Completed Workout',
-  //     focus: [
-  //       ...new Set(validExercises.map((ex: any) => ex.mainMuscle || 'General')),
-  //     ],
-  //     color: '#8A2BE2',
-  //     exercises: validExercises,
-  //     planData: historyItem?.content,
-  //     coverImage: historyItem?.image_url,
-  //   };
-  // };
+    return {
+      day: historyItem.content?.Workout_name || 'Logged Workout',
+      type: 'Completed Workout',
+      focus: [
+        ...new Set(validExercises.map((ex: any) => ex.mainMuscle || 'General')),
+      ],
+      color: '#8A2BE2',
+      exercises: validExercises,
+      planData: historyItem?.content,
+      coverImage: historyItem?.image_url,
+    };
+  };
 
   const renderHistory = () => {
     if (!filteredSchedule || filteredSchedule.length === 0) {
@@ -463,30 +473,126 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
               return (
                 <TouchableOpacity
                   delayLongPress={200}
-                  // onPress={() => {
-                  //   if (item.type !== 'workout') return;
+                  onPress={() => {
+                    console.log('itemmmm', item);
 
-                  //   const planID = item.content.plan_id;
-                  //   const selectedProgram = planData?.find(
-                  //     p => p.allData?.plan_id === planID,
-                  //   );
+                    if (item.type !== 'workout') return;
 
-                  //   // build filtered data for this logged day
-                  //   const transformedDayData = transformHistoryDayData(
-                  //     item,
-                  //     exerciseData,
-                  //   );
+                    const planID = item.content.plan_id;
+                    const workoutID = item.content.Workout_id;
 
-                  //   console.log('transsssssssss', transformedDayData);
+                    // 1. Find original program
+                    const selectedProgram = planData?.find(
+                      p => p.allData?.plan_id === planID,
+                    );
+                    if (!selectedProgram) return;
 
-                  //   navigation.navigate('workoutProgramDetails', {
-                  //     programId: planID,
-                  //     day: [transformedDayData], // same structure as transformDayData
-                  //     selectedProgram: selectedProgram,
-                  //     ScheduleHistoryData: item,
-                  //     isFrom: true,
-                  //   });
-                  // }}
+                    // 2. Find original workout (for name, color, etc.)
+                    const originalWorkout =
+                      selectedProgram?.allData?.content?.workouts.find(
+                        (w: any) => w.workout_id === workoutID,
+                      );
+                    if (!originalWorkout) return;
+
+                    // 3. Get original day structure
+                    const baseDayData = transformDayData(
+                      selectedProgram.allData,
+                      originalWorkout.name,
+                    );
+
+                    // 4. Get logged exercises for THIS history item
+                    const loggedExercises =
+                      item.content?.Exercises?.content || [];
+                    const loggedAt = item.schedule_at;
+                    // 5. Map logged exercises to full exercise objects + completed sets
+                    const enrichedExercises = loggedExercises
+                      .map((log: any) => {
+                        const exerciseId = log.Exercise_id;
+                        const fullExercise = exerciseData?.find(
+                          (e: any) => e.exercise_id === exerciseId,
+                        );
+                        if (!fullExercise) return null;
+
+                        // Find recommended values from original plan
+                        const originalExercise = baseDayData.exercises.find(
+                          (ex: any) =>
+                            ex.id === fullExercise.id || ex.id === exerciseId,
+                        );
+
+                        return {
+                          ...originalExercise, // includes recommendedSets, reps, etc.
+                          id: fullExercise.id,
+                          name: fullExercise.name,
+                          coverImage: {
+                            uri: fullExercise?.images_urls?.[0] || '',
+                            type: 'image/jpeg',
+                            fileName: fullExercise?.images_urls?.[0]
+                              ? fullExercise.images_urls[0].split('/').pop()
+                              : 'default.jpg',
+                          },
+                          images: fullExercise?.images_urls || [],
+                          instruction: fullExercise?.instruction || '',
+                          description: fullExercise?.description || '',
+                          mainMuscle: fullExercise?.main_muscle || '',
+                          secondaryMuscle: fullExercise?.secondary_muscles,
+                          targetMuscles: fullExercise?.secondary_muscles,
+                          force: fullExercise?.force,
+                          location: fullExercise?.mechanics,
+                          type: fullExercise?.type,
+                          equipment: fullExercise?.equipment,
+
+                          // Recommended (from plan)
+                          recommendedSets:
+                            originalExercise?.recommendedSets || 0,
+                          recommendedReps:
+                            originalExercise?.recommendedReps || 0,
+
+                          // Logged (from history)
+                          completedSets: (log.Set || []).map((s: any) => ({
+                            set_id: s.set_id,
+                            weight: s.weight,
+                            reps: s.reps,
+                            distance: s.distance,
+                            time: s.time,
+                            weight_type: s.weight_type,
+                            difficulty: s.difficulty,
+                            rest_time: s.rest_time,
+                            log_time: s.log_time,
+                          })),
+                        };
+                      })
+                      .filter(Boolean);
+
+                    // 6. Build final day object
+                    const transformedDayData = {
+                      ...baseDayData,
+                      exercises: enrichedExercises, // ONLY logged ones
+                      day: originalWorkout.name,
+                      type: originalWorkout.comments || 'Unknown Type',
+                      color: originalWorkout.color || '#8A2BE2',
+                      focus: [
+                        ...new Set(
+                          enrichedExercises.map(
+                            (ex: any) => ex.mainMuscle || 'General',
+                          ),
+                        ),
+                      ],
+                    };
+
+                    console.log('sendddddd', transformedDayData);
+
+                    const setsData = item.content.Exercises.content;
+
+                    // 7. Navigate
+                    navigation.navigate('workoutProgramDetails', {
+                      programId: planID,
+                      day: [transformedDayData],
+                      selectedProgram,
+                      ScheduleHistoryData: loggedAt,
+                      isFrom: true,
+                      sets: setsData,
+                    });
+                  }}
                   onLongPress={() => {
                     setSelectedItem(prev =>
                       prev.includes(itemId)

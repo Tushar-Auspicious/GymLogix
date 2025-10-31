@@ -1,6 +1,15 @@
-import React, {FC, useEffect, useMemo, useRef, useState} from 'react';
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
+  Alert,
   Animated,
+  BackHandler,
   FlatList,
   ImageBackground,
   Pressable,
@@ -32,12 +41,16 @@ import {addSchedule} from '../../Redux/slices/ScheduleSlice';
 import {
   clearDraftWorkout,
   resetWorkout,
+  setCurrentCompletedExerciseIds,
   setDraftWorkout,
   setWorkoutProgress,
   setWorkoutTime,
 } from '../../Redux/slices/LogWorkoutSlice';
 import {workoutTimer} from '../../Components/WorkoutTimer';
 import Toast from 'react-native-toast-message';
+import {deleteMultipleExercises} from '../../Redux/slices/ExerciseSlice';
+import {deleteExercisesByIds} from '../../Redux/slices/PlanDataSlice';
+import {useFocusEffect} from '@react-navigation/native';
 
 // Define a type for a Superset
 type Superset = {
@@ -80,52 +93,6 @@ const tabData = [
   {label: 'Coach’s Corner', value: 4},
 ];
 
-// const workoutResultData = {
-//   overallSummary: {
-//     Duration: {
-//       current: '00:00:00',
-//       previous: '00:00:12',
-//     },
-//     Volume: {
-//       current: '5.3t',
-//       previous: '00:00:12', // Potential data issue in UI
-//     },
-//     Effort: {
-//       current: 13,
-//       previous: 1.4,
-//     },
-//     Distance: {
-//       current: 13,
-//       previous: 1.4,
-//     },
-//     Sets: {
-//       current: 13,
-//       previous: 1.4,
-//     },
-//     Reps: {
-//       current: 13,
-//       previous: 1.4,
-//     },
-//   },
-//   bestRecords: {
-//     Best_Total_Weight: {
-//       exerciseName: 'Smith machine shrug',
-//       details: '3 Sets x 3 reps',
-//       weightAchieved: '120',
-//       image:
-//         'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-//     },
-//     Best_Reps: {
-//       exerciseName: 'Smith machine shrug',
-//       details: '3 Sets x 3 reps',
-//       repsAchieved: 'SomeRepCount',
-//       image:
-//         'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-//     },
-//   },
-//   targetedMuscles: [],
-// };
-
 type ExerciseTime = {
   exerciseId: string;
   timeInSeconds: number;
@@ -136,7 +103,14 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   route,
 }) => {
   const dispatch = useAppDispatch();
-  const {programId, day: routeDay, selectedProgram} = route.params;
+  const {
+    programId,
+    day: routeDay,
+    selectedProgram,
+    ScheduleHistoryData,
+    isFrom,
+    sets,
+  } = route.params;
   // Moved state from ExerciseView to parent
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [exerciseData, setExerciseData] = useState<ExerciseListItem[]>([]);
@@ -153,7 +127,10 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   const [exerciseLog, setExerciseLog] = useState<any>([]);
   const [scheduleMap, setScheduleMap] = useState<{[key: string]: string}>({});
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [completedExercises, setCompletedExercises] = useState<string[]>([]);
+  // const [completedExercises, setCompletedExercises] = useState<string[]>([]);
+  const completedExercises = useAppSelector(
+    state => state.logWorkoutData.currentCompletedExerciseIds,
+  );
   // Access isFinish from Redux
   const isFinish = useAppSelector(state => state.workoutData.isFinish);
 
@@ -202,33 +179,51 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   }, [programDetails, routeDay]);
 
   // Use the live Redux data instead of static route data
-  const day = currentDayData;
+  // Initialize local mutable state from Redux/route data
+  const [dayState, setDayState] = useState(currentDayData);
 
-  console.log('dayyyy', day[0]);
+  // Use this dayState everywhere instead of currentDayData
+  const day = dayState;
 
   // // Start timer on mount
 
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
   // useEffect(() => {
-  //   timerRef.current = setInterval(() => {
-  //     setElapsedSeconds(prev => {
-  //       const next = prev + 1;
-  //       dispatch(setWorkoutTime(next)); // number only
-  //       return next;
-  //     });
-  //   }, 1000);
+  //   if (!isFrom) {
+  //     timerRef.current = setInterval(() => {
+  //       setElapsedSeconds(prev => prev + 1);
+  //     }, 1000);
+
+  //     return () => {
+  //       if (timerRef.current) clearInterval(timerRef.current);
+  //     };
+  //   }
   // }, []);
 
-  // Moved exerciseList calculation to parent111
+  useEffect(() => {
+    if (isFrom) return;
+
+    // Restore from Redux on mount
+    setElapsedSeconds(workoutTime || 0);
+
+    // Start interval
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds(prev => {
+        const newTime = prev + 1;
+        // Save to Redux every second
+        dispatch(setWorkoutTime(newTime));
+        return newTime;
+      });
+    }, 1000);
+
+    // Cleanup on unmount
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isFrom, workoutTime, dispatch]); // Re-run if workoutTime changes externally
+
+  // Moved exerciseList calculation to parent
   const exerciseList = useMemo(() => {
     const list: Exercise[] = [];
     day.map(day => day.exercises.map((e: any) => list.push(e)));
@@ -249,56 +244,63 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
     setSelectedExerciseDetails(item);
   };
 
-  const handleLongExercisePress = (title: string) => {
-    setSelectedExercises(prev =>
-      prev.includes(title)
-        ? prev.filter(item => item !== title)
-        : [...prev, title],
-    );
+  const handleLongExercisePress = (exerciseId: string) => {
+    setSelectedExercises(prev => {
+      if (prev.includes(exerciseId)) {
+        return prev.filter(id => id !== exerciseId);
+      } else {
+        return [...prev, exerciseId];
+      }
+    });
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      // Optional: keep selection while screen is active
+
+      return () => {
+        // When screen loses focus → clear selection
+        setSelectedExercises([]);
+      };
+    }, []),
+  );
 
   const handleDeleteSelected = () => {
     if (selectedExercises.length === 0) return;
-
-    const dayExercisesNames = day[0]?.exercises || [];
-
-    const getExerciseIDS = dayExercisesNames
-      .flatMap((item: any) => item.workout_exercises)
-      .map((ex: any) => ex.exercise_id);
-
-    const findExercisesNames = exercisesData.exerciseData?.filter(item =>
-      getExerciseIDS.includes(item.exercise_id),
-    );
 
     Animated.timing(fadeAnim, {
       toValue: 0,
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      setExerciseData(prev =>
-        prev.filter(item => {
-          if (
-            item &&
-            typeof item === 'object' &&
-            'type' in item &&
-            item.type === 'superset'
-          ) {
-            return !findExercisesNames?.every(exercise =>
-              selectedExercises.includes(exercise.name),
-            );
-          }
+      const exerciseIds = selectedExercises.map(Number);
 
-          const itemName = getExerciseName(item as Exercise);
-          const matched = findExercisesNames?.some(ex =>
-            selectedExercises.includes(ex.name),
-          );
+      try {
+        // Delete exercises globally without plan/day/group
+        dispatch(deleteExercisesByIds({exerciseIds}));
 
-          //  make sure to return
-          return !(selectedExercises.includes(itemName) || matched);
-        }),
-      );
-      setSelectedExercises([]);
-      fadeAnim.setValue(1);
+        // Update local state if needed
+        setDayState((prev: any) =>
+          prev.map((dayItem: any) => ({
+            ...dayItem,
+            exercises: dayItem.exercises
+              .map((exItem: any) => ({
+                ...exItem,
+                workout_exercises: exItem.workout_exercises.filter(
+                  (wEx: any) =>
+                    !exerciseIds.includes(wEx.exercise_id || wEx.id),
+                ),
+              }))
+              .filter((exItem: any) => exItem.workout_exercises.length > 0),
+          })),
+        );
+
+        setSelectedExercises([]);
+        fadeAnim.setValue(1);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to delete exercises');
+        fadeAnim.setValue(1);
+      }
     });
   };
 
@@ -306,24 +308,16 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
     if (selectedExercises.length <= 1) return;
 
     const selectedItems = exerciseData.filter(item =>
-      item &&
-      typeof item === 'object' &&
-      'type' in item &&
-      item.type === 'superset'
-        ? (item as Superset).exercises.some(exercise =>
-            selectedExercises.includes(getExerciseName(exercise)),
+      item && 'type' in item && item.type === 'superset'
+        ? (item as Superset).exercises.some(ex =>
+            selectedExercises.includes(ex.id),
           )
-        : selectedExercises.includes(getExerciseName(item as Exercise)),
+        : selectedExercises.includes((item as Exercise).id),
     );
 
     const exercisesToGroup: Exercise[] = [];
     selectedItems.forEach(item => {
-      if (
-        item &&
-        typeof item === 'object' &&
-        'type' in item &&
-        item.type === 'superset'
-      ) {
+      if (item && 'type' in item && item.type === 'superset') {
         exercisesToGroup.push(...(item as Superset).exercises);
       } else {
         exercisesToGroup.push(item as Exercise);
@@ -331,14 +325,11 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
     });
 
     const remainingItems = exerciseData.filter(item =>
-      item &&
-      typeof item === 'object' &&
-      'type' in item &&
-      item.type === 'superset'
-        ? !(item as Superset).exercises.every(exercise =>
-            selectedExercises.includes(getExerciseName(exercise)),
+      item && 'type' in item && item.type === 'superset'
+        ? !(item as Superset).exercises.every(ex =>
+            selectedExercises.includes(ex.id),
           )
-        : !selectedExercises.includes(getExerciseName(item as Exercise)),
+        : !selectedExercises.includes((item as Exercise).id),
     );
 
     const newSuperset: Superset = {
@@ -452,6 +443,9 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             exerciseTimeInSeconds={exerciseTimeInSeconds}
             setExerciseTimeInSeconds={setExerciseTimeInSeconds}
             isFinish={isFinish}
+            hideButton={isFrom}
+            ScheduleHistoryData={ScheduleHistoryData}
+            setsData={sets}
           />
         ) : (
           <ExerciseView
@@ -470,11 +464,16 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             currentDayIndex={0}
             dayData={day}
             completedExercises={completedExercises}
+            hideButton={isFrom}
           />
         );
       case 2:
         return (
-          <HistoryView planDayData={programDetails} dayWorkoutData={day} />
+          <HistoryView
+            planDayData={programDetails}
+            dayWorkoutData={day}
+            ScheduleHistoryData={ScheduleHistoryData}
+          />
         );
       case 3:
         return <DetailsView data={programDetails} />;
@@ -485,15 +484,19 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
     }
   };
 
-  const renderBottomSection = () => {
-    // compute exists here
-    const exists =
-      selectedExerciseDetails && isFinish[0]?.exercises
-        ? isFinish[0].exercises.some(
-            (ex: any) => ex.exercise_id === selectedExerciseDetails.id,
-          )
-        : false;
+  const exists = useMemo(() => {
+    if (!selectedExerciseDetails?.id || !isFinish?.length) {
+      return false;
+    }
 
+    const targetId = String(selectedExerciseDetails.id);
+
+    return isFinish.some((workout: any) =>
+      workout.exercises?.some((ex: any) => String(ex.exercise_id) === targetId),
+    );
+  }, [selectedExerciseDetails?.id, isFinish]);
+
+  const renderBottomSection = () => {
     return (
       <View style={{alignItems: 'center', gap: verticalScale(10)}}>
         {showExerciseDetail ? (
@@ -511,10 +514,9 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
               onPress={() => {
                 if (selectedExerciseDetails) {
                   // Add the exercise name or ID to completedExercises
-                  setCompletedExercises(prev => [
-                    ...prev,
-                    selectedExerciseDetails.name || selectedExerciseDetails.id,
-                  ]);
+                  dispatch(
+                    setCurrentCompletedExerciseIds(selectedExerciseDetails.id),
+                  );
                   setShowExerciseDetail(false);
                 }
               }}
@@ -696,8 +698,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
       getExerciseIDS.includes(item.exercise_id),
     );
 
-    console.log('GFGFHGF', findTargetedMuscle);
-
     // --- Overall Summary ---
     const overallSummary = {
       Duration: {
@@ -831,12 +831,10 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   };
 
   const LOG_WORKOUT = async () => {
-    if (draftWorkout.length === 0) {
-      Toast.show({
-        type: 'error',
-        text1: 'Please add at least one set',
-      });
-      return;
+    // Stop timer only once
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
 
     const now = new Date(); // current date
@@ -926,19 +924,18 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
 
     try {
       const response = await postData<any>(ENDPOINTS.createSchedule, {data});
-      console.log('workout sent response ---->', response);
       if (response.data.data) {
         dispatch(addSchedule(response.data.data));
 
         workoutTimer.stop();
 
         // Mark workout as done
-        dispatch(setWorkoutProgress('done'));
-
         // Optionally, reset after navigation
 
+        dispatch(setWorkoutProgress('done'));
         dispatch(resetWorkout());
         dispatch(clearDraftWorkout());
+        dispatch(setWorkoutTime(0));
         setexerciseWithSetData([]);
 
         const day = mapWorkoutResponseToDay(response.data.data);
@@ -953,6 +950,27 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
     }
   };
 
+  useEffect(() => {
+    const backAction = () => {
+      if (showAddSetUi) {
+        setShowAddSetUi(false);
+      } else if (showExerciseDetail) {
+        setShowExerciseDetail(false);
+      } else if (isSupersetSelected) {
+        setIsSupersetSelected(false);
+      } else {
+        navigation.goBack();
+      }
+      return true; // prevent default (app exit)
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, [showAddSetUi, showExerciseDetail, isSupersetSelected, navigation]);
   return (
     <View style={styles.main}>
       <SafeAreaView style={styles.safeArea}>
@@ -1033,7 +1051,8 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
         <View style={{flex: 1, paddingBottom: verticalScale(10)}}>
           {renderMainView()}
         </View>
-        {renderBottomSection()}
+
+        {!isFrom && renderBottomSection()}
       </SafeAreaView>
     </View>
   );

@@ -10,22 +10,40 @@ import {useAppSelector} from '../../../Redux/store';
 interface HistoryViewProps {
   planDayData: any;
   dayWorkoutData: any;
+  ScheduleHistoryData: string;
 }
 
-const HistoryView: FC<HistoryViewProps> = ({planDayData, dayWorkoutData}) => {
+const HistoryView: FC<HistoryViewProps> = ({
+  planDayData,
+  dayWorkoutData,
+  ScheduleHistoryData,
+}) => {
   const {scheduleData} = useAppSelector(state => state.scheduleData);
   const {exerciseData} = useAppSelector(state => state.exerciseData);
 
-  const getScheduleHistory = scheduleData?.filter(
-    item =>
-      item.type === 'workout' &&
-      item.content.plan_id === planDayData.allData.plan_id &&
-      dayWorkoutData[0].workout_id === item.content.Workout_id,
-  );
+  // Filter history by plan, workout, AND matching date
+  const getScheduleHistory = scheduleData
+    ?.filter(item => {
+      if (
+        item.type !== 'workout' ||
+        item.content.plan_id !== planDayData.allData.plan_id ||
+        dayWorkoutData[0].workout_id !== item.content.Workout_id
+      ) {
+        return false;
+      }
 
-  console.log('planDayData', planDayData);
-  console.log('dayWorkoutData', dayWorkoutData);
-  console.log('getScheduleHistory', getScheduleHistory);
+      if (!ScheduleHistoryData || typeof ScheduleHistoryData !== 'string')
+        return true;
+
+      const targetDate = ScheduleHistoryData.split('T')[0];
+      const itemDate = (item.schedule_at || item.updated_at)?.split('T')[0];
+
+      return itemDate === targetDate;
+    })
+    ?.sort(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+    );
 
   return (
     <ScrollView

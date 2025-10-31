@@ -38,6 +38,7 @@ interface WorkoutState {
     workoutName: string | null;
     dayName: string | null;
   };
+  currentCompletedExerciseIds: string[];
 }
 
 const initialState: WorkoutState = {
@@ -47,6 +48,7 @@ const initialState: WorkoutState = {
   workoutTime: 0,
   workoutProgress: '',
   currentWorkout: {planId: null, workoutName: null, dayName: null},
+  currentCompletedExerciseIds: [],
 };
 
 const logWorkoutSlice = createSlice({
@@ -98,6 +100,7 @@ const logWorkoutSlice = createSlice({
         }
       }
     },
+
     clearDraftWorkout(state) {
       state.draftWorkout = [];
     },
@@ -130,6 +133,11 @@ const logWorkoutSlice = createSlice({
     ) {
       state.currentWorkout = action.payload;
     },
+
+    setCurrentCompletedExerciseIds(state, action: PayloadAction<string>) {
+      state.currentCompletedExerciseIds.push(action.payload);
+    },
+
     resetWorkout(state) {
       state.workoutTime = 0;
       state.workoutProgress = '';
@@ -146,6 +154,7 @@ export const {
   setWorkoutProgress,
   setWorkoutTime,
   resetWorkout,
+  setCurrentCompletedExerciseIds,
   setCurrentWorkout,
 } = logWorkoutSlice.actions;
 

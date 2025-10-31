@@ -22,6 +22,7 @@ import ENDPOINTS from '../../../APIServices/endPoints';
 import {setFileData} from '../../../Redux/slices/newMealSlice';
 import Toast from 'react-native-toast-message';
 import {addSchedule} from '../../../Redux/slices/ScheduleSlice';
+import {setHomeActiveIndex} from '../../../Redux/slices/initialSlice';
 
 interface CapturedPhoto {
   uri: string;
@@ -149,14 +150,6 @@ const NotesLogMenu = () => {
 
   const logNotes = async () => {
     // Validate image
-    if (!image || image.trim() === '') {
-      Toast.show({
-        type: 'error',
-        text1: 'Please upload an image',
-        visibilityTime: 2000,
-      });
-      return;
-    }
 
     // Validate comment
     if (!comment || comment.trim() === '') {
@@ -205,6 +198,7 @@ const NotesLogMenu = () => {
           text1: 'Measurements Logged Successfully',
           visibilityTime: 2000,
         });
+        dispatch(setHomeActiveIndex(0));
         setImage(null);
         setComment('');
       }

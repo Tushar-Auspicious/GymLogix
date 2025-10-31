@@ -1,4 +1,11 @@
-import React, {FC, memo, useCallback, useState} from 'react';
+import React, {
+  FC,
+  memo,
+  useCallback,
+  useState,
+  useMemo,
+  useEffect,
+} from 'react';
 import {
   Alert,
   FlatList,
@@ -19,12 +26,11 @@ import {
   selectExercisesByCategory,
   selectAllExercises,
 } from '../../Redux/slices/exerciseCatalogSlice';
-import {addExercisesToDay} from '../../Redux/slices/trainingPlansSlice';
+import {updateExerciseInaPlan} from '../../Redux/slices/PlanDataSlice';
 import {Exercise} from '../../Seeds/ExerciseCatalog';
 import {ExerciseListScreenProps} from '../../Typings/route';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
-import {updateExerciseInaPlan} from '../../Redux/slices/PlanDataSlice';
 
 const tabData = [
   {label: 'Category', value: 1},
@@ -33,322 +39,271 @@ const tabData = [
 ];
 
 const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
-  // Get exercises from Redux store
+  const dispatch = useAppDispatch();
   const exerciseCategories = useAppSelector(selectExercisesByCategory);
   const allExercises = useAppSelector(selectAllExercises);
-  const dispatch = useAppDispatch();
-
-  const {catalog} = useAppSelector(state =>
-    state.exerciseCatalog.catalog.categories.map(item =>
-      item.exercises.map(item => item.id),
-    ),
-  );
-
-  const {plans} = useAppSelector(state => state.trainingPlans);
-
-  const filterExercises = (exercises: Exercise[]) => {
-    if (!searchedWord.trim()) return exercises;
-    return exercises.filter(ex =>
-      ex.name.toLowerCase().includes(searchedWord.toLowerCase()),
-    );
-  };
-
-  // Get training plan context from route params
   const fromTrainingPlan = route.params?.fromTrainingPlan;
+  const previouslySelectedExercise = fromTrainingPlan?.exerciseIds;
 
   const [searchedWord, setSearchedWord] = useState('');
   const [activeTab, setActiveTab] = useState(1);
-  const [expandedCategories, setExpandedCategories] = useState(
-    exerciseCategories.map(item => item.bodyPart),
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    () => new Set(exerciseCategories.map(item => item.bodyPart)),
   );
-  const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+  const [selectedExercises, setSelectedExercises] = useState<Set<string>>(
+    () => new Set(),
+  );
 
-  // Generate random exercises only once when component mounts
-  const [historyExercises] = useState(() => allExercises.slice(0, 10));
+  const historyExercises = useMemo(
+    () => allExercises.slice(0, 10),
+    [allExercises],
+  );
+  const listExercises = useMemo(
+    () => allExercises.slice(10, 20),
+    [allExercises],
+  );
 
-  const [listExercises] = useState(() => allExercises.slice(10, 20));
+  const filteredData = useMemo(() => {
+    const lowerSearch = searchedWord.toLowerCase().trim();
+    if (!lowerSearch) return {history: historyExercises, list: listExercises};
 
-  // Toggle exercise selection in the single state
+    const filter = (ex: Exercise) =>
+      ex.name.toLowerCase().includes(lowerSearch);
+
+    return {
+      history: historyExercises.filter(filter),
+      list: listExercises.filter(filter),
+    };
+  }, [searchedWord, historyExercises, listExercises]);
+
   const toggleExerciseSelection = useCallback((exerciseId: string) => {
-    setSelectedExercises(prev =>
-      prev.includes(exerciseId)
-        ? prev.filter(id => id !== exerciseId)
-        : [...prev, exerciseId],
-    );
+    setSelectedExercises(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(exerciseId)) newSet.delete(exerciseId);
+      else newSet.add(exerciseId);
+      return newSet;
+    });
   }, []);
 
-  // Handle adding exercises to training plan
+  const toggleCategory = useCallback((bodyPart: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(bodyPart)) newSet.delete(bodyPart);
+      else newSet.add(bodyPart);
+      return newSet;
+    });
+  }, []);
+
   const handleAddExercisesToTrainingPlan = useCallback(() => {
     if (!fromTrainingPlan) {
       Alert.alert('Error', 'No training plan context found');
       return;
     }
 
-    if (selectedExercises.length === 0) {
-      Alert.alert('No Selection', 'Please select at least one exercise to add');
+    if (selectedExercises.size === 0) {
+      Alert.alert('No Selection', 'Please select at least one exercise');
       return;
     }
 
-    const selectedExerciseObjects = allExercises.filter(exercise =>
-      selectedExercises.includes(exercise.id),
+    const selectedIds = Array.from(selectedExercises);
+
+    const selectedExerciseObjects = allExercises.filter(ex =>
+      selectedIds.includes(ex.id),
     );
 
-    const toMinutesDecimal = (seconds: number): number => {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      return parseFloat((minutes + remainingSeconds / 60).toFixed(2));
-    };
+    if (selectedExerciseObjects.length === 0) {
+      console.warn(
+        '[AddExercises] No matching exercises found in allExercises',
+        {selectedIds, allExercisesIds: allExercises.map(e => e.id)},
+      );
+      Alert.alert(
+        'Error',
+        'Selected exercises are not available in the current list',
+      );
+      return;
+    }
 
-    // Existing function to convert MM:SS string to seconds
-    const toSeconds = (timeStr: string | undefined) => {
-      if (!timeStr) return 0;
-      const [min, sec] = timeStr.split(':').map(Number);
+    // Safe time conversion
+    const toSeconds = (timeStr?: string): number => {
+      if (!timeStr || typeof timeStr !== 'string') return 0;
+      const trimmed = timeStr.trim();
+      if (!trimmed) return 0;
+
+      const parts = trimmed
+        .split(':')
+        .map(p => p.trim())
+        .filter(p => p && !isNaN(Number(p)))
+        .map(Number);
+
+      if (parts.length < 2) return 0;
+      if (parts.length > 2) parts = parts.slice(0, 2); // take only min:sec
+
+      const [min = 0, sec = 0] = parts;
       return min * 60 + sec;
     };
 
-    // console.log(
-    //   'JJJJ',
-    //   updateExerciseInaPlan({
-    //     planId: fromTrainingPlan.programId,
-    //     dayId: fromTrainingPlan.dayId,
-    //     exercise: selectedExerciseObjects.map((exe: any) => ({
-    //       exercise_id: exe.id,
-    //       sets: exe.exerciseSettings?.sets,
-    //       reps: exe.exerciseSettings?.reps,
-    //       timing_warmup:
-    //         toMinutesDecimal(toSeconds(exe.exerciseSettings?.timing?.warmUp)) ||
-    //         0,
-    //       timing_workset:
-    //         toMinutesDecimal(
-    //           toSeconds(exe.exerciseSettings?.timing?.workingSet),
-    //         ) || 0,
-    //       timing_finish:
-    //         toMinutesDecimal(
-    //           toSeconds(exe.exerciseSettings?.timing?.finishExercise),
-    //         ) || 0,
-    //       Is_time: exe.exerciseSettings?.loggingType === 'Time' ? true : false,
-    //       is_weight:
-    //         exe.exerciseSettings?.loggingType === 'Weight' ? true : false,
-    //       Is_distance:
-    //         exe.exerciseSettings?.loggingType === 'Distance' ? true : false,
-    //       alternate_exercise_id: exe.exerciseSettings?.alternateExercise || [],
-    //     })),
-    //   }),
-    // );
+    const toMinutesDecimal = (seconds: number): number => {
+      if (typeof seconds !== 'number' || isNaN(seconds) || seconds < 0)
+        return 0;
+      const minutes = Math.floor(seconds / 60);
+      const secs = (seconds % 60) / 60;
+      return parseFloat((minutes + secs).toFixed(2));
+    };
+
+    const payload = selectedExerciseObjects.map(exe => ({
+      exercise_id: exe.id,
+      sets: exe.exerciseSettings?.sets || 0,
+      reps: exe.exerciseSettings?.reps || 0,
+      timing_warmup:
+        toMinutesDecimal(toSeconds(exe.exerciseSettings?.timing?.warmUp)) || 0,
+      timing_workset:
+        toMinutesDecimal(toSeconds(exe.exerciseSettings?.timing?.workingSet)) ||
+        0,
+      timing_finish:
+        toMinutesDecimal(
+          toSeconds(exe.exerciseSettings?.timing?.finishExercise),
+        ) || 0,
+      Is_time: exe.exerciseSettings?.loggingType === 'Time',
+      is_weight: exe.exerciseSettings?.loggingType === 'Weight',
+      Is_distance: exe.exerciseSettings?.loggingType === 'Distance',
+      alternate_exercise_id: exe.exerciseSettings?.alternateExercise || [],
+    }));
 
     dispatch(
       updateExerciseInaPlan({
         planId: Number(fromTrainingPlan.programId),
         dayId: fromTrainingPlan.dayId,
-        exercise: selectedExerciseObjects.map((exe: any) => ({
-          exercise_id: exe.id,
-          sets: exe.exerciseSettings?.sets || 0,
-          reps: exe.exerciseSettings?.reps || 0,
-          timing_warmup:
-            toMinutesDecimal(toSeconds(exe.exerciseSettings?.timing?.warmUp)) ||
-            0,
-          timing_workset:
-            toMinutesDecimal(
-              toSeconds(exe.exerciseSettings?.timing?.workingSet),
-            ) || 0,
-          timing_finish:
-            toMinutesDecimal(
-              toSeconds(exe.exerciseSettings?.timing?.finishExercise),
-            ) || 0,
-          Is_time: exe.exerciseSettings?.loggingType === 'Time' ? true : false,
-          is_weight:
-            exe.exerciseSettings?.loggingType === 'Weight' ? true : false,
-          Is_distance:
-            exe.exerciseSettings?.loggingType === 'Distance' ? true : false,
-          alternate_exercise_id: exe.exerciseSettings?.alternateExercise || [],
-        })),
+        exercise: payload,
       }),
     );
-    // dispatch(
-    //   addExercisesToDay({
-    //     planId: fromTrainingPlan.programId,
-    //     dayId: fromTrainingPlan.dayId,
-    //     exercises: selectedExerciseObjects,
-    //   }),
-    // );
 
-    setSelectedExercises([]);
+    setSelectedExercises(new Set());
     navigation.goBack();
-  }, [fromTrainingPlan, selectedExercises, allExercises, dispatch, navigation]);
+  }, [fromTrainingPlan, selectedExercises, allExercises, navigation]);
 
-  const toggleCategory = useCallback((bodyPart: string) => {
-    setExpandedCategories(prev =>
-      prev.includes(bodyPart)
-        ? prev.filter(category => category !== bodyPart)
-        : [...prev, bodyPart],
-    );
-  }, []);
+  // === FLAT DATA FOR CATEGORY TAB (NO NESTED FlatList) ===
+  const flatCategoryData = useMemo(() => {
+    if (activeTab !== 1) return [];
 
-  const ExerciseItem = memo(({exercise}: {exercise: Exercise}) => {
-    const isSelected = selectedExercises.includes(exercise.id);
-    return (
-      <View style={styles.exerciseItem}>
-        <Image
-          source={{
-            uri: exercise.coverImage?.uri,
-          }}
-          style={styles.exerciseImage}
-        />
-        <View style={styles.exerciseContent}>
-          <View style={styles.exerciseHeader}>
-            <CustomText color={COLORS.yellow} fontFamily="medium" fontSize={12}>
-              {exercise.name}
-            </CustomText>
-            {isSelected ? (
-              <View style={styles.selectedActions}>
-                <TouchableOpacity
-                  onPress={() => {
-                    navigation.navigate('exerciseSettings', {
-                      exerciseId: exercise.id,
-                    });
+    const lowerSearch = searchedWord.toLowerCase().trim();
+    const result: Array<{type: 'header' | 'exercise'; data: any}> = [];
+
+    exerciseCategories.forEach(category => {
+      const filtered = lowerSearch
+        ? category.exercises.filter(ex =>
+            ex.name.toLowerCase().includes(lowerSearch),
+          )
+        : category.exercises;
+
+      if (filtered.length === 0) return;
+
+      result.push({
+        type: 'header',
+        data: {bodyPart: category.bodyPart, count: filtered.length},
+      });
+
+      if (expandedCategories.has(category.bodyPart)) {
+        filtered.forEach(ex => result.push({type: 'exercise', data: ex}));
+      }
+    });
+
+    return result;
+  }, [activeTab, exerciseCategories, searchedWord, expandedCategories]);
+
+  const renderCategoryItem = useCallback(
+    ({item}: {item: any}) => {
+      if (item.type === 'header') {
+        const {bodyPart, count} = item.data;
+        const isExpanded = expandedCategories.has(bodyPart);
+
+        return (
+          <View style={styles.categoryContainer}>
+            <View style={styles.categoryHeader}>
+              <Pressable
+                onPress={() => toggleCategory(bodyPart)}
+                style={styles.categoryPressable}>
+                <CustomIcon Icon={ICONS.ArrowDownIcon} height={7} width={18} />
+                <CustomText color={COLORS.whiteTail} fontFamily="medium">
+                  {bodyPart}
+                </CustomText>
+              </Pressable>
+              <View style={styles.categoryInfo}>
+                <CustomText>{count}</CustomText>
+                <Image
+                  source={{
+                    uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
                   }}
-                  style={[styles.actionButton, styles.selectedButton]}>
-                  <CustomIcon
-                    Icon={ICONS.smallSettingIcon}
-                    height={18}
-                    width={18}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => toggleExerciseSelection(exercise.id)}
-                  style={[styles.actionButton, styles.selectedButton]}>
-                  <CustomText>V</CustomText>
-                </TouchableOpacity>
+                  style={styles.categoryImage}
+                />
               </View>
-            ) : (
-              <TouchableOpacity
-                onPress={() => toggleExerciseSelection(exercise.id)}
-                style={styles.actionButton}>
-                <CustomIcon Icon={ICONS.PlusIcon} height={12} width={12} />
-              </TouchableOpacity>
-            )}
+            </View>
           </View>
-          <View style={styles.tagsContainer}>
-            {[
-              exercise.equipment,
-              exercise.type,
-              exercise.force,
-              exercise.location,
-            ].map((tag, idx) => (
-              <CustomText
-                key={`${exercise.id}-${idx}`}
-                style={styles.tag}
-                fontSize={10}
-                color={COLORS.whiteTail}>
-                {tag}
-              </CustomText>
-            ))}
-          </View>
-        </View>
-      </View>
-    );
-  });
+        );
+      }
 
-  const CategoryItem = memo(({item}: {item: any}) => {
-    const isExpanded = expandedCategories.includes(item.bodyPart);
-    return (
-      <View style={styles.categoryContainer}>
-        <View style={styles.categoryHeader}>
-          <Pressable
-            onPress={() => toggleCategory(item.bodyPart)}
-            style={styles.categoryPressable}>
-            <CustomIcon Icon={ICONS.ArrowDownIcon} height={7} width={18} />
-            <CustomText color={COLORS.whiteTail} fontFamily="medium">
-              {item.bodyPart}
-            </CustomText>
-          </Pressable>
-          <View style={styles.categoryInfo}>
-            <CustomText>{item.exercises.length}</CustomText>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
-              }}
-              style={styles.categoryImage}
-            />
-          </View>
-        </View>
-        {isExpanded && (
-          <FlatList
-            data={item.exercises}
-            keyExtractor={exercise => exercise.name}
-            renderItem={({item: exercise}) => (
-              <ExerciseItem exercise={exercise} />
-            )}
-          />
-        )}
-      </View>
-    );
-  });
-
-  const renderTabs = useCallback(
-    () => (
-      <View style={styles.tabContainer}>
-        {tabData.map(tab => (
-          <Pressable
-            key={tab.value}
-            onPress={() => setActiveTab(tab.value)}
-            style={[
-              styles.tabButton,
-              {
-                backgroundColor:
-                  activeTab === tab.value ? COLORS.yellow : 'transparent',
-              },
-            ]}>
-            <CustomText fontSize={14} fontFamily="medium">
-              {tab.label}
-            </CustomText>
-          </Pressable>
-        ))}
-      </View>
-    ),
-    [activeTab],
+      return (
+        <ExerciseItem
+          exercise={item.data}
+          isSelected={selectedExercises.has(item.data.id)}
+          onToggle={toggleExerciseSelection}
+          navigation={navigation}
+        />
+      );
+    },
+    [
+      expandedCategories,
+      selectedExercises,
+      toggleCategory,
+      toggleExerciseSelection,
+      navigation,
+    ],
   );
+
+  const keyExtractor = useCallback((item: any) => {
+    return item.type === 'header' ? item.data.bodyPart : item.data.id;
+  }, []);
 
   const renderMainView = useCallback(() => {
     switch (activeTab) {
       case 1:
         return (
           <FlatList
-            data={exerciseCategories}
-            keyExtractor={item => item.bodyPart}
-            renderItem={({item}) => {
-              const filteredExercises = filterExercises(item.exercises);
-              if (filteredExercises.length === 0) return null;
-              return (
-                <CategoryItem item={{...item, exercises: filteredExercises}} />
-              );
-            }}
+            data={flatCategoryData}
+            renderItem={renderCategoryItem}
+            keyExtractor={keyExtractor}
             contentContainerStyle={styles.mainListContent}
-            extraData={searchedWord}
           />
         );
       case 2:
         return (
           <FlatList
-            data={filterExercises(historyExercises)}
-            keyExtractor={exercise => exercise.id}
-            renderItem={({item: exercise}) => (
-              <ExerciseItem exercise={exercise} />
+            data={filteredData.history}
+            keyExtractor={item => item.id}
+            renderItem={({item: ex}) => (
+              <ExerciseItem
+                exercise={ex}
+                isSelected={selectedExercises.has(ex.id)}
+                onToggle={toggleExerciseSelection}
+                navigation={navigation}
+              />
             )}
             contentContainerStyle={styles.listContent}
-            extraData={searchedWord}
           />
         );
       case 3:
         return (
           <FlatList
-            data={filterExercises(listExercises)}
-            keyExtractor={exercise => exercise.id}
-            renderItem={({item: exercise}) => (
-              <ExerciseItem exercise={exercise} />
+            data={filteredData.list}
+            keyExtractor={item => item.id}
+            renderItem={({item: ex}) => (
+              <ExerciseItem
+                exercise={ex}
+                isSelected={selectedExercises.has(ex.id)}
+                onToggle={toggleExerciseSelection}
+                navigation={navigation}
+              />
             )}
             contentContainerStyle={styles.listContent}
-            extraData={searchedWord}
           />
         );
       default:
@@ -356,21 +311,30 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
     }
   }, [
     activeTab,
-    expandedCategories,
+    flatCategoryData,
+    filteredData,
+    renderCategoryItem,
+    keyExtractor,
     selectedExercises,
-    historyExercises,
-    listExercises,
-    exerciseCategories,
+    toggleExerciseSelection,
+    previouslySelectedExercise,
+    navigation,
   ]);
+
+  useEffect(() => {
+    if (previouslySelectedExercise) {
+      previouslySelectedExercise.forEach((exercise: string) => {
+        toggleExerciseSelection(exercise);
+      });
+    }
+  }, [previouslySelectedExercise]);
 
   return (
     <View style={styles.main}>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <CustomIcon
-            onPress={() => {
-              navigation.goBack();
-            }}
+            onPress={() => navigation.goBack()}
             Icon={ICONS.BackArrow}
           />
           <View style={styles.searchContainer}>
@@ -383,21 +347,36 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
               style={styles.searchInput}
             />
           </View>
+
+          {/* FIXED: "New" label wrapped in View */}
           <TouchableOpacity
-            onPress={() => {
-              navigation.navigate('addNewExercise');
-            }}
+            onPress={() => navigation.navigate('addNewExercise')}
             style={styles.newButton}>
             <View style={styles.newIconContainer}>
               <CustomIcon Icon={ICONS.PlusIcon} height={26} width={26} />
             </View>
-            <CustomText
-              style={{position: 'absolute', bottom: verticalScale(-22)}}>
-              New
-            </CustomText>
+            <View style={{position: 'absolute', bottom: verticalScale(-22)}}>
+              <CustomText>New</CustomText>
+            </View>
           </TouchableOpacity>
         </View>
-        {renderTabs()}
+
+        <View style={styles.tabContainer}>
+          {tabData.map(tab => (
+            <Pressable
+              key={tab.value}
+              onPress={() => setActiveTab(tab.value)}
+              style={[
+                styles.tabButton,
+                activeTab === tab.value && {backgroundColor: COLORS.yellow},
+              ]}>
+              <CustomText fontSize={14} fontFamily="medium">
+                {tab.label}
+              </CustomText>
+            </Pressable>
+          ))}
+        </View>
+
         {fromTrainingPlan && (
           <View style={styles.trainingPlanContext}>
             <CustomIcon Icon={ICONS.WorkoutIcon} height={16} width={16} />
@@ -406,35 +385,117 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
             </CustomText>
           </View>
         )}
-        {selectedExercises.length > 0 && (
+
+        {selectedExercises.size > 0 && (
           <CustomText
             color={COLORS.nickel}
             fontFamily="italic"
             style={styles.selectedText}>
-            {selectedExercises.length} Exercises selected
+            {selectedExercises.size} Exercises selected
           </CustomText>
         )}
+
         {renderMainView()}
+
         <PrimaryButton
           title={fromTrainingPlan ? 'Add to Training Plan' : 'Add Exercises'}
           onPress={
             fromTrainingPlan
               ? handleAddExercisesToTrainingPlan
-              : () => {
-                  Alert.alert(
-                    'Info',
-                    'Exercise selection functionality will be implemented here',
-                  );
-                }
+              : () => Alert.alert('Info', 'Functionality coming soon')
           }
-          disabled={selectedExercises.length === 0}
+          disabled={selectedExercises.size === 0}
         />
       </SafeAreaView>
     </View>
   );
 };
 
-export default ExerciseList;
+// === REUSABLE EXERCISE ITEM ===
+const ExerciseItem = memo(
+  ({
+    exercise,
+    isSelected,
+    onToggle,
+    navigation,
+  }: {
+    exercise: Exercise;
+    isSelected: boolean;
+    onToggle: (id: string) => void;
+    navigation: any;
+  }) => {
+    const tags = useMemo(
+      () => [
+        exercise.equipment,
+        exercise.type,
+        exercise.force,
+        exercise.location,
+      ],
+      [exercise.equipment, exercise.type, exercise.force, exercise.location],
+    );
+
+    return (
+      <View style={styles.exerciseItem}>
+        <Image
+          source={{
+            uri:
+              exercise.coverImage?.uri ||
+              'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
+          }}
+          style={styles.exerciseImage}
+        />
+        <View style={styles.exerciseContent}>
+          <View style={styles.exerciseHeader}>
+            <CustomText color={COLORS.yellow} fontFamily="medium" fontSize={12}>
+              {exercise.name}
+            </CustomText>
+            {isSelected ? (
+              <View style={styles.selectedActions}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('exerciseSettings', {
+                      exerciseId: exercise.id,
+                    })
+                  }
+                  style={[styles.actionButton, styles.selectedButton]}>
+                  <CustomIcon
+                    Icon={ICONS.smallSettingIcon}
+                    height={18}
+                    width={18}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => onToggle(exercise.id)}
+                  style={[styles.actionButton, styles.selectedButton]}>
+                  <CustomText>V</CustomText>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => onToggle(exercise.id)}
+                style={styles.actionButton}>
+                <CustomIcon Icon={ICONS.PlusIcon} height={12} width={12} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.tagsContainer}>
+            {tags.map((tag, idx) => (
+              <CustomText
+                key={idx}
+                style={styles.tag}
+                fontSize={10}
+                color={COLORS.whiteTail}>
+                {tag}
+              </CustomText>
+            ))}
+          </View>
+        </View>
+      </View>
+    );
+  },
+);
+
+export default memo(ExerciseList);
 
 const styles = StyleSheet.create({
   main: {
@@ -497,7 +558,7 @@ const styles = StyleSheet.create({
   },
   mainListContent: {
     paddingHorizontal: horizontalScale(15),
-    gap: verticalScale(20),
+    // gap: verticalScale(20),
   },
   listContent: {
     paddingHorizontal: horizontalScale(15),
@@ -556,7 +617,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#403633',
     paddingHorizontal: horizontalScale(5),
   },
-  categoryContainer: {gap: verticalScale(10)},
+  categoryContainer: {
+    gap: verticalScale(10),
+    marginVertical: verticalScale(10),
+  },
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
