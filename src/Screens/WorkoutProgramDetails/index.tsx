@@ -254,6 +254,10 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
     });
   };
 
+  const handleCancelSelection = () => {
+    setSelectedExercises([]); // clear all selected items
+  };
+
   useFocusEffect(
     useCallback(() => {
       // Optional: keep selection while screen is active
@@ -307,12 +311,12 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   const handleClickSuperSet = () => {
     if (selectedExercises.length <= 1) return;
 
-    const selectedItems = exerciseData.filter(item =>
+    const selectedItems = exercises.filter(item =>
       item && 'type' in item && item.type === 'superset'
         ? (item as Superset).exercises.some(ex =>
             selectedExercises.includes(ex.id),
           )
-        : selectedExercises.includes((item as Exercise).id),
+        : selectedExercises.includes((item as any).exercise_id),
     );
 
     const exercisesToGroup: Exercise[] = [];
@@ -324,12 +328,12 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
       }
     });
 
-    const remainingItems = exerciseData.filter(item =>
+    const remainingItems = exercises.filter(item =>
       item && 'type' in item && item.type === 'superset'
         ? !(item as Superset).exercises.every(ex =>
             selectedExercises.includes(ex.id),
           )
-        : !selectedExercises.includes((item as Exercise).id),
+        : !selectedExercises.includes((item as any).exercise_id),
     );
 
     const newSuperset: Superset = {
@@ -457,6 +461,7 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             setExerciseData={setExerciseData}
             handleExercisePress={handleExercisePress}
             handleLongExercisePress={handleLongExercisePress}
+            handleCancelSelection={handleCancelSelection}
             handleDeleteSelected={handleDeleteSelected}
             handleClickSuperSet={handleClickSuperSet}
             fadeAnim={fadeAnim}
@@ -531,7 +536,8 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
               if (selectedExerciseDetails) {
                 setExerciseData(prev =>
                   prev.map(item =>
-                    item.exercise_id === selectedExerciseDetails.exercise_id
+                    item.exercise_id === selectedExerciseDetails.exercise_id ||
+                    selectedExerciseDetails.id
                       ? {...item, isCompleted: true}
                       : item,
                   ),

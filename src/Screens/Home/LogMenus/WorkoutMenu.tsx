@@ -43,9 +43,11 @@ const WorkoutMenu = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const workoutTime = useAppSelector(state => state.logWorkoutData.workoutTime); // in seconds
+
   const workoutProgress = useAppSelector(
     state => state.logWorkoutData.workoutProgress,
   );
+
   const currentWorkout = useAppSelector(
     state => state.logWorkoutData.currentWorkout,
   );

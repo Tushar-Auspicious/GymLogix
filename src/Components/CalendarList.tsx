@@ -1,11 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {
-  BackHandler,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import {FlatList, StyleSheet, TouchableOpacity, View} from 'react-native';
 import Animated, {useAnimatedStyle, withSpring} from 'react-native-reanimated';
 import ICONS from '../Assets/Icons';
 import {
@@ -18,7 +12,6 @@ import COLORS from '../Utilities/Colors';
 import {horizontalScale, hp, verticalScale} from '../Utilities/Metrics';
 import CustomIcon from './CustomIcon';
 import {CustomText} from './CustomText';
-import {useNavigation} from '@react-navigation/native';
 
 export interface DayItem {
   day: string;
@@ -39,8 +32,8 @@ interface ActivityIndicators {
   hasMeasurement: boolean; // Shows measurement icon for body measurements
 }
 
-const ITEM_WIDTH = horizontalScale(50);
-const ITEM_MARGIN = horizontalScale(4);
+const ITEM_WIDTH = horizontalScale(55);
+const ITEM_MARGIN = horizontalScale(5);
 const TOTAL_ITEM_WIDTH = ITEM_WIDTH + ITEM_MARGIN * 2;
 
 const DayCard = React.memo(
@@ -142,7 +135,7 @@ const DayCard = React.memo(
                 />
               )}
               {activityIndicators.hasMeasurement && (
-                <View style={styles.mealStyle}>
+                <View style={styles.hasMeasurementStyle}>
                   <CustomIcon
                     Icon={ICONS.MeasurementLogIcon}
                     width={12}
@@ -166,14 +159,12 @@ const DayCard = React.memo(
 const CalendarList = () => {
   const flatListRef = useRef<FlatList<DayItem>>(null);
   const dispatch = useAppDispatch();
-  const navigation = useNavigation();
   const {dates, initialIndex, homeActiveIndex} = useAppSelector(
     state => state.initial,
   );
   const {scheduleData} = useAppSelector(state => state.scheduleData);
-
   const [month, setMonth] = useState('');
-  const [selectedDtae, setSelectedDtae] = useState<DayItem | null>(null);
+  const [selectedDay, setSelectedDay] = useState<DayItem | null>(null);
 
   // Function to get activity indicators for a specific date
   const getActivityIndicators = useCallback(
@@ -408,7 +399,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 8,
     width: ITEM_WIDTH,
-    height: hp(10.3),
+    height: hp(11),
     alignItems: 'center',
     marginHorizontal: ITEM_MARGIN,
     gap: verticalScale(5),
@@ -420,7 +411,7 @@ const styles = StyleSheet.create({
     bottom: 3,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 1,
+    gap: 2,
     maxWidth: ITEM_WIDTH - 8,
     width: '100%',
   },
@@ -430,7 +421,14 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(2),
     paddingHorizontal: horizontalScale(2),
   },
+  hasMeasurementStyle: {
+    backgroundColor: COLORS.blue,
+    borderRadius: 100,
+    paddingVertical: verticalScale(2),
+    paddingHorizontal: horizontalScale(2),
+  },
 });
 
 // Memoize the entire component to prevent unnecessary re-renders
 export default React.memo(CalendarList);
+3;

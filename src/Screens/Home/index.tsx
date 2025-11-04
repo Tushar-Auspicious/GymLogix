@@ -356,9 +356,6 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const transformHistoryDayData = (historyItem: any, exerciseData: any) => {
     const loggedExercises = historyItem?.content?.Exercises?.content || [];
 
-    console.log('historyItem', historyItem);
-    console.log('exerciseData', exerciseData);
-
     // Collect only exercises that actually exist in master list
     const validExercises = loggedExercises
       .map((log: any) => {
@@ -419,8 +416,6 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
         </CustomText>
       );
     }
-
-    console.log('FILTERS', filteredSchedule);
 
     // Flatten scheduleData so that exercises & parts each become their own row
     const flattenedData = filteredSchedule
@@ -610,8 +605,6 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
                         ),
                       ],
                     };
-
-                    console.log('sendddddd', transformedDayData);
 
                     const setsData = item.content.Exercises.content;
 

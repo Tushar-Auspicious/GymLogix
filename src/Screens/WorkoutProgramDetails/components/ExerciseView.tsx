@@ -59,6 +59,7 @@ type ExerciseData = {
   dayData: any;
   completedExercises: string[];
   hideButton: boolean;
+  handleCancelSelection: (item: any) => void;
 };
 
 // Helper function to get exercise name
@@ -112,6 +113,7 @@ const ExerciseView: FC<ExerciseData> = ({
   dayData,
   completedExercises,
   hideButton,
+  handleCancelSelection,
 }) => {
   const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
@@ -284,298 +286,298 @@ const ExerciseView: FC<ExerciseData> = ({
 
   const exercises = currentWorkout?.exercises?.[0]?.workout_exercises || [];
 
-  const renderExerciseList = () => {
-    const renderItem = useCallback(
-      ({item, drag, isActive}: RenderItemParams<any>) => {
-        const alternateExerciseId = item.exerciseSettings?.alternateExercise;
-        const alternateExercise: any = allExercises.find(
-          exercise => exercise.id === alternateExerciseId,
-        );
+  const renderItem = useCallback(
+    ({item, drag, isActive}: RenderItemParams<any>) => {
+      const alternateExerciseId = item.exerciseSettings?.alternateExercise;
+      const alternateExercise: any = allExercises.find(
+        exercise => exercise.id === alternateExerciseId,
+      );
 
-        const getExerciseImage = (exerciseData: any) => {
-          if (!exerciseData)
-            return 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop';
-
-          // 1️ Prefer images_urls
-          if (
-            Array.isArray(exerciseData.images_urls) &&
-            exerciseData.images_urls.length > 0
-          ) {
-            return exerciseData.images_urls[0];
-          }
-
-          // 2️ Then check images (string or object with .uri)
-          if (
-            Array.isArray(exerciseData.images) &&
-            exerciseData.images.length > 0
-          ) {
-            const firstImage = exerciseData.images[0];
-            if (typeof firstImage === 'string') return firstImage;
-            if (firstImage?.uri) return firstImage.uri;
-          }
-
-          // 3️ Default fallback
+      const getExerciseImage = (exerciseData: any) => {
+        if (!exerciseData)
           return 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop';
-        };
 
-        // -------------------- Superset Block --------------------
+        // 1️ Prefer images_urls
         if (
-          item &&
-          typeof item === 'object' &&
-          'type' in item &&
-          item.type === 'superset'
+          Array.isArray(exerciseData.images_urls) &&
+          exerciseData.images_urls.length > 0
         ) {
-          return (
-            <ScaleDecorator>
-              <TouchableOpacity
-                onPress={() => {
-                  if (!hideButton) {
-                    onPressSuperset();
-                  }
-                }}
-                activeOpacity={1}
-                disabled={isActive}
-                style={{
-                  padding: verticalScale(4),
-                  gap: verticalScale(5),
-                  borderColor: COLORS.whiteTail,
-                  borderWidth: 1,
-                  borderRadius: 10,
-                  width: wp(95),
-                  alignSelf: 'center',
-                  backgroundColor: isActive ? COLORS.nickel : undefined,
-                }}>
-                <View
-                  style={{
-                    width: '100%',
-                    backgroundColor: COLORS.brown,
-                    paddingHorizontal: horizontalScale(10),
-                    paddingVertical: verticalScale(2),
-                    borderTopRightRadius: 10,
-                    borderTopLeftRadius: 10,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}>
-                  <CustomText fontFamily="italic" fontSize={14}>
-                    SUPERSET
-                  </CustomText>
-
-                  {/* Drag handle for superset */}
-                  <TouchableOpacity onLongPress={drag} disabled={isActive}>
-                    <CustomIcon
-                      Icon={ICONS.SidMultiDotView}
-                      height={verticalScale(27)}
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <View
-                  style={{
-                    width: '98%',
-                    gap: verticalScale(5),
-                    alignSelf: 'center',
-                  }}>
-                  {item.exercises.map((exercise: any, index: number) => {
-                    const isSelected = (item as Superset).exercises.some(
-                      exercise =>
-                        selectedExercises.includes(
-                          exercise.exercise_id ?? exercise.id,
-                        ),
-                    );
-                    const isCompleted = completedExercises.includes(
-                      getExerciseName(exercise),
-                    );
-                    return (
-                      <View
-                        key={exercise.exercise_id || exercise.id || index}
-                        style={{
-                          flexDirection: 'row',
-                          justifyContent: 'space-between',
-                          borderRadius: verticalScale(10),
-                          backgroundColor: COLORS.lightBrown,
-                          padding: verticalScale(5),
-                        }}>
-                        <Image
-                          source={{
-                            uri:
-                              getExerciseImage(exercise) ||
-                              'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop',
-                          }}
-                          style={styles.ExerciseImage}
-                        />
-                        <View style={styles.ExerciseDetails}>
-                          <CustomText
-                            color={COLORS.yellow}
-                            fontFamily="medium"
-                            fontSize={12}>
-                            {getExerciseName(exercise)}
-                          </CustomText>
-                          <CustomText
-                            color={COLORS.white}
-                            fontFamily="medium"
-                            fontSize={12}>
-                            {`${getExerciseSets(
-                              exercise,
-                            )} sets x ${getExerciseReps(exercise)} reps`}
-                          </CustomText>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              </TouchableOpacity>
-            </ScaleDecorator>
-          );
+          return exerciseData.images_urls[0];
         }
 
-        // -------------------- Normal Exercise --------------------
-        const isSelected = selectedExercises.includes(
-          item.exercise_id ?? item.id,
-        );
-        const isCompleted = completedExercises.includes(item.id);
-        const isAlternateSelected =
-          alternateExercise && selectedExercises.includes(item.name);
-        const isAlternateCompleted =
-          alternateExercise && completedExercises.includes(item.name);
+        // 2️ Then check images (string or object with .uri)
+        if (
+          Array.isArray(exerciseData.images) &&
+          exerciseData.images.length > 0
+        ) {
+          const firstImage = exerciseData.images[0];
+          if (typeof firstImage === 'string') return firstImage;
+          if (firstImage?.uri) return firstImage.uri;
+        }
 
+        // 3️ Default fallback
+        return 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop';
+      };
+
+      // -------------------- Superset Block --------------------
+      if (
+        item &&
+        typeof item === 'object' &&
+        'type' in item &&
+        item.type === 'superset'
+      ) {
         return (
-          <>
+          <ScaleDecorator>
             <TouchableOpacity
               onPress={() => {
-                handleExercisePress(item);
+                if (!hideButton) {
+                  onPressSuperset();
+                }
               }}
-              onLongPress={
-                !hideButton
-                  ? () => {
-                      const idToSelect = item.exercise_id || item.id;
-                      handleLongExercisePress(idToSelect);
-                    }
-                  : undefined //  no long-press when hideButton is true
-              }
-              activeOpacity={0.9}
-              style={[
-                styles.ExerciseItem,
-                {alignSelf: 'center'},
-                isSelected && styles.selectedExerciseItem,
-                isCompleted && styles.completedExerciseItem,
-                isActive && {backgroundColor: COLORS.nickel},
-              ]}>
-              <Image
-                source={{uri: getExerciseImage(item)}}
-                style={styles.ExerciseImage}
-              />
-
-              <View style={styles.ExerciseDetails}>
-                <CustomText
-                  color={COLORS.yellow}
-                  fontFamily="medium"
-                  fontSize={12}>
-                  {item.name}
-                </CustomText>
-                <CustomText
-                  color={COLORS.white}
-                  fontFamily="medium"
-                  fontSize={12}>
-                  {`${item.exerciseSettings.sets} Sets x ${item.exerciseSettings.reps}`}
-                </CustomText>
-              </View>
-
-              {/* Right side actions */}
+              activeOpacity={1}
+              disabled={isActive}
+              style={{
+                padding: verticalScale(4),
+                gap: verticalScale(5),
+                borderColor: COLORS.whiteTail,
+                borderWidth: 1,
+                borderRadius: 10,
+                width: wp(95),
+                alignSelf: 'center',
+                backgroundColor: isActive ? COLORS.nickel : undefined,
+              }}>
               <View
                 style={{
+                  width: '100%',
+                  backgroundColor: COLORS.brown,
+                  paddingHorizontal: horizontalScale(10),
+                  paddingVertical: verticalScale(2),
+                  borderTopRightRadius: 10,
+                  borderTopLeftRadius: 10,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: horizontalScale(8),
+                  justifyContent: 'space-between',
                 }}>
-                {/* Delete/Copy */}
+                <CustomText fontFamily="italic" fontSize={14}>
+                  SUPERSET
+                </CustomText>
 
-                {/* Drag handle */}
-                <TouchableOpacity
-                  disabled={isActive}
-                  activeOpacity={0.8}
-                  onLongPress={drag}>
+                {/* Drag handle for superset */}
+                <TouchableOpacity onLongPress={drag} disabled={isActive}>
                   <CustomIcon
                     Icon={ICONS.SidMultiDotView}
                     height={verticalScale(27)}
                   />
                 </TouchableOpacity>
               </View>
-            </TouchableOpacity>
 
-            {/* Alternate Exercise */}
-            {alternateExercise && (
-              <View style={{marginVertical: verticalScale(5)}}>
-                <CustomText
-                  fontFamily="italic"
-                  fontSize={14}
-                  color={COLORS.whiteTail}
-                  style={{marginVertical: horizontalScale(5)}}>
-                  Alternate
-                </CustomText>
-
-                <View style={{width: '100%'}}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (!hideButton) {
-                        handleExercisePress(alternateExercise);
-                      }
-                    }}
-                    activeOpacity={0.7}
-                    style={[
-                      {
+              <View
+                style={{
+                  width: '98%',
+                  gap: verticalScale(5),
+                  alignSelf: 'center',
+                }}>
+                {item.exercises.map((exercise: any, index: number) => {
+                  const isSelected = (item as Superset).exercises.some(
+                    exercise =>
+                      selectedExercises.includes(
+                        exercise.exercise_id ?? exercise.id,
+                      ),
+                  );
+                  const isCompleted = completedExercises.includes(
+                    getExerciseName(exercise),
+                  );
+                  return (
+                    <View
+                      key={exercise.exercise_id || exercise.id || index}
+                      style={{
                         flexDirection: 'row',
                         justifyContent: 'space-between',
-                        borderWidth: 1,
                         borderRadius: verticalScale(10),
-                        borderColor: COLORS.whiteTail,
                         backgroundColor: COLORS.lightBrown,
-                        width: wp(90),
                         padding: verticalScale(5),
-                        alignSelf: 'flex-end',
-                      },
-                      isAlternateSelected && styles.selectedExerciseItem,
-                    ]}>
-                    <Image
-                      source={{uri: getExerciseImage(alternateExercise)}}
-                      style={styles.ExerciseImage}
-                    />
-                    <View style={styles.ExerciseDetails}>
-                      <CustomText
-                        color={COLORS.yellow}
-                        fontFamily="medium"
-                        fontSize={12}>
-                        {getExerciseName(alternateExercise)}
-                      </CustomText>
-                      <CustomText
-                        color={COLORS.white}
-                        fontFamily="medium"
-                        fontSize={12}>
-                        {`${getExerciseSets(
-                          alternateExercise,
-                        )} sets x ${getExerciseReps(alternateExercise)} reps`}
-                      </CustomText>
+                      }}>
+                      <Image
+                        source={{
+                          uri:
+                            getExerciseImage(exercise) ||
+                            'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop',
+                        }}
+                        style={styles.ExerciseImage}
+                      />
+                      <View style={styles.ExerciseDetails}>
+                        <CustomText
+                          color={COLORS.yellow}
+                          fontFamily="medium"
+                          fontSize={12}>
+                          {getExerciseName(exercise)}
+                        </CustomText>
+                        <CustomText
+                          color={COLORS.white}
+                          fontFamily="medium"
+                          fontSize={12}>
+                          {`${getExerciseSets(
+                            exercise,
+                          )} sets x ${getExerciseReps(exercise)} reps`}
+                        </CustomText>
+                      </View>
                     </View>
-                  </TouchableOpacity>
-                </View>
+                  );
+                })}
               </View>
-            )}
-          </>
+            </TouchableOpacity>
+          </ScaleDecorator>
         );
-      },
-      [
-        selectedExercises,
-        completedExercises,
-        hideButton,
-        allExercises,
-        handleExercisePress,
-        handleLongExercisePress,
-        onPressSuperset,
-      ],
-    );
+      }
 
+      // -------------------- Normal Exercise --------------------
+      const isSelected = selectedExercises.includes(
+        item.exercise_id ?? item.id,
+      );
+      const isCompleted = completedExercises.includes(item.id);
+      const isAlternateSelected =
+        alternateExercise && selectedExercises.includes(item.name);
+      const isAlternateCompleted =
+        alternateExercise && completedExercises.includes(item.name);
+
+      return (
+        <>
+          <TouchableOpacity
+            onPress={() => {
+              handleExercisePress(item);
+            }}
+            onLongPress={
+              !hideButton
+                ? () => {
+                    const idToSelect = item.exercise_id || item.id;
+                    handleLongExercisePress(idToSelect);
+                  }
+                : undefined //  no long-press when hideButton is true
+            }
+            activeOpacity={0.9}
+            style={[
+              styles.ExerciseItem,
+              {alignSelf: 'center'},
+              isSelected && styles.selectedExerciseItem,
+              isCompleted && styles.completedExerciseItem,
+              isActive && {backgroundColor: COLORS.nickel},
+            ]}>
+            <Image
+              source={{uri: getExerciseImage(item)}}
+              style={styles.ExerciseImage}
+            />
+
+            <View style={styles.ExerciseDetails}>
+              <CustomText
+                color={COLORS.yellow}
+                fontFamily="medium"
+                fontSize={12}>
+                {item.name}
+              </CustomText>
+              <CustomText
+                color={COLORS.white}
+                fontFamily="medium"
+                fontSize={12}>
+                {`${item.exerciseSettings.sets} Sets x ${item.exerciseSettings.reps}`}
+              </CustomText>
+            </View>
+
+            {/* Right side actions */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: horizontalScale(8),
+              }}>
+              {/* Delete/Copy */}
+
+              {/* Drag handle */}
+              <TouchableOpacity
+                disabled={isActive}
+                activeOpacity={0.8}
+                onLongPress={drag}>
+                <CustomIcon
+                  Icon={ICONS.SidMultiDotView}
+                  height={verticalScale(27)}
+                />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+
+          {/* Alternate Exercise */}
+          {alternateExercise && (
+            <View style={{marginVertical: verticalScale(5)}}>
+              <CustomText
+                fontFamily="italic"
+                fontSize={14}
+                color={COLORS.whiteTail}
+                style={{marginVertical: horizontalScale(5)}}>
+                Alternate
+              </CustomText>
+
+              <View style={{width: '100%'}}>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (!hideButton) {
+                      handleExercisePress(alternateExercise);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                  style={[
+                    {
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      borderWidth: 1,
+                      borderRadius: verticalScale(10),
+                      borderColor: COLORS.whiteTail,
+                      backgroundColor: COLORS.lightBrown,
+                      width: wp(90),
+                      padding: verticalScale(5),
+                      alignSelf: 'flex-end',
+                    },
+                    isAlternateSelected && styles.selectedExerciseItem,
+                  ]}>
+                  <Image
+                    source={{uri: getExerciseImage(alternateExercise)}}
+                    style={styles.ExerciseImage}
+                  />
+                  <View style={styles.ExerciseDetails}>
+                    <CustomText
+                      color={COLORS.yellow}
+                      fontFamily="medium"
+                      fontSize={12}>
+                      {getExerciseName(alternateExercise)}
+                    </CustomText>
+                    <CustomText
+                      color={COLORS.white}
+                      fontFamily="medium"
+                      fontSize={12}>
+                      {`${getExerciseSets(
+                        alternateExercise,
+                      )} sets x ${getExerciseReps(alternateExercise)} reps`}
+                    </CustomText>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </>
+      );
+    },
+    [
+      selectedExercises,
+      completedExercises,
+      hideButton,
+      allExercises,
+      handleExercisePress,
+      handleLongExercisePress,
+      onPressSuperset,
+    ],
+  );
+
+  const renderExerciseList = () => {
     return (
-      <View style={{width: '100%', flex: 1}}>
+      <View style={{flex: 1}}>
         <DraggableFlatList
           data={findExercises(exercises) as any}
           bounces={false}
@@ -922,19 +924,43 @@ const ExerciseView: FC<ExerciseData> = ({
                 paddingHorizontal: horizontalScale(10),
                 paddingBottom: verticalScale(10),
               }}>
-              <View style={{flexDirection: 'row', gap: horizontalScale(20)}}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  flex: 1,
+                  paddingRight: horizontalScale(10),
+                }}>
+                <View style={{flexDirection: 'row', gap: horizontalScale(12)}}>
+                  <TouchableOpacity
+                    onPress={handleDeleteSelected}
+                    style={styles.actionButton}>
+                    <CustomIcon
+                      Icon={ICONS.DeleteIcon}
+                      height={15}
+                      width={15}
+                    />
+                    <CustomText fontSize={6} fontFamily="bold">
+                      DELETE
+                    </CustomText>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <CustomIcon Icon={ICONS.CopyIcon} height={15} width={15} />
+                    <CustomText fontSize={6} fontFamily="bold">
+                      COPY
+                    </CustomText>
+                  </TouchableOpacity>
+                </View>
                 <TouchableOpacity
-                  onPress={handleDeleteSelected}
-                  style={styles.actionButton}>
-                  <CustomIcon Icon={ICONS.DeleteIcon} height={15} width={15} />
+                  style={styles.actionButton}
+                  onPress={handleCancelSelection}>
+                  <CustomIcon
+                    Icon={ICONS.WhiteCrossIcon}
+                    height={12}
+                    width={12}
+                  />
                   <CustomText fontSize={6} fontFamily="bold">
-                    DELETE
-                  </CustomText>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <CustomIcon Icon={ICONS.CopyIcon} height={15} width={15} />
-                  <CustomText fontSize={6} fontFamily="bold">
-                    COPY
+                    CANCEL
                   </CustomText>
                 </TouchableOpacity>
               </View>

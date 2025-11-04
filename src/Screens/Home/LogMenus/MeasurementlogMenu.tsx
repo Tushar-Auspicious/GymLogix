@@ -165,7 +165,7 @@ const MeasurementlogMenu = () => {
           value={values[title]}
           onChangeText={value => handleValueChange(title, value)}
           style={styles.valueButton}
-          keyboardType="numeric"
+          keyboardType="phone-pad"
           onFocus={() => {
             // Scroll to the focused item
             if (flatListRef.current) {
