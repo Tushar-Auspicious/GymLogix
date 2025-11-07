@@ -45,6 +45,30 @@ const HistoryView: FC<HistoryViewProps> = ({
         new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
     );
 
+  // Filter history to only include items with valid sets
+  const historyWithSets = getScheduleHistory?.filter(item => {
+    const exercises = item?.content?.Exercises;
+
+    if (Array.isArray(exercises)) {
+      // New structure: check if any exercise in any group has sets
+      return exercises.some((group: any) => {
+        if (group?.content && Array.isArray(group.content)) {
+          return group.content.some(
+            (ex: any) => ex?.Set && Array.isArray(ex.Set) && ex.Set.length > 0,
+          );
+        }
+        return false;
+      });
+    } else if (typeof exercises === 'object' && exercises?.content) {
+      // Old structure: check if any exercise has sets
+      return exercises.content?.some(
+        (ex: any) => ex?.Set && Array.isArray(ex.Set) && ex.Set.length > 0,
+      );
+    }
+
+    return false;
+  });
+
   return (
     <ScrollView
       style={{
@@ -54,13 +78,27 @@ const HistoryView: FC<HistoryViewProps> = ({
       contentContainerStyle={{
         rowGap: verticalScale(10),
       }}>
-      {getScheduleHistory && getScheduleHistory?.length > 0 ? (
-        getScheduleHistory.map((item, index) => {
-          const getScheduleExerciseId =
-            item?.content?.Exercises?.content?.[0]?.Exercise_id;
+      {historyWithSets && historyWithSets?.length > 0 ? (
+        historyWithSets.map((item, index) => {
+          // Handle new structure: Exercises is an array of groups
+          let getScheduleExerciseId: any = null;
+          const exercises = item?.content?.Exercises;
+
+          if (Array.isArray(exercises)) {
+            // New structure: get first exercise from first group
+            const firstGroup = exercises[0];
+            if (firstGroup?.content && Array.isArray(firstGroup.content)) {
+              const firstExercise = firstGroup.content[0];
+              getScheduleExerciseId = firstExercise?.Exercise_id;
+            }
+          } else if (typeof exercises === 'object' && exercises?.content) {
+            // Old structure fallback: object with content
+            const firstExercise = exercises.content?.[0];
+            getScheduleExerciseId = firstExercise?.Exercise_id;
+          }
 
           const findScheduleExercise = exerciseData?.find(
-            ex => ex.exercise_id === getScheduleExerciseId,
+            ex => Number(ex.exercise_id) === Number(getScheduleExerciseId),
           );
 
           return (

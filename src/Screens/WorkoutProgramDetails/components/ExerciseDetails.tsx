@@ -1,12 +1,11 @@
 import React, {
+  Dispatch,
   FC,
+  SetStateAction,
+  useCallback,
+  useEffect,
   useMemo,
   useState,
-  useCallback,
-  Dispatch,
-  SetStateAction,
-  useEffect,
-  useRef,
 } from 'react';
 import {
   FlatList,
@@ -18,30 +17,13 @@ import {
   View,
 } from 'react-native';
 import ICONS from '../../../Assets/Icons';
+import IMAGES from '../../../Assets/Images';
+import SkeletonBack from '../../../Components/Cards/SkeletonBack';
+import SkeletonFront from '../../../Components/Cards/SkeletonFront';
 import CustomIcon from '../../../Components/CustomIcon';
 import PickerComponent from '../../../Components/CustomPIcker';
 import {CustomText} from '../../../Components/CustomText';
 import PrimaryButton from '../../../Components/PrimaryButton';
-import {SetDetail} from '../../../Seeds/TrainingPLans';
-import COLORS from '../../../Utilities/Colors';
-import {
-  calculate1RM,
-  extractDistance,
-  extractNumericValue,
-  extractReps,
-  extractTime,
-} from '../../../Utilities/Helpers';
-import {
-  horizontalScale,
-  hp,
-  verticalScale,
-  wp,
-} from '../../../Utilities/Metrics';
-import {MuscleData} from './ExerciseView';
-import {Exercise} from '../../../Seeds/ExerciseCatalog';
-import SkeletonFront from '../../../Components/Cards/SkeletonFront';
-import SkeletonBack from '../../../Components/Cards/SkeletonBack';
-import {useAppDispatch, useAppSelector} from '../../../Redux/store';
 import {
   ExerciseLog,
   SetData,
@@ -49,45 +31,25 @@ import {
   updateExercise,
 } from '../../../Redux/slices/LogWorkoutSlice';
 import {updateIsFinish} from '../../../Redux/slices/workoutDataSlice';
-import IMAGES from '../../../Assets/Images';
+import {useAppDispatch, useAppSelector} from '../../../Redux/store';
+import {SetDetail} from '../../../Seeds/TrainingPLans';
+import COLORS from '../../../Utilities/Colors';
+import {
+  horizontalScale,
+  hp,
+  verticalScale,
+  wp,
+} from '../../../Utilities/Metrics';
 
 // Extended SetDetail interface to support drop sets
 export interface ExtendedSetDetail extends SetDetail {
   dropSets?: SetDetail[];
 }
 
-// Helper function to get exercise image
-const getExerciseImage = (exercise: Exercise): string => {
-  return exercise.coverImage?.uri || exercise.images?.[0]?.uri || '';
-};
-
-// Helper function to get target muscles
-const getTargetMuscles = (exercise: Exercise): string[] => {
-  return exercise.targetMuscles || [];
-};
-
-// Helper function to get exercise instruction
-const getExerciseInstruction = (exercise: Exercise): string => {
-  return exercise.instruction || '';
-};
-
-// Helper function to get exercise description
-const getExerciseDescription = (exercise: Exercise): string => {
-  return exercise.description || '';
-};
-
 const tabData = [
   {label: 'Sets', value: 1},
   {label: 'Details', value: 2},
   {label: 'History', value: 3},
-];
-
-const setsTabData = [
-  {label: 'Last Workout', value: 1},
-  {label: 'Last Exercise', value: 2},
-  {label: 'Max Weight', value: 3},
-  {label: 'Max Time', value: 4},
-  {label: '1RM Max', value: 6},
 ];
 
 const ExerciseDetails: FC<{
@@ -143,7 +105,7 @@ const ExerciseDetails: FC<{
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(
     null,
   );
-  const [setsTab, setSetsTab] = useState(1);
+
   // State for managing the selected difficulty for new sets
   const [selectedDifficulty, setSelectedDifficulty] = useState<
     'Warmup' | 'Easy' | 'Medium' | 'Hard'
@@ -158,16 +120,6 @@ const ExerciseDetails: FC<{
     weight: '6kg',
     time: '6m',
   });
-
-  // useEffect(() => {
-  //   timerRef.current = setInterval(() => {
-  //     setExerciseTimeInSeconds((prev: any) => prev + 1);
-  //   }, 1000);
-
-  //   return () => {
-  //     if (timerRef.current) clearInterval(timerRef.current);
-  //   };
-  // }, []);
 
   useEffect(() => {
     if (!exerciseData?.id) return;
@@ -273,16 +225,36 @@ const ExerciseDetails: FC<{
     }
   }, [filteredWorkoutData]);
 
-  const getScheduleHistory: any = scheduleData?.filter(
-    item =>
-      item.type === 'workout' &&
-      item.content.plan_id === planDayData.allData.plan_id &&
-      item.content.Workout_id === dayData[0].workout_id &&
-      item.content.Exercises.content.some((ex: any) => {
-        const targetId = exerciseData.exercise_id ?? exerciseData.id;
-        return targetId != null && ex.Exercise_id === targetId;
-      }),
-  );
+  const getScheduleHistory: any = scheduleData?.filter(item => {
+    if (
+      item.type !== 'workout' ||
+      item.content.plan_id !== planDayData.allData.plan_id ||
+      item.content.Workout_id !== dayData[0].workout_id
+    ) {
+      return false;
+    }
+
+    const exercises = item.content.Exercises;
+    const targetId = exerciseData.exercise_id ?? exerciseData.id;
+
+    // Handle new structure: Exercises is an array of groups
+    if (Array.isArray(exercises)) {
+      // New structure: flatten all exercises from all groups
+      const allExercises = exercises.flatMap(
+        (group: any) => group?.content || [],
+      );
+
+      return allExercises.some((ex: any) => {
+        return targetId != null && Number(ex.Exercise_id) === Number(targetId);
+      });
+    } else if (typeof exercises === 'object' && exercises?.content) {
+      // Old structure fallback: object with content
+      return exercises.content.some((ex: any) => {
+        return targetId != null && Number(ex.Exercise_id) === Number(targetId);
+      });
+    }
+    return false;
+  });
 
   const muscleData = useMemo(() => {
     const main = exerciseData?.targetMuscles || [];
@@ -661,13 +633,29 @@ const ExerciseDetails: FC<{
       let history = schedule
         .flatMap(item => {
           const date = item.schedule_at || item.updated_at;
+          const exercises = item.content.Exercises;
 
-          return item.content.Exercises.content
-            .filter(
-              (ex: any) =>
-                ex.Exercise_id ===
-                (targetExercise.exercise_id ?? targetExercise.id),
-            )
+          // Handle new structure: Exercises is an array of groups
+          let allExercises: any[] = [];
+
+          if (Array.isArray(exercises)) {
+            // New structure: flatten all exercises from all groups
+            exercises.forEach((group: any) => {
+              if (group.content && Array.isArray(group.content)) {
+                allExercises.push(...group.content);
+              }
+            });
+          } else if (typeof exercises === 'object' && exercises?.content) {
+            // Old structure fallback: object with content
+            allExercises = exercises.content;
+          }
+
+          const targetId = Number(
+            targetExercise.exercise_id ?? targetExercise.id,
+          );
+
+          return allExercises
+            .filter((ex: any) => Number(ex.Exercise_id) === targetId)
             .map((exercise: any) => ({
               name: targetExercise.name,
               date,
@@ -687,6 +675,8 @@ const ExerciseDetails: FC<{
         .sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         );
+
+      console.log('Final history count:', history.length);
 
       // Step 2: Apply date filter ONLY if ScheduleHistoryData is provided
       if (hideButton === true && ScheduleHistoryData) {
@@ -938,7 +928,7 @@ const ExerciseDetails: FC<{
 
     // Validate planId and workoutId
     if (!planId || !workoutId) {
-      console.error('Missing planId or workoutId:', {planId, workoutId});
+      console.error('❌ Missing planId or workoutId:', {planId, workoutId});
       return;
     }
     // Use picker values if requested, otherwise use default values
@@ -968,15 +958,26 @@ const ExerciseDetails: FC<{
     const existingWorkout = draftWorkout.find(
       w => w.workoutPlanId === planId && w.workoutId === workoutId,
     );
+
+    // Use exercise_id (numeric) instead of id (MongoDB string)
+    // Check multiple possible ID fields
+    const exerciseIdToUse = String(
+      exerciseData.exercise_id ||
+        exerciseData.exerciseSettings?.exercise_id ||
+        exerciseData.id,
+    );
+
     const existingExercise = existingWorkout?.exercises.find(
-      ex => ex.exercise_id === exerciseData.id,
+      ex => ex.exercise_id === exerciseIdToUse,
     );
 
     // Combine existing sets from Redux with new set or drop set
     let combinedSetsData: SetData[];
     if (isDropSet && existingExercise && existingExercise.setsData.length > 0) {
+      // Add drop set to the LATEST set (last index), not the first
+      const lastIndex = existingExercise.setsData.length - 1;
       combinedSetsData = existingExercise.setsData.map((set, index) =>
-        index === 0
+        index === lastIndex
           ? {...set, dropSets: [...(set.dropSets || []), newSet]}
           : set,
       );
@@ -987,7 +988,7 @@ const ExerciseDetails: FC<{
     }
 
     const newExerciseLog: ExerciseLog = {
-      exercise_id: exerciseData.id,
+      exercise_id: exerciseIdToUse,
       setsData: combinedSetsData,
       isDropSet: isDropSet,
       logTime: formatDateTime(getDate),
@@ -998,13 +999,13 @@ const ExerciseDetails: FC<{
       ? [...exerciseWithSetData]
       : [];
     const exerciseIndex = updatedExerciseWithSetData.findIndex(
-      exercise => exercise.exerciseId === exerciseData.id,
+      exercise => exercise.exerciseId === exerciseIdToUse,
     );
 
     if (exerciseIndex >= 0) {
       // Update existing exercise
       updatedExerciseWithSetData[exerciseIndex] = {
-        exerciseId: exerciseData.id,
+        exerciseId: exerciseIdToUse,
         setsData: combinedSetsData,
         isDropSet: isDropSet,
         logTime: formatDateTime(getDate),
@@ -1012,7 +1013,7 @@ const ExerciseDetails: FC<{
     } else {
       // Create new exercise entry
       updatedExerciseWithSetData.push({
-        exerciseId: exerciseData.id,
+        exerciseId: exerciseIdToUse,
         setsData: combinedSetsData,
         isDropSet: isDropSet,
         logTime: formatDateTime(getDate),
@@ -1023,6 +1024,7 @@ const ExerciseDetails: FC<{
 
     // Update Redux store
     if (!existingWorkout) {
+      console.log('  ✅ Creating new workout in Redux');
       dispatch(
         setDraftWorkout({
           workoutPlanId: planId,
@@ -1031,6 +1033,7 @@ const ExerciseDetails: FC<{
         }),
       );
     } else {
+      console.log('  ✅ Updating existing workout in Redux');
       dispatch(
         updateExercise({
           ...newExerciseLog,
@@ -1040,627 +1043,13 @@ const ExerciseDetails: FC<{
       );
     }
 
+    console.log('✅ Set added successfully!');
+
     // Redux is now the single source of truth for sets
 
     // Close the AddSetUI
     setShowAddSetUi(false);
   };
-
-  const transformFilteredDataToHistory = (
-    filteredData: any[],
-    exerciseData: any,
-  ) => {
-    return filteredData.map(day => ({
-      date: day.date || day.exercises?.[0]?.logTime || null, // fallback
-      workoutId: day.workoutId,
-      exercises: day.exercises.map((ex: any) => ({
-        exercise_id: ex.exercise_id,
-        details: ex.setsData.map((set: any) => ({
-          reps: set.reps,
-          weight: set.weight,
-          time: set.time,
-          count: set.count,
-          difficulty: set.difficulty,
-          distance: set.distance,
-          logTime: set.logTime,
-          dropSets: set.dropSets,
-        })),
-      })),
-    }));
-  };
-  // Get history sets based on the selected tab
-  const getHistorySets = (): SetDetail[] | null => {
-    // If no exercise data is provided, return null
-    if (!exerciseData || !exerciseData.name) return null;
-
-    const exerciseName = exerciseData.name;
-
-    // Helper function to check if exercise names match (more flexible matching)
-    const isExerciseMatch = (historyName: string, currentName: string) => {
-      // Convert both names to lowercase for case-insensitive comparison
-      const historyLower = historyName.toLowerCase();
-      const currentLower = currentName.toLowerCase();
-
-      // Direct match
-      if (historyLower === currentLower) return true;
-
-      // Check if one contains the other
-      if (
-        historyLower.includes(currentLower) ||
-        currentLower.includes(historyLower)
-      )
-        return true;
-
-      // Check for common variations (e.g., "Squat" vs "Squats")
-      if (historyLower.replace(/s$/, '') === currentLower.replace(/s$/, ''))
-        return true;
-
-      return false;
-    };
-
-    const mappedHistory = transformFilteredDataToHistory(
-      filteredWorkoutData,
-      exerciseData,
-    );
-
-    // Filter workout history to find exercises with matching names
-    const exerciseHistory = mappedHistory.flatMap(day => {
-      return day.exercises.map((exercise: any) => ({
-        date: day.date,
-        workoutId: day.workoutId,
-        exercise,
-      }));
-    });
-
-    // Sort by date (newest first)
-    exerciseHistory.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
-
-    // Get historical sets based on the selected tab
-    let historicalSets: SetDetail[] = [];
-
-    switch (setsTab) {
-      case 1: // Last Workout
-        // Return the sets from the most recent workout
-        historicalSets = exerciseHistory[0]?.exercise.details || [];
-        break;
-
-      case 2: // Last Exercise
-        // Return the sets from the most recent exercise (already sorted)
-        historicalSets = exerciseHistory[0]?.exercise.details || [];
-        break;
-
-      case 3: // Max Weight
-        // Calculate total weight for each exercise (sum of weight * reps for all sets)
-        const exercisesByTotalWeight = exerciseHistory.map(item => {
-          const totalWeight = item.exercise.details.reduce(
-            (sum: any, set: any) => {
-              return (
-                sum +
-                extractNumericValue(set.weight) *
-                  extractReps(set.reps) *
-                  set.count
-              );
-            },
-            0,
-          );
-          return {...item, totalWeight};
-        });
-
-        // Sort by total weight (highest first)
-        exercisesByTotalWeight.sort((a, b) => b.totalWeight - a.totalWeight);
-
-        // Get the sets from the exercise with the highest total weight
-        historicalSets = exercisesByTotalWeight[0]?.exercise.details || [];
-        break;
-
-      case 4: // Max Time
-        // Calculate total time for each exercise
-        const exercisesByTotalTime = exerciseHistory.map(item => {
-          const totalTime = item.exercise.details.reduce(
-            (sum: any, set: any) => {
-              return sum + extractTime(set.time) * set.count;
-            },
-            0,
-          );
-          return {...item, totalTime};
-        });
-
-        // Sort by total time (highest first)
-        exercisesByTotalTime.sort((a, b) => b.totalTime - a.totalTime);
-
-        // Get the sets from the exercise with the highest total time
-        historicalSets = exercisesByTotalTime[0]?.exercise.details || [];
-        break;
-
-      case 5: // Max Distance (not in the tabs but mentioned in requirements)
-        // Calculate total distance for each exercise
-        const exercisesByTotalDistance = exerciseHistory.map(item => {
-          const totalDistance = item.exercise.details.reduce(
-            (sum: any, set: any) => {
-              // Assuming distance is stored in the reps field with a format like "123m"
-              return sum + extractDistance(set.reps) * set.count;
-            },
-            0,
-          );
-          return {...item, totalDistance};
-        });
-
-        // Sort by total distance (highest first)
-        exercisesByTotalDistance.sort(
-          (a, b) => b.totalDistance - a.totalDistance,
-        );
-
-        // Get the sets from the exercise with the highest total distance
-        historicalSets = exercisesByTotalDistance[0]?.exercise.details || [];
-        break;
-
-      case 6: // 1RM (not in the tabs but mentioned in requirements)
-        // Calculate 1RM for each set in each exercise
-        const exercisesWith1RM = exerciseHistory.flatMap(item => {
-          return item.exercise.details.map((set: any) => {
-            const oneRM = calculate1RM(set.weight, set.reps);
-            return {...item, set, oneRM};
-          });
-        });
-
-        // Sort by 1RM (highest first)
-        exercisesWith1RM.sort((a, b) => b.oneRM - a.oneRM);
-
-        // Get the set with the highest 1RM
-        historicalSets =
-          exercisesWith1RM.length > 0 ? [exercisesWith1RM[0].set] : [];
-        break;
-
-      default:
-        historicalSets = [];
-        break;
-    }
-
-    // Return historical sets only (Redux is now the single source of truth)
-    return historicalSets.length > 0 ? historicalSets : null;
-  };
-
-  // const renderSets = () => {
-  //   // Get history sets based on the selected tab
-  //   const historySets = getHistorySets();
-
-  //   return showAddSetUi ? (
-  //     <View
-  //       style={{
-  //         flex: 1,
-  //         justifyContent: 'center',
-  //         gap: verticalScale(40),
-  //       }}>
-  //       <PickerComponent
-  //         difficulty={selectedDifficulty}
-  //         onValuesChange={handlePickerValuesChange}
-  //       />
-  //       {/* Difficulty selector */}
-  //       <View style={styles.difficultyContainer}>
-  //         {['Warmup', 'Easy', 'Medium', 'Hard'].map(difficulty => (
-  //           <TouchableOpacity
-  //             key={difficulty}
-  //             style={[
-  //               styles.difficultyButton,
-  //               {
-  //                 backgroundColor:
-  //                   selectedDifficulty === difficulty
-  //                     ? difficulty === 'Warmup'
-  //                       ? '#777777'
-  //                       : difficulty === 'Easy'
-  //                       ? '#28A745'
-  //                       : difficulty === 'Medium'
-  //                       ? '#FFC107'
-  //                       : '#DC3545'
-  //                     : 'transparent',
-  //                 borderColor:
-  //                   difficulty === 'Warmup'
-  //                     ? '#777777'
-  //                     : difficulty === 'Easy'
-  //                     ? '#28A745'
-  //                     : difficulty === 'Medium'
-  //                     ? '#FFC107'
-  //                     : '#DC3545',
-  //               },
-  //             ]}
-  //             onPress={() =>
-  //               setSelectedDifficulty(
-  //                 difficulty as 'Warmup' | 'Easy' | 'Medium' | 'Hard',
-  //               )
-  //             }>
-  //             <CustomText
-  //               fontSize={12}
-  //               fontFamily="medium"
-  //               color={
-  //                 selectedDifficulty === difficulty
-  //                   ? COLORS.black
-  //                   : difficulty === 'Warmup'
-  //                   ? '#777777'
-  //                   : COLORS.white
-  //               }>
-  //               {difficulty}
-  //             </CustomText>
-  //           </TouchableOpacity>
-  //         ))}
-  //       </View>
-
-  //       <View
-  //         style={{
-  //           width: wp(80),
-  //           flexDirection: 'row',
-  //           justifyContent: 'space-between',
-  //           paddingHorizontal: horizontalScale(10),
-  //           alignSelf: 'center',
-  //         }}>
-  //         <PrimaryButton
-  //           title="Add Drop Set"
-  //           onPress={() => handleAddSet(true, true)} // Use picker values and mark as drop set
-  //           isFullWidth={false}
-  //           style={{
-  //             alignSelf: 'flex-end',
-  //             paddingVertical: verticalScale(7),
-  //             paddingHorizontal: horizontalScale(15),
-  //             borderRadius: verticalScale(10),
-  //           }}
-  //           backgroundColor="#3683DC"
-  //         />
-  //         <PrimaryButton
-  //           title="Add Set"
-  //           onPress={() => {
-  //             handleAddSet(true);
-  //           }} // Use picker values
-  //           isFullWidth={false}
-  //           style={{
-  //             alignSelf: 'flex-end',
-  //             paddingVertical: verticalScale(7),
-  //             paddingHorizontal: horizontalScale(22),
-  //             borderRadius: verticalScale(10),
-  //           }}
-  //         />
-  //       </View>
-  //     </View>
-  //   ) : (
-  //     <View style={{flex: 1, gap: verticalScale(10)}}>
-  //       <View>
-  //         <FlatList
-  //           horizontal
-  //           contentContainerStyle={{
-  //             gap: horizontalScale(5),
-  //             marginVertical: verticalScale(20),
-  //             paddingHorizontal: horizontalScale(10),
-  //           }}
-  //           data={setsTabData}
-  //           renderItem={({item}) => {
-  //             return (
-  //               <Pressable
-  //                 key={item.value}
-  //                 onPress={() => setSetsTab(item.value)}
-  //                 style={[
-  //                   styles.setsTabButton,
-  //                   {
-  //                     backgroundColor:
-  //                       setsTab === item?.value
-  //                         ? COLORS.whiteTail
-  //                         : 'transparent',
-  //                   },
-  //                 ]}>
-  //                 <CustomText
-  //                   fontSize={12}
-  //                   fontFamily="semiBold"
-  //                   color={
-  //                     setsTab === item?.value ? COLORS.black : COLORS.whiteTail
-  //                   }>
-  //                   {item?.label}
-  //                 </CustomText>
-  //               </Pressable>
-  //             );
-  //           }}
-  //         />
-  //       </View>
-
-  //       <View style={{flex: 1}}>
-  //         {historySets && historySets?.length > 0 && (
-  //           <View style={{width: wp(100), flexDirection: 'row'}}>
-  //             <View
-  //               style={{
-  //                 width: wp(10),
-  //                 alignItems: 'flex-start',
-  //               }}
-  //             />
-  //             <View
-  //               style={{
-  //                 flexDirection: 'row',
-  //                 alignItems: 'center',
-  //                 paddingBottom: verticalScale(10),
-  //                 width: wp(85),
-  //                 justifyContent: 'space-evenly',
-  //                 marginBottom: verticalScale(5),
-  //               }}>
-  //               <CustomText
-  //                 fontSize={14}
-  //                 fontFamily="semiBold"
-  //                 style={{
-  //                   flex: 1,
-  //                   textAlign: 'center',
-  //                 }}>
-  //                 Reps
-  //               </CustomText>
-  //               <CustomText
-  //                 fontSize={14}
-  //                 fontFamily="semiBold"
-  //                 style={{
-  //                   flex: 1,
-  //                   textAlign: 'center',
-  //                 }}>
-  //                 Distance
-  //               </CustomText>
-  //               <CustomText
-  //                 fontSize={14}
-  //                 fontFamily="semiBold"
-  //                 style={{
-  //                   flex: 1,
-  //                   textAlign: 'center',
-  //                 }}>
-  //                 Weight(kg)
-  //               </CustomText>
-  //               <CustomText
-  //                 fontSize={14}
-  //                 fontFamily="semiBold"
-  //                 style={{
-  //                   flex: 1,
-  //                   textAlign: 'center',
-  //                 }}>
-  //                 Time
-  //               </CustomText>
-  //             </View>
-  //           </View>
-  //         )}
-  //         <FlatList
-  //           data={
-  //             historySets!?.map((set, index) => ({
-  //               Set: index + 1,
-  //               Reps: set.reps,
-  //               Distance:
-  //                 set.distance || (set.reps.includes('m') ? set.reps : '123m'), // Use distance field if available, otherwise fallback to reps if it contains 'm', otherwise use default
-  //               Weight: set.weight,
-  //               Time: formatTimeForDisplay(set.time), // Always format time consistently
-  //               difficulty:
-  //                 set.difficulty ||
-  //                 (index === 0
-  //                   ? 'Warmup'
-  //                   : index === 1
-  //                   ? 'Easy'
-  //                   : index === 2
-  //                   ? 'Medium'
-  //                   : 'Hard'), // Add default difficulty if not present
-  //               isNewlyAdded: false, // All sets are now from Redux, no distinction needed
-  //               dropSets: set.dropSets?.map(dropSet => ({
-  //                 ...dropSet,
-  //                 time: formatTimeForDisplay(dropSet.time), // Format drop set time consistently
-  //               })),
-  //             })) ?? []
-  //           }
-  //           renderItem={({item}) => {
-  //             // Define colors based on difficulty
-  //             const difficultyColors = {
-  //               Warmup: '#6C757D', // Gray
-  //               Easy: '#28A745', // Green
-  //               Medium: '#FFC107', // Yellow
-  //               Hard: '#DC3545', // Red
-  //             };
-
-  //             // Use difficulty color or fallback to index-based color
-  //             const setColor =
-  //               difficultyColors[
-  //                 item.difficulty as keyof typeof difficultyColors
-  //               ];
-
-  //             // Determine text color based on whether it's newly added
-  //             const textColor = item.isNewlyAdded
-  //               ? COLORS.white
-  //               : COLORS.nickel;
-
-  //             return (
-  //               <View
-  //                 style={{
-  //                   flexDirection: 'row',
-  //                   alignItems: 'center',
-  //                   width: wp(100),
-  //                 }}>
-  //                 <View
-  //                   style={{
-  //                     width: wp(10),
-  //                     alignItems: 'flex-start',
-  //                   }}>
-  //                   <View
-  //                     style={{
-  //                       backgroundColor: setColor,
-  //                       borderTopEndRadius: 5,
-  //                       borderBottomEndRadius: 5,
-  //                       paddingHorizontal: horizontalScale(5),
-  //                       paddingVertical: verticalScale(5),
-  //                       width: horizontalScale(25),
-  //                       height:
-  //                         verticalScale(38) * (item.dropSets?.length! + 1),
-  //                       justifyContent: 'center',
-  //                     }}>
-  //                     <CustomText
-  //                       style={{
-  //                         textAlign: 'center',
-  //                       }}
-  //                       fontSize={20}
-  //                       fontFamily="medium"
-  //                       color={COLORS.white}>
-  //                       {item.Set}
-  //                     </CustomText>
-  //                   </View>
-  //                 </View>
-  //                 <View>
-  //                   <View
-  //                     style={{
-  //                       width: wp(85),
-  //                       flexDirection: 'row',
-  //                       gap: horizontalScale(10),
-  //                       justifyContent: 'space-evenly',
-  //                       alignItems: 'center',
-  //                       borderTopWidth: 0.5,
-  //                       borderTopColor: COLORS.whiteTail,
-  //                       paddingVertical: verticalScale(7),
-  //                     }}>
-  //                     <CustomText
-  //                       fontSize={20}
-  //                       fontFamily="medium"
-  //                       color={textColor}
-  //                       style={{
-  //                         flex: 1,
-  //                         textAlign: 'center',
-  //                       }}>
-  //                       {item.Reps}
-  //                     </CustomText>
-  //                     <CustomText
-  //                       fontSize={20}
-  //                       fontFamily="medium"
-  //                       color={textColor}
-  //                       style={{
-  //                         flex: 1,
-  //                         textAlign: 'center',
-  //                       }}>
-  //                       {item.Distance}
-  //                     </CustomText>
-  //                     <CustomText
-  //                       fontSize={20}
-  //                       fontFamily="medium"
-  //                       color={textColor}
-  //                       style={{
-  //                         flex: 1,
-  //                         textAlign: 'center',
-  //                       }}>
-  //                       {item.Weight}
-  //                     </CustomText>
-  //                     <CustomText
-  //                       fontSize={20}
-  //                       fontFamily="medium"
-  //                       color={textColor}
-  //                       style={{
-  //                         flex: 1,
-  //                         textAlign: 'center',
-  //                       }}>
-  //                       {item.Time}
-  //                     </CustomText>
-  //                   </View>
-  //                   {item.dropSets &&
-  //                     item.dropSets.map((dropSet, index) => (
-  //                       <View
-  //                         key={`dropset-${item.Set}-${index}`}
-  //                         style={{
-  //                           width: wp(85),
-  //                           flexDirection: 'row',
-  //                           gap: horizontalScale(10),
-  //                           justifyContent: 'space-evenly',
-  //                           alignItems: 'center',
-  //                           borderTopWidth: 0.5,
-  //                           borderTopColor: COLORS.whiteTail,
-  //                           paddingVertical: verticalScale(7),
-  //                         }}>
-  //                         <CustomText
-  //                           fontSize={20}
-  //                           fontFamily="medium"
-  //                           color={textColor}
-  //                           style={{
-  //                             flex: 1,
-  //                             textAlign: 'center',
-  //                           }}>
-  //                           {dropSet.reps}
-  //                         </CustomText>
-  //                         <CustomText
-  //                           fontSize={20}
-  //                           fontFamily="medium"
-  //                           color={textColor}
-  //                           style={{
-  //                             flex: 1,
-  //                             textAlign: 'center',
-  //                           }}>
-  //                           {dropSet.distance ||
-  //                             (dropSet.reps.includes('m')
-  //                               ? dropSet.reps
-  //                               : '123m')}
-  //                         </CustomText>
-  //                         <CustomText
-  //                           fontSize={20}
-  //                           fontFamily="medium"
-  //                           color={textColor}
-  //                           style={{
-  //                             flex: 1,
-  //                             textAlign: 'center',
-  //                           }}>
-  //                           {dropSet.weight}
-  //                         </CustomText>
-  //                         <CustomText
-  //                           fontSize={20}
-  //                           fontFamily="medium"
-  //                           color={textColor}
-  //                           style={{
-  //                             flex: 1,
-  //                             textAlign: 'center',
-  //                           }}>
-  //                           {dropSet.time}
-  //                         </CustomText>
-  //                       </View>
-  //                     ))}
-  //                 </View>
-  //               </View>
-  //             );
-  //           }}
-  //           ListEmptyComponent={({}) => {
-  //             return (
-  //               <View style={styles.noHistoryContainer}>
-  //                 <CustomText
-  //                   fontSize={16}
-  //                   fontFamily="medium"
-  //                   color={COLORS.whiteTail}
-  //                   style={{textAlign: 'center'}}>
-  //                   No history found.{'\n'} Click "Add" to create a new set.
-  //                 </CustomText>
-  //               </View>
-  //             );
-  //           }}
-  //           ListFooterComponent={() => {
-  //             return (
-  //               <View
-  //                 style={{
-  //                   width: wp(100),
-  //                   paddingHorizontal: horizontalScale(10),
-  //                   gap: verticalScale(15),
-  //                 }}>
-  //                 {/* Add buttons */}
-  //                 {!hideButton && (
-  //                   <View style={styles.addButtonsContainer}>
-  //                     <PrimaryButton
-  //                       title="Add"
-  //                       onPress={() => {
-  //                         setShowAddSetUi(true);
-  //                       }}
-  //                       isFullWidth={false}
-  //                       style={{
-  //                         alignSelf: 'flex-end',
-  //                         paddingVertical: verticalScale(3),
-  //                         paddingHorizontal: horizontalScale(15),
-  //                         borderRadius: verticalScale(5),
-  //                       }}
-  //                       backgroundColor="#FF9500"
-  //                     />
-  //                   </View>
-  //                 )}
-  //               </View>
-  //             );
-  //           }}
-  //         />
-  //       </View>
-  //     </View>
-  //   );
-  // };
 
   const renderSets = () => {
     let historySets: any[] = [];
@@ -1689,33 +1078,43 @@ const ExerciseDetails: FC<{
           dropSets: [],
         })) || [];
     } else {
-      //  When hideButton is false → use your original getHistorySets()
-      const fetchedHistorySets = getHistorySets();
+      //  When hideButton is false → show current sets from Redux draftWorkout
+      // Get the current exercise ID
+      const exerciseIdToUse = String(
+        exerciseData.exercise_id ||
+          exerciseData.exerciseSettings?.exercise_id ||
+          exerciseData.id,
+      );
+
+      // Find the current workout in draftWorkout
+      const planId = planDayData?.allData?.plan_id;
+      const workoutId = dayData?.[0]?.workout_id;
+
+      const currentWorkout = draftWorkout.find(
+        w => w.workoutPlanId === planId && w.workoutId === workoutId,
+      );
+
+      // Find the current exercise in the workout
+      const currentExercise = currentWorkout?.exercises.find(
+        ex => ex.exercise_id === exerciseIdToUse,
+      );
+
+      // Map the sets from Redux to the display format
       historySets =
-        fetchedHistorySets?.map((set: any, index: number) => ({
+        currentExercise?.setsData?.map((set: any, index: number) => ({
           Set: index + 1,
           Reps: set.reps,
-          Distance:
-            set.distance ||
-            (set.reps?.toString()?.includes('m') ? set.reps : '123m'),
+          Distance: set.distance || '0m',
           Weight: set.weight,
           Time: formatTimeForDisplay(set.time),
-          difficulty:
-            set.difficulty ||
-            (index === 0
-              ? 'Warmup'
-              : index === 1
-              ? 'Easy'
-              : index === 2
-              ? 'Medium'
-              : 'Hard'),
-          isNewlyAdded: false,
+          difficulty: set.difficulty || 'Medium',
+          isNewlyAdded: true,
           dropSets:
             set.dropSets?.map((dropSet: any) => ({
               ...dropSet,
               time: formatTimeForDisplay(dropSet.time),
             })) || [],
-        })) ?? [];
+        })) || [];
     }
 
     return showAddSetUi ? (

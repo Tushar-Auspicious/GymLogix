@@ -1,7 +1,15 @@
 import LottieView from 'lottie-react-native';
-import React, {FC, useCallback, useMemo, useRef, useState} from 'react';
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {ScrollView, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useFocusEffect} from '@react-navigation/native';
 import {fetchData} from '../../APIServices/api';
 import ENDPOINTS from '../../APIServices/endPoints';
 import ICONS from '../../Assets/Icons';
@@ -48,25 +56,38 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
   const [expandedNotes, setExpandedNotes] = useState<{[key: string]: boolean}>(
     {},
   );
+
   const {dates, month, homeActiveIndex, logMealActiveIndex, initialIndex} =
     useAppSelector(state => state.initial);
 
-  const selectedDay = dates[initialIndex];
+  // Fetch schedule data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const fetchScheduleData = async () => {
+        try {
+          const response = await fetchData<any>(ENDPOINTS.schedule);
+          if (response?.data?.data) {
+            dispatch(setScheduleData(response.data.data));
+          }
+        } catch (error) {
+          console.error('Error fetching schedule data:', error);
+        }
+      };
 
-  // Filter function
+      fetchScheduleData();
+    }, [dispatch]),
+  );
+
+  // Show all history (not filtered by selected day)
   const filteredSchedule = useMemo(() => {
     if (!scheduleData) return [];
 
-    // If no selected day → show all history
-    if (!selectedDay) return scheduleData;
-
-    const selectedDateString = new Date(selectedDay.timestamp).toDateString();
-
-    return scheduleData.filter(item => {
-      const itemDateString = new Date(item.schedule_at).toDateString();
-      return itemDateString === selectedDateString;
-    });
-  }, [selectedDay, scheduleData]);
+    // Create a copy and sort by date (most recent first)
+    return [...scheduleData].sort(
+      (a, b) =>
+        new Date(b.schedule_at).getTime() - new Date(a.schedule_at).getTime(),
+    );
+  }, [scheduleData]);
 
   // Format seconds into hh:mm:ss
   const formatTime = (totalSeconds: number): string => {
@@ -353,59 +374,30 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
     }
   };
 
-  const transformHistoryDayData = (historyItem: any, exerciseData: any) => {
-    const loggedExercises = historyItem?.content?.Exercises?.content || [];
+  // Helper function to format date heading
+  const formatDateHeading = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
 
-    // Collect only exercises that actually exist in master list
-    const validExercises = loggedExercises
-      .map((log: any) => {
-        const fullExercise = exerciseData?.find(
-          (e: any) => e.exercise_id === log.Exercise_id,
-        );
+    // Check if it's today
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    }
 
-        if (!fullExercise) return null;
+    // Check if it's yesterday
+    if (date.toDateString() === yesterday.toDateString()) {
+      return null;
+    }
 
-        return {
-          id: fullExercise?.id || log.Exercise_id,
-          name: fullExercise?.name || 'Unknown Exercise',
-          coverImage: {
-            uri: fullExercise?.images_urls?.[0] || '',
-            type: 'image/jpeg',
-            fileName: fullExercise?.images_urls?.[0]
-              ? fullExercise.images_urls[0].split('/').pop()
-              : 'default.jpg',
-          },
-          images: fullExercise?.images_urls || [],
-          instruction: fullExercise?.instruction || '',
-          description: fullExercise?.description || '',
-          mainMuscle: fullExercise?.main_muscle || '',
-          secondaryMuscle: fullExercise?.secondary_muscles,
-          targetMuscles: fullExercise?.secondary_muscles,
-          force: fullExercise?.force,
-          location: fullExercise?.mechanics,
-          type: fullExercise?.type,
-          equipment: fullExercise?.equipment,
-
-          // history-specific logged info
-          completedSets: log.Sets,
-          completedReps: log.Reps,
-          completedWeight: log.Weight,
-          completedTime: log.Time,
-        };
-      })
-      .filter(Boolean);
-
-    return {
-      day: historyItem.content?.Workout_name || 'Logged Workout',
-      type: 'Completed Workout',
-      focus: [
-        ...new Set(validExercises.map((ex: any) => ex.mainMuscle || 'General')),
-      ],
-      color: '#8A2BE2',
-      exercises: validExercises,
-      planData: historyItem?.content,
-      coverImage: historyItem?.image_url,
-    };
+    // Otherwise, show full date
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
   };
 
   const renderHistory = () => {
@@ -428,32 +420,91 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
       )
       .flatMap((item: any) => {
         if (item.type === 'workout') {
-          return item.content?.Exercises?.content?.map((ex: any) => {
-            const match = exerciseData?.find(
-              (e: any) => e.exercise_id === ex.Exercise_id,
+          // Handle new structure: Exercises is an array of groups
+          const exercises = item.content?.Exercises;
+
+          if (Array.isArray(exercises)) {
+            // New structure: array of groups (superset/regular)
+            const allExercises: any[] = [];
+            let exerciseCounter = 0;
+
+            exercises.forEach((group: any) => {
+              if (group.content && Array.isArray(group.content)) {
+                group.content.forEach((ex: any) => {
+                  const match = exerciseData?.find(
+                    (e: any) => e.exercise_id === ex.Exercise_id,
+                  );
+                  allExercises.push({
+                    ...item,
+                    _parentId: item.id || item._id,
+                    _uniqueKey: `${item.id || item._id}-${
+                      ex.Exercise_id
+                    }-${exerciseCounter}`,
+                    displayName: match?.name || `Exercise ${ex.Exercise_id}`,
+                    type: 'workout',
+                  });
+                  exerciseCounter++;
+                });
+              }
+            });
+
+            return allExercises;
+          } else if (typeof item.content?.Exercises?.content === 'object') {
+            // Old structure fallback: object with content
+            return item.content?.Exercises?.content?.map(
+              (ex: any, index: number) => {
+                const match = exerciseData?.find(
+                  (e: any) => e.exercise_id === ex.Exercise_id,
+                );
+                return {
+                  ...item,
+                  _parentId: item.id || item._id,
+                  _uniqueKey: `${item.id || item._id}-${
+                    ex.Exercise_id
+                  }-${index}`,
+                  displayName: match?.name || `Exercise ${ex.Exercise_id}`,
+                  type: 'workout',
+                };
+              },
             );
-            return {
-              ...item,
-              _parentId: item.id || item._id,
-              displayName: match?.name || `Exercise ${ex.Exercise_id}`,
-              type: 'workout',
-            };
-          });
+          } else if (Array.isArray(item.content?.Exercises?.content)) {
+            // Old structure fallback: array in content
+            return item.content?.Exercises?.content?.map(
+              (ex: any, index: number) => {
+                const match = exerciseData?.find(
+                  (e: any) => e.exercise_id === ex.Exercise_id,
+                );
+                return {
+                  ...item,
+                  _parentId: item.id || item._id,
+                  _uniqueKey: `${item.id || item._id}-${
+                    ex.Exercise_id
+                  }-${index}`,
+                  displayName: match?.name || `Exercise ${ex.Exercise_id}`,
+                  type: 'workout',
+                };
+              },
+            );
+          } else {
+            return [];
+          }
         }
 
         if (item.type === 'note') {
           return {
             ...item,
             _parentId: item.id || item._id,
+            _uniqueKey: item.id || item._id,
             displayName: item.content.notes,
             type: 'note',
           };
         }
         if (item.type === 'measurement') {
           // Example: flatten each body part measurement as its own row
-          return item.content?.list?.map((m: any) => ({
+          return item.content?.list?.map((m: any, index: number) => ({
             ...item,
             _parentId: item._id || item.id,
+            _uniqueKey: `${item._id || item.id}-${m.part}-${index}`,
             displayName: `${m.part}: ${m.amount} ${m.unit}`,
             type: 'measurement',
           }));
@@ -466,6 +517,7 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
             {
               ...item,
               _parentId: item.id || item._id,
+              _uniqueKey: item.id || item._id,
               displayName: `${name} `,
               type: 'food',
             },
@@ -474,6 +526,22 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
 
         return [];
       });
+
+    // Group flattened data by date
+    const groupedByDate: {[key: string]: any[]} = {};
+    flattenedData.forEach((item: any) => {
+      const dateKey = new Date(item.schedule_at).toDateString();
+      if (!groupedByDate[dateKey]) {
+        groupedByDate[dateKey] = [];
+      }
+      groupedByDate[dateKey].push(item);
+    });
+
+    // Convert to array of {date, items} for rendering
+    const groupedDataArray = Object.keys(groupedByDate).map(dateKey => ({
+      date: dateKey,
+      items: groupedByDate[dateKey],
+    }));
 
     return (
       <View
@@ -492,232 +560,267 @@ const HOME: FC<HomeTabScreenProps> = ({navigation}) => {
               </TouchableOpacity>
             )}
 
-            {flattenedData.map((item: any) => {
-              const itemId = item._parentId;
-              const isSelected = selectedItem.includes(itemId);
-              const isExpanded = expandedNotes[itemId];
-
-              return (
-                <TouchableOpacity
-                  delayLongPress={200}
-                  onPress={() => {
-                    console.log('itemmmm', item);
-
-                    if (item.type !== 'workout') return;
-
-                    const planID = item.content.plan_id;
-                    const workoutID = item.content.Workout_id;
-
-                    // 1. Find original program
-                    const selectedProgram = planData?.find(
-                      p => p.allData?.plan_id === planID,
-                    );
-                    if (!selectedProgram) return;
-
-                    // 2. Find original workout (for name, color, etc.)
-                    const originalWorkout =
-                      selectedProgram?.allData?.content?.workouts.find(
-                        (w: any) => w.workout_id === workoutID,
-                      );
-                    if (!originalWorkout) return;
-
-                    // 3. Get original day structure
-                    const baseDayData = transformDayData(
-                      selectedProgram.allData,
-                      originalWorkout.name,
-                    );
-
-                    // 4. Get logged exercises for THIS history item
-                    const loggedExercises =
-                      item.content?.Exercises?.content || [];
-                    const loggedAt = item.schedule_at;
-                    // 5. Map logged exercises to full exercise objects + completed sets
-                    const enrichedExercises = loggedExercises
-                      .map((log: any) => {
-                        const exerciseId = log.Exercise_id;
-                        const fullExercise = exerciseData?.find(
-                          (e: any) => e.exercise_id === exerciseId,
-                        );
-                        if (!fullExercise) return null;
-
-                        // Find recommended values from original plan
-                        const originalExercise = baseDayData.exercises.find(
-                          (ex: any) =>
-                            ex.id === fullExercise.id || ex.id === exerciseId,
-                        );
-
-                        return {
-                          ...originalExercise, // includes recommendedSets, reps, etc.
-                          id: fullExercise.id,
-                          name: fullExercise.name,
-                          coverImage: {
-                            uri: fullExercise?.images_urls?.[0] || '',
-                            type: 'image/jpeg',
-                            fileName: fullExercise?.images_urls?.[0]
-                              ? fullExercise.images_urls[0].split('/').pop()
-                              : 'default.jpg',
-                          },
-                          images: fullExercise?.images_urls || [],
-                          instruction: fullExercise?.instruction || '',
-                          description: fullExercise?.description || '',
-                          mainMuscle: fullExercise?.main_muscle || '',
-                          secondaryMuscle: fullExercise?.secondary_muscles,
-                          targetMuscles: fullExercise?.secondary_muscles,
-                          force: fullExercise?.force,
-                          location: fullExercise?.mechanics,
-                          type: fullExercise?.type,
-                          equipment: fullExercise?.equipment,
-
-                          // Recommended (from plan)
-                          recommendedSets:
-                            originalExercise?.recommendedSets || 0,
-                          recommendedReps:
-                            originalExercise?.recommendedReps || 0,
-
-                          // Logged (from history)
-                          completedSets: (log.Set || []).map((s: any) => ({
-                            set_id: s.set_id,
-                            weight: s.weight,
-                            reps: s.reps,
-                            distance: s.distance,
-                            time: s.time,
-                            weight_type: s.weight_type,
-                            difficulty: s.difficulty,
-                            rest_time: s.rest_time,
-                            log_time: s.log_time,
-                          })),
-                        };
-                      })
-                      .filter(Boolean);
-
-                    // 6. Build final day object
-                    const transformedDayData = {
-                      ...baseDayData,
-                      exercises: enrichedExercises, // ONLY logged ones
-                      day: originalWorkout.name,
-                      type: originalWorkout.comments || 'Unknown Type',
-                      color: originalWorkout.color || '#8A2BE2',
-                      focus: [
-                        ...new Set(
-                          enrichedExercises.map(
-                            (ex: any) => ex.mainMuscle || 'General',
-                          ),
-                        ),
-                      ],
-                    };
-
-                    const setsData = item.content.Exercises.content;
-
-                    // 7. Navigate
-                    navigation.navigate('workoutProgramDetails', {
-                      programId: planID,
-                      day: [transformedDayData],
-                      selectedProgram,
-                      ScheduleHistoryData: loggedAt,
-                      isFrom: true,
-                      sets: setsData,
-                    });
-                  }}
-                  onLongPress={() => {
-                    setSelectedItem(prev =>
-                      prev.includes(itemId)
-                        ? prev.filter(id => id !== itemId)
-                        : [...prev, itemId],
-                    );
-                  }}
-                  key={itemId}
+            {groupedDataArray.map((group: any, groupIndex: number) => (
+              <View
+                key={group.date + groupIndex}
+                style={{gap: verticalScale(10)}}>
+                {/* Date Heading */}
+                <CustomText
+                  fontFamily="bold"
+                  fontSize={12}
                   style={{
-                    padding: 10,
-                    borderRadius: 10,
-                    flexDirection: 'row',
-                    gap: verticalScale(10),
-                    backgroundColor: isSelected
-                      ? COLORS.lighterBrown
-                      : COLORS.lightBrown,
+                    color: COLORS.yellow,
+                    marginTop: groupIndex > 0 ? verticalScale(10) : 0,
                   }}>
-                  <View
-                    style={{
-                      backgroundColor: COLORS.whiteTail,
-                      paddingVertical: verticalScale(10),
-                      paddingHorizontal: horizontalScale(10),
-                      borderRadius: 10,
-                      alignSelf: 'flex-start',
-                    }}>
-                    <View
-                      style={{
-                        width: 35,
-                        height: 35,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        backgroundColor:
-                          item.type === 'note'
-                            ? COLORS.darkPink
-                            : item.type === 'food'
-                            ? COLORS.darkPink
-                            : COLORS.sharpBlue,
-                        borderRadius: 100,
-                      }}>
-                      <CustomIcon
-                        Icon={
-                          item.type === 'note'
-                            ? ICONS.CalendarWithDumbellIcon
-                            : item.type === 'food'
-                            ? ICONS.mealIcon
-                            : item.type === 'measurement'
-                            ? ICONS.MeasurementLogIcon
-                            : ICONS.DumbellWhiteIcon
+                  {formatDateHeading(group.date)}
+                </CustomText>
+
+                {/* Items for this date */}
+                {group.items.map((item: any) => {
+                  const itemId = item._parentId;
+                  const isSelected = selectedItem.includes(itemId);
+                  const isExpanded = expandedNotes[itemId];
+
+                  return (
+                    <TouchableOpacity
+                      key={item._uniqueKey}
+                      delayLongPress={200}
+                      onPress={() => {
+                        console.log('itemmmm', item);
+
+                        if (item.type !== 'workout') return;
+
+                        const planID = item.content.plan_id;
+                        const workoutID = item.content.Workout_id;
+
+                        // 1. Find original program
+                        const selectedProgram = planData?.find(
+                          p => p.allData?.plan_id === planID,
+                        );
+                        if (!selectedProgram) return;
+
+                        // 2. Find original workout (for name, color, etc.)
+                        const originalWorkout =
+                          selectedProgram?.allData?.content?.workouts.find(
+                            (w: any) => w.workout_id === workoutID,
+                          );
+                        if (!originalWorkout) return;
+
+                        // 3. Get original day structure
+                        const baseDayData = transformDayData(
+                          selectedProgram.allData,
+                          originalWorkout.name,
+                        );
+
+                        // 4. Get logged exercises for THIS history item
+                        // Handle new structure: Exercises is an array of groups
+                        let loggedExercises: any[] = [];
+                        const exercises = item.content?.Exercises;
+
+                        if (Array.isArray(exercises)) {
+                          // New structure: flatten all exercises from all groups
+                          exercises.forEach((group: any) => {
+                            if (group.content && Array.isArray(group.content)) {
+                              loggedExercises.push(...group.content);
+                            }
+                          });
+                        } else if (item.content?.Exercises?.content) {
+                          // Old structure fallback
+                          loggedExercises = item.content.Exercises.content;
                         }
-                        height={18}
-                        width={18}
-                      />
-                    </View>
-                  </View>
-                  <View
-                    style={{
-                      flex: 1,
-                      gap: verticalScale(5),
-                      paddingVertical: verticalScale(2),
-                    }}>
-                    {/* Note or workout title */}
-                    <CustomText fontFamily="medium" fontSize={15}>
-                      {item.type === 'note' && !isExpanded
-                        ? item.displayName.slice(0, 150) + '...'
-                        : item.displayName}
-                    </CustomText>
 
-                    {/* Read More / Read Less for notes */}
-                    {item.type === 'note' && item.displayName.length > 150 && (
-                      <TouchableOpacity
-                        onPress={() =>
-                          setExpandedNotes(prev => ({
-                            ...prev,
-                            [itemId]: !prev[itemId],
-                          }))
-                        }>
-                        <CustomText
-                          fontSize={12}
-                          fontFamily="bold"
-                          style={{color: COLORS.sharpBlue}}>
-                          {isExpanded ? 'Read Less' : 'Read More'}
+                        const loggedAt = item.schedule_at;
+                        // 5. Map logged exercises to full exercise objects + completed sets
+                        const enrichedExercises = loggedExercises
+                          .map((log: any) => {
+                            const exerciseId = log.Exercise_id;
+                            const fullExercise = exerciseData?.find(
+                              (e: any) => e.exercise_id === exerciseId,
+                            );
+                            if (!fullExercise) return null;
+
+                            // Find recommended values from original plan
+                            const originalExercise = baseDayData.exercises.find(
+                              (ex: any) =>
+                                ex.id === fullExercise.id ||
+                                ex.id === exerciseId,
+                            );
+
+                            return {
+                              ...originalExercise, // includes recommendedSets, reps, etc.
+                              id: fullExercise.id,
+                              name: fullExercise.name,
+                              coverImage: {
+                                uri: fullExercise?.images_urls?.[0] || '',
+                                type: 'image/jpeg',
+                                fileName: fullExercise?.images_urls?.[0]
+                                  ? fullExercise.images_urls[0].split('/').pop()
+                                  : 'default.jpg',
+                              },
+                              images: fullExercise?.images_urls || [],
+                              instruction: fullExercise?.instruction || '',
+                              description: fullExercise?.description || '',
+                              mainMuscle: fullExercise?.main_muscle || '',
+                              secondaryMuscle: fullExercise?.secondary_muscles,
+                              targetMuscles: fullExercise?.secondary_muscles,
+                              force: fullExercise?.force,
+                              location: fullExercise?.mechanics,
+                              type: fullExercise?.type,
+                              equipment: fullExercise?.equipment,
+
+                              // Recommended (from plan)
+                              recommendedSets:
+                                originalExercise?.recommendedSets || 0,
+                              recommendedReps:
+                                originalExercise?.recommendedReps || 0,
+
+                              // Logged (from history)
+                              completedSets: (log.Set || []).map((s: any) => ({
+                                set_id: s.set_id,
+                                weight: s.weight,
+                                reps: s.reps,
+                                distance: s.distance,
+                                time: s.time,
+                                weight_type: s.weight_type,
+                                difficulty: s.difficulty,
+                                rest_time: s.rest_time,
+                                log_time: s.log_time,
+                              })),
+                            };
+                          })
+                          .filter(Boolean);
+
+                        // 6. Build final day object
+                        const transformedDayData = {
+                          ...baseDayData,
+                          exercises: enrichedExercises, // ONLY logged ones
+                          day: originalWorkout.name,
+                          type: originalWorkout.comments || 'Unknown Type',
+                          color: originalWorkout.color || '#8A2BE2',
+                          focus: [
+                            ...new Set(
+                              enrichedExercises.map(
+                                (ex: any) => ex.mainMuscle || 'General',
+                              ),
+                            ),
+                          ],
+                        };
+
+                        // Use the already flattened loggedExercises for setsData
+                        const setsData = loggedExercises;
+
+                        // 7. Navigate
+                        navigation.navigate('workoutProgramDetails', {
+                          programId: planID,
+                          day: [transformedDayData],
+                          selectedProgram,
+                          ScheduleHistoryData: loggedAt,
+                          isFrom: true,
+                          sets: setsData,
+                        });
+                      }}
+                      onLongPress={() => {
+                        setSelectedItem(prev =>
+                          prev.includes(itemId)
+                            ? prev.filter(id => id !== itemId)
+                            : [...prev, itemId],
+                        );
+                      }}
+                      style={{
+                        padding: 10,
+                        borderRadius: 10,
+                        flexDirection: 'row',
+                        gap: verticalScale(10),
+                        backgroundColor: isSelected
+                          ? COLORS.lighterBrown
+                          : COLORS.lightBrown,
+                      }}>
+                      <View
+                        style={{
+                          backgroundColor: COLORS.whiteTail,
+                          paddingVertical: verticalScale(10),
+                          paddingHorizontal: horizontalScale(10),
+                          borderRadius: 10,
+                          alignSelf: 'flex-start',
+                        }}>
+                        <View
+                          style={{
+                            width: 35,
+                            height: 35,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backgroundColor:
+                              item.type === 'note'
+                                ? COLORS.darkPink
+                                : item.type === 'food'
+                                ? COLORS.darkPink
+                                : COLORS.sharpBlue,
+                            borderRadius: 100,
+                          }}>
+                          <CustomIcon
+                            Icon={
+                              item.type === 'note'
+                                ? ICONS.CalendarWithDumbellIcon
+                                : item.type === 'food'
+                                ? ICONS.mealIcon
+                                : item.type === 'measurement'
+                                ? ICONS.MeasurementLogIcon
+                                : ICONS.DumbellWhiteIcon
+                            }
+                            height={18}
+                            width={18}
+                          />
+                        </View>
+                      </View>
+                      <View
+                        style={{
+                          flex: 1,
+                          gap: verticalScale(5),
+                          paddingVertical: verticalScale(2),
+                        }}>
+                        {/* Note or workout title */}
+                        <CustomText fontFamily="medium" fontSize={15}>
+                          {item.type === 'note' && !isExpanded
+                            ? item.displayName.slice(0, 150) + '...'
+                            : item.displayName}
                         </CustomText>
-                      </TouchableOpacity>
-                    )}
 
-                    {/* Schedule date/time */}
-                    <CustomText fontFamily="italic" fontSize={14}>
-                      {new Date(item.schedule_at).toLocaleString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </CustomText>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                        {/* Read More / Read Less for notes */}
+                        {item.type === 'note' &&
+                          item.displayName.length > 150 && (
+                            <TouchableOpacity
+                              onPress={() =>
+                                setExpandedNotes(prev => ({
+                                  ...prev,
+                                  [itemId]: !prev[itemId],
+                                }))
+                              }>
+                              <CustomText
+                                fontSize={12}
+                                fontFamily="bold"
+                                style={{color: COLORS.sharpBlue}}>
+                                {isExpanded ? 'Read Less' : 'Read More'}
+                              </CustomText>
+                            </TouchableOpacity>
+                          )}
+
+                        {/* Schedule date/time */}
+                        <CustomText fontFamily="italic" fontSize={14}>
+                          {new Date(item.schedule_at).toLocaleString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </CustomText>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
           </>
         ) : (
           <CustomText style={styles.NoScheduleText} fontSize={12}>

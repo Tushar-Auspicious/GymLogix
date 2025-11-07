@@ -126,57 +126,84 @@ const STATS = () => {
 
   // Function to update extracted exercises
   const updateExtractedExercises = () => {
+    const extractExercises = (Exercises: any) => {
+      if (!Exercises) return [];
+
+      // Case 1 → Exercises is an array []
+      if (Array.isArray(Exercises)) {
+        return Exercises.flatMap((group: any) => group?.content || []);
+      }
+
+      // Case 2 → Exercises is an object { content: [...] }
+      if (Exercises && Array.isArray(Exercises.content)) {
+        return Exercises.content;
+      }
+
+      // Case 3 → Nested content [{ content: [...] }]
+      if (
+        Exercises &&
+        Array.isArray(Exercises.content) &&
+        Array.isArray(Exercises.content[0]?.content)
+      ) {
+        return Exercises.content.flatMap((group: any) => group.content || []);
+      }
+
+      // fallback
+      return [];
+    };
+
     if (exercise !== 'Select' && workout !== 'Select' && plan !== 'Select') {
-      const loggedDataWithSelectedPlanandWorkout = scheduleData?.filter(
+      const loggedDataWithSelectedPlanandWorkout: any = scheduleData?.filter(
         schedule =>
-          schedule.content.plan_id === plan &&
-          schedule.content.Workout_id === workout &&
+          Number(schedule.content.plan_id) === Number(plan) &&
+          Number(schedule.content.Workout_id) === Number(workout) &&
           new Date(schedule.schedule_at) >= new Date(range.from) &&
           new Date(schedule.schedule_at) <= new Date(range.to),
       );
 
-      if (
-        loggedDataWithSelectedPlanandWorkout &&
-        loggedDataWithSelectedPlanandWorkout.length > 0
-      ) {
-        const exerciseList = loggedDataWithSelectedPlanandWorkout.flatMap(
-          workout => workout.content.Exercises.content,
+      if (loggedDataWithSelectedPlanandWorkout?.length > 0) {
+        const exerciseList = loggedDataWithSelectedPlanandWorkout?.flatMap(
+          (workout: any) => extractExercises(workout?.content?.Exercises),
         );
-        const filteredExercises = exerciseList.filter(
-          ex => ex.Exercise_id === exercise,
+
+        const filteredExercises = exerciseList?.filter(
+          (ex: any) => Number(ex.Exercise_id) === Number(exercise),
         );
+
         setExtractedExercise(filteredExercises);
       } else {
         setExtractedExercise([]);
       }
     } else if (workout !== 'Select' && plan !== 'Select') {
-      const loggedWorkouts = scheduleData?.filter(
+      const loggedWorkouts: any = scheduleData?.filter(
         schedule =>
-          schedule.content.Workout_id === workout &&
+          Number(schedule.content.Workout_id) === Number(workout) &&
           new Date(schedule.schedule_at) >= new Date(range.from) &&
           new Date(schedule.schedule_at) <= new Date(range.to),
       );
 
-      if (loggedWorkouts && loggedWorkouts.length > 0) {
-        const exerciseList = loggedWorkouts.flatMap(
-          workout => workout.content.Exercises.content,
+      if (loggedWorkouts?.length > 0) {
+        const exerciseList = loggedWorkouts?.flatMap((workout: any) =>
+          extractExercises(workout?.content?.Exercises),
         );
+
         setExtractedExercise(exerciseList);
       } else {
         setExtractedExercise([]);
       }
     } else if (plan !== 'Select') {
-      const loggedPlans = scheduleData?.filter(
+      const loggedPlans: any = scheduleData?.filter(
         schedule =>
-          schedule.content.plan_id === plan &&
+          Number(schedule.content.plan_id) === Number(plan) &&
           new Date(schedule.schedule_at) >= new Date(range.from) &&
           new Date(schedule.schedule_at) <= new Date(range.to),
       );
 
-      if (loggedPlans && loggedPlans.length > 0) {
-        const exerciseList = loggedPlans.flatMap(
-          plan => plan.content.Exercises.content,
+      if (loggedPlans?.length > 0) {
+        const exerciseList = loggedPlans?.flatMap((plan: any) =>
+          extractExercises(plan?.content?.Exercises),
         );
+
         setExtractedExercise(exerciseList);
       } else {
         setExtractedExercise([]);
@@ -195,6 +222,14 @@ const STATS = () => {
           new Date(schedule.schedule_at) >= new Date(range.from) &&
           new Date(schedule.schedule_at) <= new Date(range.to),
       ) || [];
+    console.log(
+      'FILYERRRRRRRR',
+      filteredData.filter(
+        item =>
+          item.type === 'measurement' && item.content.list[0].part === 'Waist',
+      ),
+    );
+
     setFilteredScheduleData(filteredData);
   }, [range, plan, workout, exercise, scheduleData]);
 
@@ -203,10 +238,10 @@ const STATS = () => {
     if (foodPlan !== 'Select' && scheduleData) {
       const loggedFoodPlan = scheduleData?.filter(
         schedule =>
-          schedule.content.plan_id === foodPlan &&
-          schedule.type === 'food' &&
-          new Date(schedule.schedule_at) >= new Date(range.from) &&
-          new Date(schedule.schedule_at) <= new Date(range.to),
+          schedule.content.plan_id === foodPlan && schedule.type === 'food',
+        // &&
+        // new Date(schedule.schedule_at) >= new Date(range.from) &&
+        // new Date(schedule.schedule_at) <= new Date(range.to),
       );
       const foodContent = loggedFoodPlan || [];
       setOriginalFoods(foodContent);
@@ -286,6 +321,33 @@ const STATS = () => {
   };
 
   const renderTrainingDropDowns = () => {
+    // Helper function to extract exercises - same as in updateExtractedExercises
+    const extractExercises = (Exercises: any) => {
+      if (!Exercises) return [];
+
+      // Case 1 → Exercises is an array []
+      if (Array.isArray(Exercises)) {
+        return Exercises.flatMap((group: any) => group?.content || []);
+      }
+
+      // Case 2 → Exercises is an object { content: [...] }
+      if (Exercises && Array.isArray(Exercises.content)) {
+        return Exercises.content;
+      }
+
+      // Case 3 → Nested content [{ content: [...] }]
+      if (
+        Exercises &&
+        Array.isArray(Exercises.content) &&
+        Array.isArray(Exercises.content[0]?.content)
+      ) {
+        return Exercises.content.flatMap((group: any) => group.content || []);
+      }
+
+      // fallback
+      return [];
+    };
+
     return (
       <View style={styles.dropdownContainer}>
         <CustomDropdown
@@ -300,13 +362,13 @@ const STATS = () => {
             setExercise('Select'); // reset exercise
             const loggedPlans = scheduleData?.filter(
               schedule =>
-                schedule.content.plan_id === value &&
+                Number(schedule.content.plan_id) === Number(value) &&
                 new Date(schedule.schedule_at) >= new Date(range.from) &&
                 new Date(schedule.schedule_at) <= new Date(range.to),
             );
             if (loggedPlans && loggedPlans.length > 0) {
-              const exerciseList = loggedPlans.flatMap(
-                plan => plan.content.Exercises.content,
+              const exerciseList = loggedPlans.flatMap(plan =>
+                extractExercises(plan?.content?.Exercises),
               );
               setExtractedExercise(exerciseList);
             } else {
@@ -325,13 +387,13 @@ const STATS = () => {
             setExercise('Select'); // reset exercise
             const loggedWorkouts = scheduleData?.filter(
               schedule =>
-                schedule.content.Workout_id === value &&
+                Number(schedule.content.Workout_id) === Number(value) &&
                 new Date(schedule.schedule_at) >= new Date(range.from) &&
                 new Date(schedule.schedule_at) <= new Date(range.to),
             );
             if (loggedWorkouts && loggedWorkouts.length > 0) {
-              const exerciseList = loggedWorkouts.flatMap(
-                workout => workout.content.Exercises.content,
+              const exerciseList = loggedWorkouts.flatMap(workout =>
+                extractExercises(workout?.content?.Exercises),
               );
               setExtractedExercise(exerciseList);
             } else {
@@ -350,8 +412,8 @@ const STATS = () => {
             setExercise(value);
             const loggedDataWithSelectedPlanandWorkout = scheduleData?.filter(
               schedule =>
-                schedule.content.plan_id === plan &&
-                schedule.content.Workout_id === workout &&
+                Number(schedule.content.plan_id) === Number(plan) &&
+                Number(schedule.content.Workout_id) === Number(workout) &&
                 new Date(schedule.schedule_at) >= new Date(range.from) &&
                 new Date(schedule.schedule_at) <= new Date(range.to),
             );
@@ -360,10 +422,10 @@ const STATS = () => {
               loggedDataWithSelectedPlanandWorkout.length > 0
             ) {
               const exerciseList = loggedDataWithSelectedPlanandWorkout.flatMap(
-                workout => workout.content.Exercises.content,
+                workout => extractExercises(workout?.content?.Exercises),
               );
               const filteredExercises = exerciseList.filter(
-                ex => ex.Exercise_id === value,
+                ex => Number(ex.Exercise_id) === Number(value),
               );
               setExtractedExercise(filteredExercises);
             } else {

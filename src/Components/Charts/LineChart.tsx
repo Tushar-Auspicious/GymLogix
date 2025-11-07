@@ -496,7 +496,7 @@ const CustomLineChart: FC<LineChartProps> = ({
           {/* Y-Axis Overlay - Position might need adjustment based on dynamic labels */}
           <View style={styles.yAxisOverlay}>
             <CustomText fontFamily="bold" fontSize={12}>
-              {`${yAxisProps.maxValue.toFixed(0)}${unit}`}{' '}
+              {`${yAxisProps.maxValue.toFixed(0)} ${unit}`}
               {/* Use calculated max and dynamic unit */}
             </CustomText>
             <View style={styles.yAxisBackground} />
@@ -593,10 +593,10 @@ const CustomLineChart: FC<LineChartProps> = ({
           <CustomText fontFamily="medium" fontSize={18} color={COLORS.black}>
             {selectedOption === 'Total'
               ? maxTotalEntry
-                ? `${maxTotalEntry.value.toFixed(0)}${unit}`
+                ? `${maxTotalEntry.value.toFixed(0)} ${unit}`
                 : `N/A`
               : maxAverageEntry
-              ? `${maxAverageEntry.value.toFixed(0)}${unit}`
+              ? `${maxAverageEntry.value.toFixed(0)} ${unit}`
               : `N/A`}
           </CustomText>
           <CustomText
@@ -624,10 +624,10 @@ const CustomLineChart: FC<LineChartProps> = ({
           <CustomText fontFamily="medium" fontSize={18} color={COLORS.black}>
             {selectedOption === 'Total'
               ? minTotalEntry
-                ? `${minTotalEntry.value.toFixed(0)}${unit}`
+                ? `${minTotalEntry.value.toFixed(0)} ${unit}`
                 : `N/A`
               : minAverageEntry
-              ? `${minAverageEntry.value.toFixed(0)}${unit}`
+              ? `${minAverageEntry.value.toFixed(0)} ${unit}`
               : `N/A`}
           </CustomText>
           <CustomText

@@ -27,8 +27,15 @@ export type DraftWorkout = {
   exercises: ExerciseLog[];
 };
 
+export type SupersetData = {
+  workoutPlanId: number;
+  workoutId: number;
+  exerciseData: any[]; // Array of exercises and supersets
+};
+
 interface WorkoutState {
   draftWorkout: DraftWorkout[];
+  supersetData: SupersetData[]; // Store superset structure for each workout
   workoutPlanId: number | null; // Track selected plan
   workoutId: number | null;
   workoutTime: number | null;
@@ -43,6 +50,7 @@ interface WorkoutState {
 
 const initialState: WorkoutState = {
   draftWorkout: [],
+  supersetData: [],
   workoutPlanId: null, // Track selected plan
   workoutId: null,
   workoutTime: 0,
@@ -101,8 +109,40 @@ const logWorkoutSlice = createSlice({
       }
     },
 
+    setSupersetData(state, action: PayloadAction<SupersetData>) {
+      // Check if superset data for this workout already exists
+      const existingIndex = state.supersetData.findIndex(
+        data =>
+          data.workoutPlanId === action.payload.workoutPlanId &&
+          data.workoutId === action.payload.workoutId,
+      );
+      if (existingIndex >= 0) {
+        // Update existing superset data
+        state.supersetData[existingIndex] = action.payload;
+      } else {
+        // Add new superset data
+        state.supersetData.push(action.payload);
+      }
+    },
+    clearSupersetData(
+      state,
+      action: PayloadAction<{workoutPlanId: number; workoutId: number}>,
+    ) {
+      state.supersetData = state.supersetData.filter(
+        data =>
+          !(
+            data.workoutPlanId === action.payload.workoutPlanId &&
+            data.workoutId === action.payload.workoutId
+          ),
+      );
+    },
     clearDraftWorkout(state) {
       state.draftWorkout = [];
+      state.supersetData = []; // Also clear superset data
+      state.currentCompletedExerciseIds = []; // Clear completed exercises
+      console.log(
+        '🧹 Redux: Cleared draftWorkout, supersetData, and completedExerciseIds',
+      );
     },
     // Optional: Add reducer to clear a specific workout
     clearSpecificDraftWorkout(
@@ -114,6 +154,14 @@ const logWorkoutSlice = createSlice({
           !(
             workout.workoutPlanId === action.payload.workoutPlanId &&
             workout.workoutId === action.payload.workoutId
+          ),
+      );
+      // Also clear superset data for this workout
+      state.supersetData = state.supersetData.filter(
+        data =>
+          !(
+            data.workoutPlanId === action.payload.workoutPlanId &&
+            data.workoutId === action.payload.workoutId
           ),
       );
     },
@@ -135,7 +183,18 @@ const logWorkoutSlice = createSlice({
     },
 
     setCurrentCompletedExerciseIds(state, action: PayloadAction<string>) {
-      state.currentCompletedExerciseIds.push(action.payload);
+      // Check if the ID already exists to avoid duplicates
+      if (!state.currentCompletedExerciseIds.includes(action.payload)) {
+        console.log(
+          '✅ Redux: Adding to completedExerciseIds:',
+          action.payload,
+        );
+        console.log('  - Before:', state.currentCompletedExerciseIds);
+        state.currentCompletedExerciseIds.push(action.payload);
+        console.log('  - After:', state.currentCompletedExerciseIds);
+      } else {
+        console.log('⚠️ Redux: ID already exists:', action.payload);
+      }
     },
 
     resetWorkout(state) {
@@ -149,6 +208,8 @@ const logWorkoutSlice = createSlice({
 export const {
   setDraftWorkout,
   updateExercise,
+  setSupersetData,
+  clearSupersetData,
   clearDraftWorkout,
   clearSpecificDraftWorkout,
   setWorkoutProgress,

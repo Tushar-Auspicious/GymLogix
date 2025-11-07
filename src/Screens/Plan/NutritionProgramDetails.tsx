@@ -139,7 +139,7 @@ const NutritionProgramDetails: FC<NutritionProgramDetailsProps> = ({
             style={styles.mealSectionContainer}>
             <View style={styles.sectionHeader}>
               <CustomText fontFamily="italicBold" fontSize={24}>
-                {section.title}
+                {section?.title}
               </CustomText>
             </View>
 
@@ -184,7 +184,7 @@ const NutritionProgramDetails: FC<NutritionProgramDetailsProps> = ({
                                 fontSize={24}
                                 fontFamily="bold"
                                 style={styles.mealTitle}>
-                                {item.title}
+                                {item?.title}
                               </CustomText>
                             </View>
                             <View style={styles.mealStatsContainer}>
@@ -261,7 +261,7 @@ const NutritionProgramDetails: FC<NutritionProgramDetailsProps> = ({
                 ))}
               </View>
               <CustomText fontFamily="bold">
-                {currentProgramDetails?.[0].title}
+                {currentProgramDetails?.[0]?.title}
               </CustomText>
             </View>
           </View>

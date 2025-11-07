@@ -1,26 +1,23 @@
+import React, {FC, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from 'react-native';
-import React, {FC, useEffect, useRef, useState} from 'react';
-import {horizontalScale, verticalScale, wp} from '../../../Utilities/Metrics';
-import COLORS from '../../../Utilities/Colors';
-import CustomIcon from '../../../Components/CustomIcon';
-import ICONS from '../../../Assets/Icons';
-import {ChatBubble} from '../../Plan/WorkoutProgramDetails';
-import {KeyboardAvoidingContainer} from '../../../Components/KeyboardAvoidingComponent';
-import {CustomText} from '../../../Components/CustomText';
-import PrimaryButton from '../../../Components/PrimaryButton';
 import {fetchData, postData} from '../../../APIServices/api';
 import ENDPOINTS from '../../../APIServices/endPoints';
+import ICONS from '../../../Assets/Icons';
+import CustomIcon from '../../../Components/CustomIcon';
+import {CustomText} from '../../../Components/CustomText';
+import PrimaryButton from '../../../Components/PrimaryButton';
+import COLORS from '../../../Utilities/Colors';
+import {horizontalScale, verticalScale, wp} from '../../../Utilities/Metrics';
+import {ChatBubble} from '../../Plan/WorkoutProgramDetails';
 const messages = [
   {id: '1', text: 'you will have to do hard', sender: false},
   {id: '2', text: 'How do I work the bench press', sender: true},
@@ -51,7 +48,8 @@ interface ResponseData {
 
 const CoachCenterView: FC<CoachData> = ({planId}) => {
   const [message, setMessage] = useState('');
-  const [ispremium, setIspremium] = useState(Math.random() < 0.5); // Simulating premium status
+  const [ispremium, setIspremium] = useState(false); // Simulating premium status
+  // const [ispremium, setIspremium] = useState(Math.random() < 0.5); // Simulating premium status
   const [messages, setMessages] = useState<any[]>([]);
   const [allMessages, setAllMessages] = useState<any[]>([]);
   const PAGE_SIZE = 20;

@@ -91,7 +91,9 @@ const DayCard = React.memo(
       activityIndicators.hasMeasurement;
 
     return (
-      <TouchableOpacity onPress={() => onPressDate(item)} activeOpacity={0.7}>
+      <TouchableOpacity
+        //  onPress={() => onPressDate(item)}
+        activeOpacity={1}>
         <Animated.View
           style={[
             styles.dayCard,
@@ -164,7 +166,6 @@ const CalendarList = () => {
   );
   const {scheduleData} = useAppSelector(state => state.scheduleData);
   const [month, setMonth] = useState('');
-  const [selectedDay, setSelectedDay] = useState<DayItem | null>(null);
 
   // Function to get activity indicators for a specific date
   const getActivityIndicators = useCallback(

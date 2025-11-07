@@ -93,7 +93,7 @@ const MeasurementTab: FC<MeasurementTabProps> = ({data}) => {
   // }, [currentTab]); // Re-fetch when currentTab changes
 
   useEffect(() => {
-    if (!storeMuscle?.part!) return;
+    if (!storeMuscle?.part) return;
 
     // Filter data for the selected muscle
     const filteredData = data
@@ -104,19 +104,25 @@ const MeasurementTab: FC<MeasurementTabProps> = ({data}) => {
           schedule_at: item.schedule_at,
         })),
       )
-      .filter((item: any) => item.part === storeMuscle.part!);
+      .filter((item: any) => item.part === storeMuscle.part);
+
+    console.log('Filtered measurement data:', filteredData);
 
     // Transform for chart
-    const newData = filteredData.map((item: any) => ({
-      value: Number(item.amount),
-      date: new Date(item.schedule_at).toLocaleDateString('en-US', {
-        month: 'numeric',
-        day: 'numeric',
-      }),
-    }));
+    const newData =
+      filteredData?.map((item: any) => ({
+        value: Number(item.amount) || 0,
+        date: new Date(item.schedule_at).toLocaleDateString('en-US', {
+          month: 'numeric',
+          day: 'numeric',
+        }),
+      })) || [];
 
-    // Keep unit
+    // Get unit from the data - it can be cm, inch, %, kg, lb, etc.
     const newUnit = filteredData?.[0]?.unit || '';
+
+    console.log('Chart data:', newData);
+    console.log('Chart unit:', newUnit);
 
     setChartData(newData);
     setChartUnit(newUnit);
