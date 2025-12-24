@@ -188,7 +188,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
   const handleCameraPick = async () => {
     try {
       const result = await launchCamera({
-        quality: 1,
+        quality: 0.5,
         mediaType: 'photo',
       });
 
@@ -220,6 +220,8 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
             formData,
           );
 
+          console.log('RESPOOOO', response);
+
           if (response.data) {
             const get_Image_url = response.data.url;
             if (get_Image_url) {
@@ -246,7 +248,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
     try {
       const result = await launchImageLibrary({
         mediaType: 'photo',
-        quality: 0.8,
+        quality: 0.5,
         selectionLimit: 0, // 0 means no limit
       });
 
@@ -268,7 +270,7 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
   const handleMultipleImageCamera = async () => {
     try {
       const result = await launchCamera({
-        quality: 0.8,
+        quality: 0.5,
         mediaType: 'photo',
       });
 
@@ -392,25 +394,15 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
         };
 
         const updatedMealList = [...localMealList, newMeal];
+
         await storeLocalStorageData(
           STORAGE_KEYS.localMealData,
           updatedMealList,
         );
 
-        Alert.alert('Success!', `Meal has been saved successfully!`, [
-          {
-            text: 'View My Meals',
-            onPress: () => {
-              navigation.navigate('tabs', {
-                screen: 'PLAN',
-              });
-            },
-          },
-          {
-            text: 'Create Another',
-            onPress: () => {},
-          },
-        ]);
+        navigation.navigate('tabs', {
+          screen: 'PLAN',
+        });
       }
     } catch (error) {
       console.log(error, 'Something went wrong');
@@ -418,8 +410,6 @@ const AddNewMeal: FC<AddNewMealScreenProps> = ({navigation}) => {
 
     dispatch(resetMeal());
   };
-
-  console.log('ingredients ----> ', ingredients);
 
   return (
     <View style={styles.contentContainer}>

@@ -31,6 +31,7 @@ import {Exercise} from '../../Seeds/ExerciseCatalog';
 import {ExerciseListScreenProps} from '../../Typings/route';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
+import IMAGES from '../../Assets/Images';
 
 const tabData = [
   {label: 'Category', value: 1},
@@ -62,6 +63,32 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
     () => allExercises.slice(10, 20),
     [allExercises],
   );
+
+  const normalizeMuscleKey = (name: string) => {
+    return name
+      .toLowerCase() // make all lowercase first
+      .split(' ') // split on spaces
+      .map((word, index) =>
+        index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
+      ) // capitalize subsequent words
+      .join(''); // join without spaces
+  };
+
+  const MuscleImages: {[key: string]: any} = {
+    adductors: IMAGES.adductors,
+    back: IMAGES.back,
+    biceps: IMAGES.biceps,
+    calf: IMAGES.calf,
+    forearms: IMAGES.foreArms,
+    glutes: IMAGES.glutes,
+    hamstrings: IMAGES.hamstrings,
+    quads: IMAGES.quads,
+    shoulders: IMAGES.shouder,
+    traps: IMAGES.traps,
+    tricpes: IMAGES.tricpes,
+    twins: IMAGES.twins,
+    lowerBack: IMAGES.glutes,
+  };
 
   const filteredData = useMemo(() => {
     const lowerSearch = searchedWord.toLowerCase().trim();
@@ -216,6 +243,11 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
         const {bodyPart, count} = item.data;
         const isExpanded = expandedCategories.has(bodyPart);
 
+        const normalizedKey = normalizeMuscleKey(bodyPart);
+        const imageSource = MuscleImages[normalizedKey] || {
+          uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+        };
+
         return (
           <View style={styles.categoryContainer}>
             <View style={styles.categoryHeader}>
@@ -229,12 +261,7 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
               </Pressable>
               <View style={styles.categoryInfo}>
                 <CustomText>{count}</CustomText>
-                <Image
-                  source={{
-                    uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
-                  }}
-                  style={styles.categoryImage}
-                />
+                <Image source={imageSource} style={styles.categoryImage} />
               </View>
             </View>
           </View>

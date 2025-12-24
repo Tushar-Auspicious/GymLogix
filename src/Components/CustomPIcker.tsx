@@ -278,15 +278,21 @@ interface PickerComponentProps {
   difficulty: string;
   onValuesChange?: (values: {
     reps: string;
-    distance: string;
-    weight: string;
-    time: string;
+    distance?: string;
+    weight?: string;
+    time?: string;
   }) => void;
+  showDistance?: boolean; // controlled by Is_distance
+  showWeight?: boolean; // controlled by is_weight
+  showTime?: boolean;
 }
 
 const PickerComponent: FC<PickerComponentProps> = ({
   difficulty,
   onValuesChange,
+  showDistance = false,
+  showWeight = false,
+  showTime = false,
 }) => {
   // Data arrays
   const repsData = Array.from({length: 1000}, (_, i) => (i + 1).toString());
@@ -320,20 +326,31 @@ const PickerComponent: FC<PickerComponentProps> = ({
 
   // Callback to parent
   useEffect(() => {
-    if (onValuesChange) {
-      onValuesChange({
-        reps: repsData[selectedRepsIndex],
-        distance: distanceData[selectedDistanceIndex],
-        weight: weightData[selectedWeightIndex],
-        time: timeData[selectedTimeIndex],
-      });
-    }
+    if (!onValuesChange) return;
+
+    onValuesChange({
+      reps: repsData[selectedRepsIndex],
+
+      distance: showDistance ? distanceData[selectedDistanceIndex] : '--',
+
+      weight: showWeight ? weightData[selectedWeightIndex] : '--',
+
+      time: showTime ? timeData[selectedTimeIndex] : '--',
+    });
   }, [
     selectedRepsIndex,
     selectedDistanceIndex,
     selectedWeightIndex,
     selectedTimeIndex,
+    showDistance,
+    showWeight,
+    showTime,
   ]);
+
+  // Helper to get visible columns count
+  const visibleColumns = [showDistance, showWeight, showTime].filter(
+    Boolean,
+  ).length;
 
   // Smooth scroll handling
   const handleScroll = (
@@ -480,18 +497,36 @@ const PickerComponent: FC<PickerComponentProps> = ({
         <CustomText fontFamily="semiBold" color={COLORS.whiteTail}>
           Reps
         </CustomText>
-        <CustomText fontFamily="semiBold" color={COLORS.whiteTail}>
-          Distance
-        </CustomText>
-        <CustomText fontFamily="semiBold" color={COLORS.whiteTail}>
-          Weight(kg)
-        </CustomText>
-        <CustomText fontFamily="semiBold" color={COLORS.whiteTail}>
-          Time
-        </CustomText>
+        {showDistance && (
+          <CustomText fontFamily="semiBold" color={COLORS.whiteTail}>
+            Distance
+          </CustomText>
+        )}
+        {showWeight && (
+          <CustomText fontFamily="semiBold" color={COLORS.whiteTail}>
+            Weight(kg)
+          </CustomText>
+        )}
+        {showTime && (
+          <CustomText fontFamily="semiBold" color={COLORS.whiteTail}>
+            Time
+          </CustomText>
+        )}
       </View>
       <View style={styles.divider} />
-      <View style={styles.pickerContainer}>
+      <View
+        style={[
+          styles.pickerContainer,
+          {
+            justifyContent:
+              visibleColumns === 1
+                ? 'center'
+                : visibleColumns === 2
+                ? 'space-around'
+                : 'space-evenly',
+            width: wp(80),
+          },
+        ]}>
         {renderColumn(
           repsData,
           selectedRepsIndex,
@@ -499,39 +534,44 @@ const PickerComponent: FC<PickerComponentProps> = ({
           repsRef,
           'reps',
         )}
-        {renderColumn(
-          distanceData,
-          selectedDistanceIndex,
-          setSelectedDistanceIndex,
-          distanceRef,
-          'distance',
+        {showDistance &&
+          renderColumn(
+            distanceData,
+            selectedDistanceIndex,
+            setSelectedDistanceIndex,
+            distanceRef,
+            'distance',
+          )}
+        {showWeight &&
+          renderColumn(
+            weightData,
+            selectedWeightIndex,
+            setSelectedWeightIndex,
+            weightRef,
+            'weight',
+          )}
+        {showTime &&
+          renderColumn(
+            timeData,
+            selectedTimeIndex,
+            setSelectedTimeIndex,
+            timeRef,
+            'time',
+          )}
+        {visibleColumns > 0 && (
+          <View style={styles.highlightOverlay}>
+            <View
+              style={{
+                width: 30,
+                height: ITEM_HEIGHT,
+                backgroundColor: difficultyColor,
+                left: -30,
+                borderTopLeftRadius: 10,
+                borderBottomLeftRadius: 10,
+              }}
+            />
+          </View>
         )}
-        {renderColumn(
-          weightData,
-          selectedWeightIndex,
-          setSelectedWeightIndex,
-          weightRef,
-          'weight',
-        )}
-        {renderColumn(
-          timeData,
-          selectedTimeIndex,
-          setSelectedTimeIndex,
-          timeRef,
-          'time',
-        )}
-        <View style={styles.highlightOverlay}>
-          <View
-            style={{
-              width: 30,
-              height: ITEM_HEIGHT,
-              backgroundColor: difficultyColor,
-              left: -30,
-              borderTopLeftRadius: 10,
-              borderBottomLeftRadius: 10,
-            }}
-          />
-        </View>
       </View>
 
       {/* Modal */}

@@ -245,8 +245,6 @@ const MealDetails: FC<MealDetailScreenProps> = ({navigation, route}) => {
   // Get tags from current meal
   const currentTags = meal?.tags || [];
 
-  // console.log('tags', currentTags);
-
   // Find related meals based on 2+ matching tags (excluding current meal)
   const relatedMeals = myMealsList
     .filter(m => {
@@ -257,8 +255,6 @@ const MealDetails: FC<MealDetailScreenProps> = ({navigation, route}) => {
       return matchedTags.length >= 2;
     })
     .slice(0, 4);
-
-  // console.log('matchetgas', relatedMeals);
 
   const renderRelatedMeals = () => {
     if (!relatedMeals.length) return null;

@@ -120,12 +120,8 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
       })),
     };
 
-    console.log('sent data ', data.image_url);
-
     try {
       const response = await postData<any>(ENDPOINTS.mealCreate, {data});
-
-      console.log('edit reposne  ', response);
 
       if (response.data) {
         const getCalorieData = response.data.data.calories;
@@ -208,7 +204,7 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
   };
 
   const handleImagePick = () => {
-    launchImageLibrary({mediaType: 'photo', quality: 0.8}, async response => {
+    launchImageLibrary({mediaType: 'photo', quality: 0.5}, async response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorCode) {
@@ -256,7 +252,7 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
   const handleCameraPick = async () => {
     try {
       const result = await launchCamera({
-        quality: 1,
+        quality: 0.5,
         mediaType: 'photo',
       });
 
@@ -288,7 +284,6 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
             ENDPOINTS.uploadFile,
             formData,
           );
-          console.log('camera Pick ---->', response);
 
           if (response.data) {
             const get_Image_url = response.data.url;
@@ -320,7 +315,7 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
     try {
       const result = await launchImageLibrary({
         mediaType: 'photo',
-        quality: 0.8,
+        quality: 0.5,
         selectionLimit: 0, // 0 means no limit
       });
 
@@ -345,7 +340,7 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
   const handleMultipleImageCamera = async () => {
     try {
       const result = await launchCamera({
-        quality: 0.8,
+        quality: 0.5,
         mediaType: 'photo',
       });
 
@@ -369,10 +364,6 @@ const EditMealDetails: FC<EditMealDetailScreenProps> = ({
   useEffect(() => {
     setIngredients(meal?.ingredients!);
   }, [meal?.ingredients]);
-
-  // console.log('aeax', meal?.coverImage);
-
-  console.log('INgreidts ---->', ingredients);
 
   return (
     <View style={styles.contentContainer}>

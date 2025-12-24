@@ -70,7 +70,6 @@ const ForgotPassword: FC<ForgotPasswordProps> = ({navigation}) => {
       const response = await postData(
         `${ENDPOINTS.forgotpassword}?email=${data.email}`,
       );
-      console.log('forgot response', response.data);
 
       if (response.status === 400) {
         setMessage({text: 'Account not found', type: 'error'});

@@ -117,7 +117,7 @@ const AddNewExercise = ({}) => {
   const handleCameraPick = async () => {
     try {
       const result = await launchCamera({
-        quality: 1,
+        quality: 0.5,
         mediaType: 'photo',
       });
 
@@ -140,7 +140,7 @@ const AddNewExercise = ({}) => {
     try {
       const result = await launchImageLibrary({
         mediaType: 'photo',
-        quality: 0.8,
+        quality: 0.5,
         selectionLimit: 0, // 0 means no limit
       });
 
@@ -165,7 +165,7 @@ const AddNewExercise = ({}) => {
   const handleMultipleImageCamera = async () => {
     try {
       const result = await launchCamera({
-        quality: 0.8,
+        quality: 0.5,
         mediaType: 'photo',
       });
 

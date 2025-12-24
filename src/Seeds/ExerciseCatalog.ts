@@ -31,10 +31,12 @@ export type Exercise = {
   exerciseSettings?: ExerciseSettings | null; // Optional settings for the exercise
 };
 
+export type LogType = 'Time' | 'Weight' | 'Distance';
+
 export type ExerciseSettings = {
   sets?: number;
   reps?: number;
-  loggingType?: 'Time' | 'Weight' | 'Distance';
+  loggingType?: LogType[];
   timing?: {
     warmUp: string; //Warm up reset time
     workingSet: string; //Working set reset time

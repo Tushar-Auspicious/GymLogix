@@ -14,7 +14,6 @@ const MeasurementTab: FC<MeasurementTabProps> = ({data}) => {
   const [storeMuscle, setStoreMuscle] = useState<any>([]);
 
   const fetchDataForTab = async (tabValue: any) => {
-    console.log('Fetching data for tab:', tabValue);
     // Simulate API call based on tab
     await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
     let newData: any = [];
@@ -106,8 +105,6 @@ const MeasurementTab: FC<MeasurementTabProps> = ({data}) => {
       )
       .filter((item: any) => item.part === storeMuscle.part);
 
-    console.log('Filtered measurement data:', filteredData);
-
     // Transform for chart
     const newData =
       filteredData?.map((item: any) => ({
@@ -120,9 +117,6 @@ const MeasurementTab: FC<MeasurementTabProps> = ({data}) => {
 
     // Get unit from the data - it can be cm, inch, %, kg, lb, etc.
     const newUnit = filteredData?.[0]?.unit || '';
-
-    console.log('Chart data:', newData);
-    console.log('Chart unit:', newUnit);
 
     setChartData(newData);
     setChartUnit(newUnit);

@@ -52,7 +52,7 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
     return (
       <ImageBackground
         source={{
-          uri: showableBannerItem![0].coverImage,
+          uri: showableBannerItem![0]?.coverImage || item![0]?.coverImage,
         }}
         style={styles.bannerImage}
         imageStyle={styles.bannerImageStyle}>
@@ -65,8 +65,9 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
             onPress={() => {
               dispatch(
                 setCurrentprogramId(
-                  showableBannerItem![0].allData.plan_id ||
-                    showableBannerItem![0]?.planId,
+                  showableBannerItem![0]?.allData?.plan_id ||
+                    showableBannerItem![0]?.planId ||
+                    item![0]?.planId,
                 ),
               );
               dispatch(setActiveWorkoutprogramIndex(2));
@@ -77,8 +78,8 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
               fontFamily="bold"
               style={styles.bannerText}>
               {`${
-                showableBannerItem![0].allData?.name
-                  ? showableBannerItem![0].allData?.name
+                showableBannerItem![0]?.allData?.name
+                  ? showableBannerItem![0]?.allData?.name
                   : 'Full Program Hyper Throphy'
               }`}
             </CustomText>
@@ -130,8 +131,8 @@ const WorkoutPlansList: FC<WorkoutPlansListProps> = ({navigation}) => {
                     {(item.tags && item.tags.length > 0
                       ? item.tags
                       : item.allData?.content?.tags &&
-                        item.allData.content.tags.length > 0
-                      ? item.allData.content.tags
+                        item.allData?.content?.tags.length > 0
+                      ? item.allData?.content?.tags
                       : item.allData?.tags
                     ).map((tag, index) => (
                       <CustomText

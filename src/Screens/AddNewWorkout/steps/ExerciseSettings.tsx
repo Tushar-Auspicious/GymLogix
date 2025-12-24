@@ -28,6 +28,8 @@ import {
 import {Exercise} from '../../../Seeds/ExerciseCatalog';
 import {updateExerciseSettings} from '../../../Redux/slices/exerciseCatalogSlice';
 
+type LogType = 'Time' | 'Weight' | 'Distance';
+
 const ExerciseSettings: FC<{
   selectedExercise: string | null;
   setSelectedExercise: Dispatch<SetStateAction<string | null>>;
@@ -41,9 +43,7 @@ const ExerciseSettings: FC<{
 
   const [ExerciseSets, setExerciseSets] = useState('');
   const [ExerciseReps, setExerciseReps] = useState('');
-  const [ExerciseLogging, setExerciseLogging] = useState<
-    'Time' | 'Weight' | 'Distance'
-  >('Time');
+  const [ExerciseLogging, setExerciseLogging] = useState<LogType[]>([]);
 
   const [WarmUpTime, setWarmUpTime] = useState('Auto');
   const [WorkingSetTime, setWorkingSetTime] = useState('Auto');
@@ -54,6 +54,15 @@ const ExerciseSettings: FC<{
   const [alternateExercise, setAlternateExercise] = useState<string | null>(
     null,
   );
+
+  const toggleLogging = (type: LogType) => {
+    setExerciseLogging(prev => {
+      if (prev.includes(type)) {
+        return prev.filter(item => item !== type); // remove
+      }
+      return [...prev, type]; // add
+    });
+  };
 
   const alternateExerciseDatausingId = useAppSelector(state =>
     state.exerciseCatalog.catalog.categories
@@ -83,9 +92,16 @@ const ExerciseSettings: FC<{
 
   useEffect(() => {
     if (exerciseData) {
+      const savedLogging = exerciseData.exerciseSettings?.loggingType;
       setExerciseSets(exerciseData.exerciseSettings?.sets?.toString() ?? '');
       setExerciseReps(exerciseData.exerciseSettings?.reps?.toString() ?? '');
-      setExerciseLogging(exerciseData.exerciseSettings?.loggingType ?? 'Time');
+      setExerciseLogging(
+        Array.isArray(savedLogging)
+          ? savedLogging
+          : savedLogging
+          ? [savedLogging]
+          : [],
+      );
       setWarmUpTime(exerciseData.exerciseSettings?.timing?.warmUp ?? 'Auto');
       setWorkingSetTime(
         exerciseData.exerciseSettings?.timing?.workingSet ?? 'Auto',
@@ -97,17 +113,16 @@ const ExerciseSettings: FC<{
         exerciseData.exerciseSettings?.alternateExercise ?? null,
       );
     }
-  }, [exerciseData]);
-
-  console.log('EXREEJR', exerciseData);
+  }, [exerciseData?.id]);
 
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
         source={{
           uri:
-            exerciseData?.coverImage?.uri ||
-            'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
+            exerciseData?.coverImage !== null
+              ? exerciseData?.coverImage?.uri
+              : 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
         }}
         style={styles.coverImage}
         imageStyle={styles.coverImageStyle}>
@@ -265,31 +280,33 @@ const ExerciseSettings: FC<{
               {icon: ICONS.LogTimeIcon, label: 'Time'},
               {icon: ICONS.LogWeightIcon, label: 'Weight'},
               {icon: ICONS.LogDistanceIcon, label: 'Distance'},
-            ].map(item => (
-              <TouchableOpacity
-                onPress={() => setExerciseLogging(item.label as any)}
-                key={item.label}
-                style={{
-                  alignItems: 'center',
-                  gap: verticalScale(10),
-                  borderRadius: 20,
-                  borderColor:
-                    ExerciseLogging === item.label
-                      ? COLORS.whiteTail
-                      : 'transparent',
-                  borderWidth: 1,
-                  padding: verticalScale(15),
-                }}>
-                <CustomIcon
-                  Icon={item.icon}
-                  height={verticalScale(70)}
-                  width={verticalScale(70)}
-                />
-                <CustomText fontSize={14} fontFamily="bold">
-                  {item.label}
-                </CustomText>
-              </TouchableOpacity>
-            ))}
+            ].map(item => {
+              const selected = ExerciseLogging.includes(item.label as LogType);
+
+              console.log('EXRECSEE', ExerciseLogging);
+              return (
+                <TouchableOpacity
+                  onPress={() => toggleLogging(item.label as LogType)}
+                  key={item.label}
+                  style={{
+                    alignItems: 'center',
+                    gap: verticalScale(10),
+                    borderRadius: 20,
+                    borderColor: selected ? COLORS.whiteTail : 'transparent',
+                    borderWidth: 1,
+                    padding: verticalScale(15),
+                  }}>
+                  <CustomIcon
+                    Icon={item.icon}
+                    height={verticalScale(70)}
+                    width={verticalScale(70)}
+                  />
+                  <CustomText fontSize={14} fontFamily="bold">
+                    {item.label}
+                  </CustomText>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
         <View

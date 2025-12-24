@@ -144,128 +144,11 @@ function getRecommendedReps(exerciseId: any) {
 const Splash: FC<SplashProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
-
   const [token, setToken] = useState(null);
   const {planData} = useAppSelector(state => state.planData);
-
+  const {foodData} = useAppSelector(state => state.foodData);
   const {exerciseHashChanged, foodHashChanged, plandHashChanged} =
     useAppSelector(state => state.userData);
-
-  const {foodData} = useAppSelector(state => state.foodData);
-
-  const getMealData = async () => {
-    if (foodHashChanged && token) {
-      const response = await fetchData<MealResponse>(ENDPOINTS.getMeal);
-
-      if (response.data.data) {
-        await storeLocalStorageData(
-          STORAGE_KEYS.localMealData,
-          response.data.data,
-        );
-
-        dispatch(
-          setMeal(
-            response.data.data.map(item => ({
-              id: item.meal_id,
-              userId: item.user_id,
-              coverImage: {
-                uri: item.image_url,
-              },
-              title: item.name,
-              description: item.description,
-              macros: {
-                calories: item.calories,
-                fat: item.fats,
-                carbs: item.carbs,
-                protein: item.protein,
-              },
-              instructions: item.preparation_instructions,
-              isPublic: item.is_public,
-              ingredients: item.foods.map(food => {
-                const match = foodData?.find(f => f.food_id === food.food_id);
-                return {
-                  id: food.food_id.toString(),
-                  idFood: Number(food.food_id),
-                  title: match?.name || 'Unknown',
-                  image:
-                    match?.image_url ||
-                    'https://nix-tag-images.s3.amazonaws.com/384_highres.jpg',
-                  quantity: match?.serving_size_amount.toString()!,
-                  percentage: 0,
-                  calories: [
-                    Number(match?.calories) || 0,
-                    Number(match?.carbs) || 0,
-                    Number(match?.fat) || 0,
-                    Number(match?.protein) || 0,
-                  ],
-                  size: match?.serving_weight_grams || 0,
-                  measurementUnit: match?.serving_size_measurement || 'gram',
-                };
-              }),
-              mealImages: [],
-              tags: item.tags,
-            })),
-          ),
-        );
-      }
-    } else {
-      const localMealData = await getLocalStorageData(
-        STORAGE_KEYS.localMealData,
-      );
-
-      const localFoodData = await getLocalStorageData(
-        STORAGE_KEYS.localFoodData,
-      );
-
-      // console.log(localFoodData, 'UIUIUI');
-      dispatch(
-        setMeal(
-          localMealData.map((item: any) => ({
-            id: item.meal_id,
-            userId: item.user_id,
-            coverImage: {
-              uri: item.image_url,
-            },
-            title: item.name,
-            description: item.description,
-            macros: {
-              calories: item.calories,
-              fat: item.fats,
-              carbs: item.carbs,
-              protein: item.protein,
-            },
-            instructions: item.preparation_instructions,
-            isPublic: item.is_public,
-            ingredients: item.foods.map((food: any) => {
-              const match = localFoodData?.find(
-                (f: any) => f.food_id === food.food_id,
-              );
-              return {
-                id: food.food_id.toString(),
-                idFood: Number(food.food_id),
-                title: match?.name || 'Unknown',
-                image:
-                  match?.image_url ||
-                  'https://nix-tag-images.s3.amazonaws.com/384_highres.jpg',
-                quantity: match?.serving_size_amount.toString()!,
-                percentage: 0,
-                calories: [
-                  Number(match?.calories) || 0,
-                  Number(match?.carbs) || 0,
-                  Number(match?.fat) || 0,
-                  Number(match?.protein) || 0,
-                ],
-                size: match?.serving_weight_grams || 0,
-                measurementUnit: match?.serving_size_measurement || 'gram',
-              };
-            }),
-            mealImages: [],
-            tags: item.tags,
-          })),
-        ),
-      );
-    }
-  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -389,6 +272,120 @@ const Splash: FC<SplashProps> = ({navigation}) => {
     getFoodData().then(() => getMealData());
   }, [token, foodHashChanged]);
 
+  const getMealData = async () => {
+    if (foodHashChanged && token) {
+      const response = await fetchData<MealResponse>(ENDPOINTS.getMeal);
+
+      if (response.data.data) {
+        await storeLocalStorageData(
+          STORAGE_KEYS.localMealData,
+          response.data.data,
+        );
+
+        dispatch(
+          setMeal(
+            response.data.data.map(item => ({
+              id: item.meal_id,
+              userId: item.user_id,
+              coverImage: {
+                uri: item.image_url,
+              },
+              title: item.name,
+              description: item.description,
+              macros: {
+                calories: item.calories,
+                fat: item.fats,
+                carbs: item.carbs,
+                protein: item.protein,
+              },
+              instructions: item.preparation_instructions,
+              isPublic: item.is_public,
+              ingredients: item.foods.map(food => {
+                const match = foodData?.find(f => f.food_id === food.food_id);
+                return {
+                  id: food.food_id.toString(),
+                  idFood: Number(food.food_id),
+                  title: match?.name || 'Unknown',
+                  image:
+                    match?.image_url ||
+                    'https://nix-tag-images.s3.amazonaws.com/384_highres.jpg',
+                  quantity: match?.serving_size_amount.toString()!,
+                  percentage: 0,
+                  calories: [
+                    Number(match?.calories) || 0,
+                    Number(match?.carbs) || 0,
+                    Number(match?.fat) || 0,
+                    Number(match?.protein) || 0,
+                  ],
+                  size: match?.serving_weight_grams || 0,
+                  measurementUnit: match?.serving_size_measurement || 'gram',
+                };
+              }),
+              mealImages: [],
+              tags: item.tags,
+            })),
+          ),
+        );
+      }
+    } else {
+      const localMealData = await getLocalStorageData(
+        STORAGE_KEYS.localMealData,
+      );
+
+      const localFoodData = await getLocalStorageData(
+        STORAGE_KEYS.localFoodData,
+      );
+
+      dispatch(
+        setMeal(
+          localMealData.map((item: any) => ({
+            id: item.meal_id,
+            userId: item.user_id,
+            coverImage: {
+              uri: item.image_url,
+            },
+            title: item.name,
+            description: item.description,
+            macros: {
+              calories: item.calories,
+              fat: item.fats,
+              carbs: item.carbs,
+              protein: item.protein,
+            },
+            instructions: item.preparation_instructions,
+            isPublic: item.is_public,
+            ingredients: item.foods.map((food: any) => {
+              const match = localFoodData?.find(
+                (f: any) => f.food_id === food.food_id,
+              );
+
+              return {
+                id: food.food_id.toString(),
+                idFood: Number(food.food_id),
+                title: match?.name || 'Unknown',
+                image:
+                  match?.image_url ||
+                  'https://nix-tag-images.s3.amazonaws.com/384_highres.jpg',
+                quantity: match?.serving_size_amount.toString()!,
+                percentage: 0,
+                calories: [
+                  Number(match?.calories) || 0,
+                  Number(match?.carbs) || 0,
+                  Number(match?.fat) || 0,
+                  Number(match?.protein) || 0,
+                ],
+                size: match?.serving_weight_grams || 0,
+                measurementUnit: match?.serving_size_measurement || 'gram',
+              };
+            }),
+            mealImages: [],
+            tags: item.tags,
+          })),
+        ),
+      );
+    }
+  };
+
   useEffect(() => {
     const getPlanData = async () => {
       if (plandHashChanged && token) {
@@ -478,13 +475,9 @@ const Splash: FC<SplashProps> = ({navigation}) => {
         STORAGE_KEYS.localExerciseCatalog,
       );
 
-      // console.log('local catalogdata', localExerciseCatalog);
-
       dispatch(setExerciseData(localExerciseData));
 
       const catalog = buildExerciseCatalog(localExerciseCatalog);
-
-      // console.log(catalog);
 
       dispatch(setExerciseCatalog(catalog));
     }

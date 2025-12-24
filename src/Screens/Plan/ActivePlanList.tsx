@@ -117,8 +117,6 @@ const ActivePlanList: FC<ActivePlanListProps> = ({}) => {
     );
   }
 
-  console.log('coverdattata', convertData);
-
   return (
     <View
       style={{

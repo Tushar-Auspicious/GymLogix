@@ -10,13 +10,15 @@ import React, {
 import {
   FlatList,
   Image,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import ICONS from '../../../Assets/Icons';
 import CustomIcon from '../../../Components/CustomIcon';
 import {CustomText} from '../../../Components/CustomText';
@@ -27,14 +29,25 @@ import {
 } from '../../../Redux/slices/exerciseCatalogSlice';
 import {
   addExercise,
+  addToTempSelection,
+  clearTempSelection,
   ExerciseListItem,
+  removeFromTempSelection,
   setActiveStep,
+  setTempSelectedExercises,
   updateDayExercises,
 } from '../../../Redux/slices/newWorkoutSlice';
 import {useAppDispatch, useAppSelector} from '../../../Redux/store';
 import {Exercise} from '../../../Seeds/ExerciseCatalog';
 import COLORS from '../../../Utilities/Colors';
-import {horizontalScale, verticalScale, wp} from '../../../Utilities/Metrics';
+import {
+  horizontalScale,
+  hp,
+  verticalScale,
+  wp,
+} from '../../../Utilities/Metrics';
+import IMAGES from '../../../Assets/Images';
+import {useFocusEffect} from '@react-navigation/native';
 
 const tabData = [
   {label: 'Category', value: 1},
@@ -47,7 +60,11 @@ const SelectExercise: FC<{
   setSelectedExerciseForSettingsStep: Dispatch<SetStateAction<string | null>>;
 }> = ({selectedDayForAddExercise, setSelectedExerciseForSettingsStep}) => {
   const dispatch = useAppDispatch();
-  const {activeStep} = useAppSelector(state => state.newWorkout);
+  const {activeStep, tempSelectedExerciseIds} = useAppSelector(
+    state => state.newWorkout,
+  );
+
+  const insets = useSafeAreaInsets();
 
   // Get exercises from Redux store
   const exerciseCategories = useAppSelector(selectExercisesByCategory);
@@ -64,8 +81,6 @@ const SelectExercise: FC<{
   // simple filter function (no useCallback needed)
   const filterExercises = (exercises: Exercise[]) => {
     if (!searchedWord.trim()) return exercises;
-
-    console.log('EEEEE', exercises);
 
     return exercises.filter(ex =>
       ex.name.toLowerCase().includes(searchedWord.toLowerCase()),
@@ -95,31 +110,32 @@ const SelectExercise: FC<{
   );
 
   // Initialize selectedExercises with exercises already added to the current day
-  const [selectedExercises, setSelectedExercises] = useState<string[]>(() =>
-    getExerciseIdsFromDay(selectedDayForAddExercise),
-  );
 
   // Update selectedExercises when selectedDayForAddExercise changes
-  useEffect(() => {
-    const currentDayExerciseIds = getExerciseIdsFromDay(
-      selectedDayForAddExercise,
-    );
-    setSelectedExercises(currentDayExerciseIds);
-  }, [selectedDayForAddExercise, getExerciseIdsFromDay]);
-
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     if (selectedDayForAddExercise) {
+  //       const existingIds = getExerciseIdsFromDay(selectedDayForAddExercise);
+  //       dispatch(setTempSelectedExercises(existingIds));
+  //     }
+  //   }, [selectedDayForAddExercise, dispatch, getExerciseIdsFromDay]),
+  // );
   // Generate random exercises only once when component mounts
   const [historyExercises] = useState(() => allExercises.slice(0, 10));
 
   const [listExercises] = useState(() => allExercises.slice(10, 20));
 
   // Toggle exercise selection in the single state
-  const toggleExerciseSelection = useCallback((exerciseId: string) => {
-    setSelectedExercises(prev =>
-      prev.includes(exerciseId)
-        ? prev.filter(id => id !== exerciseId)
-        : [...prev, exerciseId],
-    );
-  }, []);
+  const toggleExerciseSelection = useCallback(
+    (exerciseId: string) => {
+      if (tempSelectedExerciseIds.includes(exerciseId)) {
+        dispatch(removeFromTempSelection(exerciseId));
+      } else {
+        dispatch(addToTempSelection(exerciseId));
+      }
+    },
+    [tempSelectedExerciseIds, dispatch],
+  );
 
   const toggleCategory = useCallback((bodyPart: string) => {
     setExpandedCategories(prev =>
@@ -129,14 +145,16 @@ const SelectExercise: FC<{
     );
   }, []);
 
-  // console.log(exerciseData?.map(item => item.name));
+  const selectedExercises = tempSelectedExerciseIds;
+
+  console.log('SELCTED', selectedExercises);
 
   const ExerciseItem = memo(
-    ({exercise}: {exercise: Exercise; index: number}) => {
+    ({exercise}: {exercise: Exercise; isSelected: boolean}) => {
+      const selectedExercises = useAppSelector(
+        state => state.newWorkout.tempSelectedExerciseIds,
+      );
       const isSelected = selectedExercises.includes(exercise.id);
-      const wasAlreadyAdded = getExerciseIdsFromDay(
-        selectedDayForAddExercise,
-      ).includes(exercise.id);
       return (
         <View style={[styles.exerciseItem]}>
           <Image
@@ -209,6 +227,10 @@ const SelectExercise: FC<{
 
   const CategoryItem = memo(({item}: {item: any}) => {
     const isExpanded = expandedCategories.includes(item.bodyPart);
+    const normalizedKey = normalizeMuscleKey(item.bodyPart);
+    const imageSource = MuscleImages[normalizedKey] || {
+      uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    };
     return (
       <View style={styles.categoryContainer}>
         <View style={styles.categoryHeader}>
@@ -222,12 +244,7 @@ const SelectExercise: FC<{
           </Pressable>
           <View style={styles.categoryInfo}>
             <CustomText>{item.exercises.length}</CustomText>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
-              }}
-              style={styles.categoryImage}
-            />
+            <Image source={imageSource} style={styles.categoryImage} />
           </View>
         </View>
         {isExpanded && (
@@ -235,7 +252,10 @@ const SelectExercise: FC<{
             data={item.exercises}
             keyExtractor={exercise => exercise.name}
             renderItem={({item: exercise, index}) => (
-              <ExerciseItem exercise={exercise} index={index} />
+              <ExerciseItem
+                exercise={exercise}
+                isSelected={selectedExercises.includes(exercise.id)}
+              />
             )}
           />
         )}
@@ -290,8 +310,11 @@ const SelectExercise: FC<{
           <FlatList
             data={filterExercises(historyExercises)}
             keyExtractor={exercise => exercise.id}
-            renderItem={({item: exercise, index}) => (
-              <ExerciseItem exercise={exercise} index={index} />
+            renderItem={({item: exercise}) => (
+              <ExerciseItem
+                exercise={exercise}
+                isSelected={selectedExercises.includes(exercise.id)}
+              />
             )}
             contentContainerStyle={styles.listContent}
             extraData={searchedWord}
@@ -302,8 +325,11 @@ const SelectExercise: FC<{
           <FlatList
             data={filterExercises(listExercises)}
             keyExtractor={exercise => exercise.id}
-            renderItem={({item: exercise, index}) => (
-              <ExerciseItem exercise={exercise} index={index} />
+            renderItem={({item: exercise}) => (
+              <ExerciseItem
+                exercise={exercise}
+                isSelected={selectedExercises.includes(exercise.id)}
+              />
             )}
             contentContainerStyle={styles.listContent}
             extraData={searchedWord}
@@ -322,9 +348,45 @@ const SelectExercise: FC<{
     filterExercises,
   ]);
 
+  const normalizeMuscleKey = (name: string) => {
+    return name
+      .toLowerCase() // make all lowercase first
+      .split(' ') // split on spaces
+      .map((word, index) =>
+        index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
+      ) // capitalize subsequent words
+      .join(''); // join without spaces
+  };
+
+  const MuscleImages: {[key: string]: any} = {
+    adductors: IMAGES.adductors,
+    back: IMAGES.back,
+    biceps: IMAGES.biceps,
+    calf: IMAGES.calf,
+    forearms: IMAGES.foreArms,
+    glutes: IMAGES.glutes,
+    hamstrings: IMAGES.hamstrings,
+    quads: IMAGES.quads,
+    shoulders: IMAGES.shouder,
+    traps: IMAGES.traps,
+    tricpes: IMAGES.tricpes,
+    twins: IMAGES.twins,
+    lowerBack: IMAGES.glutes,
+  };
+
   return (
-    <View style={styles.main}>
-      <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[
+        styles.safeArea,
+        {
+          paddingBottom:
+            Platform.OS === 'android'
+              ? verticalScale(50) + insets.bottom
+              : verticalScale(20) + insets.bottom,
+        },
+      ]}
+      edges={['bottom']}>
+      <View style={styles.main}>
         <View style={styles.header}>
           <CustomIcon
             onPress={() => {
@@ -433,15 +495,17 @@ const SelectExercise: FC<{
                     exercises: finalExercises,
                   }),
                 );
+                dispatch(clearTempSelection());
               }
 
               dispatch(setActiveStep(activeStep - 1));
             }
           }}
-          disabled={false} // Always allow going back
+          disabled={false}
+          style={{marginTop: verticalScale(10)}}
         />
-      </SafeAreaView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 
@@ -449,11 +513,13 @@ export default SelectExercise;
 
 const styles = StyleSheet.create({
   main: {
-    backgroundColor: COLORS.darkBrown,
     flex: 1,
-    paddingBottom: verticalScale(5),
   },
-  safeArea: {flex: 1, gap: verticalScale(10)},
+  safeArea: {
+    height: hp(100),
+    gap: verticalScale(10),
+    backgroundColor: COLORS.darkBrown,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -486,6 +552,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-evenly',
     paddingHorizontal: horizontalScale(15),
+    paddingBottom: verticalScale(10),
+    marginTop: verticalScale(10),
   },
   tabButton: {
     justifyContent: 'center',
@@ -515,7 +583,6 @@ const styles = StyleSheet.create({
     marginVertical: verticalScale(5),
   },
   exerciseImage: {
-    height: '100%',
     minHeight: 71,
     width: 66,
     borderRadius: 10,

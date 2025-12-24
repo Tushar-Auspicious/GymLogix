@@ -163,7 +163,6 @@ const AddNewExercise = ({}) => {
 
   const [errors, setErrors] = useState({
     exerciseName: '',
-    uplaodFileData: '',
     description: '',
     instructions: '',
     mainMuscle: '',
@@ -177,7 +176,7 @@ const AddNewExercise = ({}) => {
   };
 
   const handleImagePick = () => {
-    launchImageLibrary({mediaType: 'photo', quality: 0.8}, async response => {
+    launchImageLibrary({mediaType: 'photo', quality: 0.5}, async response => {
       try {
         if (response.didCancel) {
           console.log('User cancelled image picker');
@@ -201,7 +200,6 @@ const AddNewExercise = ({}) => {
           );
 
           if (apiResponse?.data?.url) {
-            console.log('getImageUrl--->', apiResponse.data.url);
             setUploadFileData(apiResponse.data.url);
           }
         }
@@ -216,7 +214,7 @@ const AddNewExercise = ({}) => {
   const handleCameraPick = async () => {
     try {
       const result = await launchCamera({
-        quality: 1,
+        quality: 0.5,
         mediaType: 'photo',
       });
 
@@ -262,7 +260,7 @@ const AddNewExercise = ({}) => {
     try {
       const result = await launchImageLibrary({
         mediaType: 'photo',
-        quality: 0.8,
+        quality: 0.5,
         selectionLimit: 0, // 0 means no limit
       });
 
@@ -287,7 +285,7 @@ const AddNewExercise = ({}) => {
   const handleMultipleImageCamera = async () => {
     try {
       const result = await launchCamera({
-        quality: 0.8,
+        quality: 0.5,
         mediaType: 'photo',
       });
 
@@ -317,7 +315,6 @@ const AddNewExercise = ({}) => {
     let valid = true;
     let newErrors = {
       exerciseName: '',
-      uplaodFileData: '',
       description: '',
       instructions: '',
       mainMuscle: '',
@@ -326,12 +323,12 @@ const AddNewExercise = ({}) => {
       equipment: '',
     };
 
-    if (!uplaodFileData) {
-      valid = false;
-      newErrors.uplaodFileData = 'Cover Image is required.';
-      showCustomToast('error', newErrors.uplaodFileData);
-      return;
-    }
+    // if (!uplaodFileData) {
+    //   valid = false;
+    //   newErrors.uplaodFileData = 'Cover Image is required.';
+    //   showCustomToast('error', newErrors.uplaodFileData);
+    //   return;
+    // }
     if (!exerciseName.trim()) {
       valid = false;
       newErrors.exerciseName = 'Title is required.';
@@ -422,7 +419,7 @@ const AddNewExercise = ({}) => {
       name: exerciseName,
       description: description,
       instruction: instructions,
-      images_urls: [uplaodFileData],
+      images_urls: [uplaodFileData] ? [uplaodFileData] : [IMAGES.exerciseDummy],
       main_muscle: primaryMuscle,
       secondary_muscles: secondaryMuscleValues,
       mechanics: exerciseType,
@@ -473,8 +470,6 @@ const AddNewExercise = ({}) => {
           exerciseSettings: null,
         };
 
-        console.log('new exercise --->', newExercise);
-
         const updatedCatalog = addExerciseToCatalog(catalog, newExercise);
 
         const localExerciseList =
@@ -492,8 +487,6 @@ const AddNewExercise = ({}) => {
           STORAGE_KEYS.localExerciseCatalog,
           updatedCatalog,
         );
-
-        console.log('djksl', updatedCatalog);
 
         dispatch(setExerciseCatalog(updatedCatalog));
         dispatch(setActiveStep(8));

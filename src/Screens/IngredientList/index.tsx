@@ -411,8 +411,6 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
         is_public: true,
       };
 
-      console.log('SENRTT', data);
-
       try {
         const response = await postData<any>(ENDPOINTS.foodCreate, {data});
         if (response?.data) {
@@ -497,7 +495,7 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
     };
 
     const handleImagePick = () => {
-      launchImageLibrary({mediaType: 'photo', quality: 0.8}, async response => {
+      launchImageLibrary({mediaType: 'photo', quality: 0.5}, async response => {
         if (response.didCancel) {
           console.log('User cancelled image picker');
         } else if (response.errorCode) {
@@ -546,7 +544,7 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
     const handleCameraPick = async () => {
       try {
         const result = await launchCamera({
-          quality: 1,
+          quality: 0.5,
           mediaType: 'photo',
         });
 
@@ -580,7 +578,6 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
               ENDPOINTS.uploadFile,
               formData,
             );
-            console.log('nfkfdkk', api_response.data);
             if (api_response.data) {
               const get_Image_Url = api_response.data.url;
               if (get_Image_Url) {
@@ -1059,8 +1056,6 @@ const IngredientList: FC<IngredientScreenProps> = ({navigation, route}) => {
             data={filteredIngredients}
             keyExtractor={exercise => exercise.id}
             renderItem={({item}) => {
-              console.log(item, 'HKJ');
-
               return (
                 <ListCard
                   ingredient={item}

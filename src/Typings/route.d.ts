@@ -53,6 +53,7 @@ export type MainStackParams = {
       programId: string;
       dayIndex: number;
       dayId: string;
+      exerciseIds?: string[];
     };
   };
   addNewWorkout: undefined;

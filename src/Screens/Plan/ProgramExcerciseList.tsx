@@ -21,26 +21,43 @@ const ProgramExcercise: FC<ProgramExcerciseProps> = ({
   onPressActive,
 }) => {
   const [isCalendar, setIsCalendar] = useState(false);
+  const [expandedDays, setExpandedDays] = useState<string[]>([]);
+
+  const toggleDayExpand = (day: string) => {
+    if (expandedDays.includes(day)) {
+      // remove from expanded
+      setExpandedDays(expandedDays.filter(d => d !== day));
+    } else {
+      // add to expanded
+      setExpandedDays([...expandedDays, day]);
+    }
+  };
 
   const renderExercise = ({
     item,
+    day,
   }: {
     item: (typeof workoutPlan)[0]['exercises'][0];
+    day: string;
   }) => (
-    <View style={styles.exerciseCont}>
-      <Image
-        source={{uri: item.image}}
-        style={{height: 70, width: 70, borderRadius: 10}}
-      />
-      <View style={{gap: verticalScale(10)}}>
-        <CustomText color={COLORS.yellow} fontSize={15} fontFamily="medium">
-          {item.name}
-        </CustomText>
-        <CustomText fontFamily="italic" fontSize={15}>
-          {item.sets} Sets x {item.reps}
-        </CustomText>
-      </View>
-    </View>
+    <>
+      {expandedDays.includes(day) && (
+        <View style={styles.exerciseCont}>
+          <Image
+            source={{uri: item.image}}
+            style={{height: 70, width: 70, borderRadius: 10}}
+          />
+          <View style={{gap: verticalScale(10)}}>
+            <CustomText color={COLORS.yellow} fontSize={15} fontFamily="medium">
+              {item.name}
+            </CustomText>
+            <CustomText fontFamily="italic" fontSize={15}>
+              {item.sets} Sets x {item.reps}
+            </CustomText>
+          </View>
+        </View>
+      )}
+    </>
   );
 
   const renderDay = ({
@@ -49,50 +66,65 @@ const ProgramExcercise: FC<ProgramExcerciseProps> = ({
   }: {
     item: (typeof workoutPlan)[0];
     index: number;
-  }) => (
-    <View>
-      {/* Day Header with Dot and Lock Icon */}
-      <View style={styles.dayHeader}>
-        <View style={styles.timelineContainer}>
-          <View style={[styles.dot, {backgroundColor: item.dotColor}]} />
-          <CustomText color={COLORS.white} fontFamily="bold">
-            {item.day}
-          </CustomText>
-        </View>
-        {item.locked ? (
-          <CustomIcon
-            Icon={ICONS.LockIcon} // Assuming you have a lock icon in your ICONS file
-            height={20}
-            width={20}
-          />
-        ) : (
-          <CustomText fontFamily="bold">-</CustomText>
-        )}
-      </View>
+  }) => {
+    const dayExpanded = expandedDays.includes(item.day);
+    return (
+      <View key={index}>
+        {/* Day Header with Dot and Lock Icon */}
+        <View style={styles.dayHeader}>
+          <View style={styles.timelineContainer}>
+            <View style={[styles.dot, {backgroundColor: item.dotColor}]} />
+            <CustomText color={COLORS.white} fontFamily="bold">
+              {item.day}
+            </CustomText>
+          </View>
 
-      {/* Exercises List (Hidden if Locked) */}
-      {!item.locked && (
+          <CustomText
+            fontFamily="bold"
+            onPress={() => toggleDayExpand(item.day)}>
+            {dayExpanded ? '-' : '+'}
+          </CustomText>
+
+          {/* {!item.locked ? (
+            <CustomIcon
+              Icon={ICONS.LockIcon} // Assuming you have a lock icon in your ICONS file
+              height={20}
+              width={20}
+            />
+          ) : (
+            <CustomText
+              fontFamily="bold"
+              onPress={() =>
+                setExpandedDay(expandedDay === item.day ? null : item.day)
+              }>
+              {expandedDay === item.day ? '-' : '+'}
+            </CustomText>
+          )} */}
+        </View>
+
+        {/* Exercises List (Hidden if Locked) */}
+
         <FlatList
           data={item.exercises}
-          renderItem={renderExercise}
+          renderItem={({item: ex}) => renderExercise({item: ex, day: item.day})}
           keyExtractor={exercise => exercise.id}
           style={styles.exerciseList}
           scrollEnabled={false} // Let the outer ScrollView handle scrolling
         />
-      )}
 
-      {/* Rest Period */}
-      {item.restPeriod && (
-        <View style={styles.restPeriodContainer}>
-          <View style={styles.restPeriodLine} />
-          <CustomText color={COLORS.whiteTail} fontSize={12}>
-            {item.restPeriod}
-          </CustomText>
-          <View style={styles.restPeriodLine} />
-        </View>
-      )}
-    </View>
-  );
+        {/* Rest Period */}
+        {item.restPeriod && (
+          <View style={styles.restPeriodContainer}>
+            <View style={styles.restPeriodLine} />
+            <CustomText color={COLORS.whiteTail} fontSize={12}>
+              {item.restPeriod}
+            </CustomText>
+            <View style={styles.restPeriodLine} />
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <ScrollView

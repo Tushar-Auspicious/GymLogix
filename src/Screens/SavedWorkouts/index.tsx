@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {useState} from 'react';
 import {
   View,
   StyleSheet,
@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { CustomText } from "../../Components/CustomText";
-import CustomIcon from "../../Components/CustomIcon";
-import PrimaryButton from "../../Components/PrimaryButton";
-import { useAppDispatch, useAppSelector } from "../../Redux/store";
+} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {CustomText} from '../../Components/CustomText';
+import CustomIcon from '../../Components/CustomIcon';
+import PrimaryButton from '../../Components/PrimaryButton';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
 import {
   selectFilteredAndSortedWorkouts,
   selectWorkoutStats,
@@ -22,19 +22,22 @@ import {
   setSortBy,
   setSortOrder,
   SavedWorkout,
-} from "../../Redux/slices/savedWorkoutsSlice";
-import COLORS from "../../Utilities/Colors";
-import { horizontalScale, verticalScale, wp, hp } from "../../Utilities/Metrics";
-import ICONS from "../../Assets/Icons";
-import { SavedWorkoutsScreenProps } from "../../Typings/route";
-import { resetNewWorkoutSlice, setActiveStep } from "../../Redux/slices/newWorkoutSlice";
+} from '../../Redux/slices/savedWorkoutsSlice';
+import COLORS from '../../Utilities/Colors';
+import {horizontalScale, verticalScale, wp, hp} from '../../Utilities/Metrics';
+import ICONS from '../../Assets/Icons';
+import {SavedWorkoutsScreenProps} from '../../Typings/route';
+import {
+  resetNewWorkoutSlice,
+  setActiveStep,
+} from '../../Redux/slices/newWorkoutSlice';
 
-const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
+const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
   const workouts = useAppSelector(selectFilteredAndSortedWorkouts);
   const stats = useAppSelector(selectWorkoutStats);
-  const { searchQuery, sortBy, sortOrder } = useAppSelector(
-    (state) => state.savedWorkouts
+  const {searchQuery, sortBy, sortOrder} = useAppSelector(
+    state => state.savedWorkouts,
   );
 
   const [showSortOptions, setShowSortOptions] = useState(false);
@@ -43,54 +46,54 @@ const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
   React.useEffect(() => {
     navigation.setOptions({
       headerShown: true,
-      headerTitle: "My Workouts",
+      headerTitle: 'My Workouts',
       headerStyle: {
         backgroundColor: COLORS.darkBrown,
       },
       headerTintColor: COLORS.white,
       headerTitleStyle: {
         color: COLORS.yellow,
-        fontWeight: "bold",
+        fontWeight: 'bold',
       },
     });
   }, [navigation]);
 
   const handleDeleteWorkout = (workoutId: string, workoutName: string) => {
     Alert.alert(
-      "Delete Workout",
+      'Delete Workout',
       `Are you sure you want to delete "${workoutName}"? This action cannot be undone.`,
       [
-        { text: "Cancel", style: "cancel" },
+        {text: 'Cancel', style: 'cancel'},
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: () => dispatch(deleteWorkout(workoutId)),
         },
-      ]
+      ],
     );
   };
 
   const handleSetActiveWorkout = (workoutId: string) => {
     dispatch(setActiveWorkout(workoutId));
-    Alert.alert("Success", "Workout set as active!");
+    Alert.alert('Success', 'Workout set as active!');
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   };
 
-  const renderWorkoutCard = ({ item }: { item: SavedWorkout }) => (
+  const renderWorkoutCard = ({item}: {item: SavedWorkout}) => (
     <View style={styles.workoutCard}>
       <View style={styles.cardHeader}>
         <Image
           source={{
             uri:
               item.coverImage?.uri ||
-              "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b",
+              'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b',
           }}
           style={styles.workoutImage}
         />
@@ -100,8 +103,7 @@ const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
               color={COLORS.yellow}
               fontFamily="bold"
               fontSize={16}
-              numberOfLines={1}
-            >
+              numberOfLines={1}>
               {item.name}
             </CustomText>
             {item.isActive && (
@@ -116,8 +118,7 @@ const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
             color={COLORS.nickel}
             fontSize={12}
             numberOfLines={2}
-            style={styles.description}
-          >
+            style={styles.description}>
             {item.description}
           </CustomText>
           <View style={styles.workoutMeta}>
@@ -135,11 +136,10 @@ const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
         <TouchableOpacity
           style={[styles.actionButton, styles.activeButton]}
           onPress={() => handleSetActiveWorkout(item.id)}
-          disabled={item.isActive}
-        >
+          disabled={item.isActive}>
           <CustomIcon Icon={ICONS.DumbellWhiteIcon} height={16} width={16} />
           <CustomText fontSize={12}>
-            {item.isActive ? "Active" : "Set Active"}
+            {item.isActive ? 'Active' : 'Set Active'}
           </CustomText>
         </TouchableOpacity>
 
@@ -147,17 +147,14 @@ const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
           style={[styles.actionButton, styles.editButton]}
           onPress={() => {
             // TODO: Navigate to edit workout
-            console.log("Edit workout:", item.id);
-          }}
-        >
+          }}>
           <CustomIcon Icon={ICONS.EditIcon} height={16} width={16} />
           <CustomText fontSize={12}>Edit</CustomText>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.actionButton, styles.deleteButton]}
-          onPress={() => handleDeleteWorkout(item.id, item.name)}
-        >
+          onPress={() => handleDeleteWorkout(item.id, item.name)}>
           <CustomIcon Icon={ICONS.DeleteIcon} height={16} width={16} />
           <CustomText fontSize={12}>Delete</CustomText>
         </TouchableOpacity>
@@ -185,15 +182,13 @@ const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
         color={COLORS.nickel}
         fontFamily="medium"
         fontSize={18}
-        style={styles.emptyTitle}
-      >
+        style={styles.emptyTitle}>
         No Workouts Yet
       </CustomText>
       <CustomText
         color={COLORS.nickel}
         fontSize={14}
-        style={styles.emptyDescription}
-      >
+        style={styles.emptyDescription}>
         Create your first workout to get started with your fitness journey!
       </CustomText>
       <PrimaryButton
@@ -202,7 +197,7 @@ const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
           // Reset the new workout slice and navigate to create workout
           dispatch(resetNewWorkoutSlice());
           dispatch(setActiveStep(1));
-          navigation.navigate("addNewWorkout");
+          navigation.navigate('addNewWorkout');
         }}
         style={styles.createButton}
       />
@@ -215,8 +210,7 @@ const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
         color={COLORS.yellow}
         fontFamily="bold"
         fontSize={20}
-        style={styles.title}
-      >
+        style={styles.title}>
         My Workouts
       </CustomText>
       <View style={styles.statsRow}>
@@ -266,7 +260,7 @@ const SavedWorkouts: React.FC<SavedWorkoutsScreenProps> = ({ navigation }) => {
         <FlatList
           data={workouts}
           renderItem={renderWorkoutCard}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
@@ -289,11 +283,11 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(15),
   },
   statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   statItem: {
-    alignItems: "center",
+    alignItems: 'center',
   },
   listContainer: {
     padding: horizontalScale(20),
@@ -307,7 +301,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.whiteTail,
   },
   cardHeader: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginBottom: verticalScale(15),
   },
   workoutImage: {
@@ -320,9 +314,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   workoutTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: verticalScale(5),
   },
   activeBadge: {
@@ -338,15 +332,15 @@ const styles = StyleSheet.create({
     gap: verticalScale(2),
   },
   cardActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: verticalScale(10),
   },
   actionButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: verticalScale(8),
     paddingHorizontal: horizontalScale(12),
     borderRadius: 8,
@@ -363,18 +357,18 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.red,
   },
   cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   rating: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   emptyState: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: horizontalScale(40),
   },
   emptyTitle: {
@@ -382,7 +376,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   emptyDescription: {
-    textAlign: "center",
+    textAlign: 'center',
     marginBottom: verticalScale(30),
   },
   createButton: {

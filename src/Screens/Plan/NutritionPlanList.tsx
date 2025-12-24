@@ -47,20 +47,18 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
 
   const {planData} = useAppSelector(state => state.planData);
 
-  // console.log('shjsj', planData);
-
   const renderBanner = () => {
     return (
       <Pressable
         onPress={() => {
           navigation.navigate('mealDetails', {
-            mealId: myMealsList[0].id,
+            mealId: myMealsList[0]?.id,
             isFromMyMeal: false,
           });
         }}>
         <ImageBackground
           source={{
-            uri: myMealsList[0].coverImage?.uri,
+            uri: myMealsList[0]?.coverImage?.uri,
           }}
           style={styles.bannerImage}
           imageStyle={styles.bannerImageStyle}>
@@ -81,7 +79,7 @@ const NutritionPlanList: FC<NutritionPlansListProps> = ({navigation}) => {
                 fontSize={24}
                 fontFamily="bold"
                 style={styles.bannerTitle}>
-                {myMealsList[0].title}
+                {myMealsList[0]?.title}
               </CustomText>
             </View>
           </LinearGradient>

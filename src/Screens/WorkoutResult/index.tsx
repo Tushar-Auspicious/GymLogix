@@ -17,10 +17,6 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
   const {workoutData} = route.params;
   const dispatch = useAppDispatch();
 
-  console.log('WWWWW', workoutData);
-
-  // console.log('workout', workoutData);
-
   const renderCards = () => {
     return (
       <View
@@ -65,6 +61,8 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
     );
   };
 
+  console.log('LJHJJH', workoutData.bestRecords);
+
   const renderBestResultCard = () => {
     return (
       <View
@@ -97,7 +95,9 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
               <View style={styles.ExerciseItem}>
                 <Image
                   source={{
-                    uri: value.image,
+                    uri:
+                      value.image ||
+                      'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop',
                   }}
                   style={styles.ExerciseImage}
                 />
@@ -133,8 +133,6 @@ const WorkoutResult: FC<WorkoutResultScreenProps> = ({navigation, route}) => {
   const selectedMuscles = workoutData.targetedMuscles
     ?.map((m: string) => muscleMap[m.toLowerCase().trim()])
     .filter(Boolean);
-
-  console.log('selectedddd', selectedMuscles);
 
   const renderTargetedMuscleCard = () => {
     return (

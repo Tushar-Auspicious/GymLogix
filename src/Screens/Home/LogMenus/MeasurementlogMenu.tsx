@@ -246,8 +246,6 @@ const MeasurementlogMenu = () => {
       },
     };
 
-    console.log('sent data --->', data);
-
     try {
       const response = await postData<any>(ENDPOINTS.createSchedule, {data});
       if (response.data.data) {

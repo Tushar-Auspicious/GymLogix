@@ -15,10 +15,12 @@ export interface ScheduleAPIData {
 
 interface scheduleState {
   scheduleData: ScheduleAPIData[] | null;
+  showInitialData: boolean;
 }
 
 const initialState: scheduleState = {
   scheduleData: [],
+  showInitialData: true,
 };
 
 const scheduleSlice = createSlice({
@@ -27,6 +29,9 @@ const scheduleSlice = createSlice({
   reducers: {
     setScheduleData(state, action: PayloadAction<ScheduleAPIData[] | null>) {
       state.scheduleData = action.payload;
+    },
+    setShowInitialData(state, action: PayloadAction<boolean>) {
+      state.showInitialData = action.payload;
     },
     addSchedule(state, action: PayloadAction<ScheduleAPIData>) {
       if (!state.scheduleData) {
@@ -38,5 +43,6 @@ const scheduleSlice = createSlice({
   },
 });
 
-export const {setScheduleData, addSchedule} = scheduleSlice.actions;
+export const {setScheduleData, addSchedule, setShowInitialData} =
+  scheduleSlice.actions;
 export default scheduleSlice.reducer;

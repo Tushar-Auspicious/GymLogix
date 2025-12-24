@@ -247,8 +247,6 @@ const MealLogmenu = () => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const {ingredients} = useAppSelector(state => state.macros);
 
-  // console.log('GGGGGG', ingreidnetList);
-
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [selectedIndex, setSelectedIndex] = useState(null);
 
@@ -308,8 +306,6 @@ const MealLogmenu = () => {
       fadeAnim.setValue(1);
     });
   };
-
-  console.log('HGJJJ', meals);
 
   const handlePercentageChange = useCallback(
     (id: string, direction: 'increase' | 'decrease') => {
@@ -385,8 +381,6 @@ const MealLogmenu = () => {
   };
 
   const renderNestedItem = ({item, index}: any) => {
-    // console.log('pkan id', item);
-
     const isSelected = selectedPlan === item?.allData?.content?.plan_id;
 
     const calorieData = [

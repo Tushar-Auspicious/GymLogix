@@ -207,7 +207,6 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
         `${ENDPOINTS.activate_plan}plan_id=${currentProgramId}`,
       );
 
-      console.log('response activate --->', response);
       if (response.data) {
         setIsPlanActive(true);
       }
@@ -221,7 +220,6 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
       const resposne = await postData(
         `${ENDPOINTS.deactivate_plan}plan_id=${currentProgramId}`,
       );
-      console.log('response deativeate---->', resposne);
       if (resposne.data) {
         setIsPlanActive(false);
       }
@@ -247,8 +245,6 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
       const response = await postData<any>(
         `${ENDPOINTS.create_update_message}plan_id=${data.plan_id}&message=${data.message}`,
       );
-
-      console.log('sent Message response ---->', response);
 
       if (
         response.data.messages ===
@@ -327,9 +323,6 @@ const WorkoutProgramDetails: FC<WorkoutProgramDetailsProps> = ({
       setLoadingMore(false);
     }, 1000);
   };
-
-  console.log('curreee', currentProgramId);
-  console.log('activateeddddd', userData?.activated_plan);
 
   return (
     <KeyboardAvoidingView

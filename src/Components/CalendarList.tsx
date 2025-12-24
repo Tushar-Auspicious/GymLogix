@@ -1,5 +1,18 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {FlatList, StyleSheet, TouchableOpacity, View} from 'react-native';
+import React, {
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  Alert,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Animated, {useAnimatedStyle, withSpring} from 'react-native-reanimated';
 import ICONS from '../Assets/Icons';
 import {
@@ -12,6 +25,7 @@ import COLORS from '../Utilities/Colors';
 import {horizontalScale, hp, verticalScale} from '../Utilities/Metrics';
 import CustomIcon from './CustomIcon';
 import {CustomText} from './CustomText';
+import {setShowInitialData} from '../Redux/slices/ScheduleSlice';
 
 export interface DayItem {
   day: string;
@@ -30,6 +44,7 @@ interface ActivityIndicators {
   hasNotes: boolean; // Shows notes icon for note entries
   hasMeal: boolean; // Shows meal icon for food logging
   hasMeasurement: boolean; // Shows measurement icon for body measurements
+  workoutColor: string | null;
 }
 
 const ITEM_WIDTH = horizontalScale(55);
@@ -91,9 +106,7 @@ const DayCard = React.memo(
       activityIndicators.hasMeasurement;
 
     return (
-      <TouchableOpacity
-        //  onPress={() => onPressDate(item)}
-        activeOpacity={1}>
+      <TouchableOpacity onPress={() => onPressDate(item)} activeOpacity={1}>
         <Animated.View
           style={[
             styles.dayCard,
@@ -113,11 +126,24 @@ const DayCard = React.memo(
           {hasAnyActivity && (
             <View style={styles.activityIndicators}>
               {activityIndicators.hasWorkout && (
-                <CustomIcon
-                  Icon={ICONS.dumbellBlueIcon}
-                  width={15}
-                  height={15}
-                />
+                <View
+                  style={[
+                    {
+                      width: 20,
+                      height: 20,
+                      borderRadius: 50,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      backgroundColor:
+                        activityIndicators.workoutColor || COLORS.blue,
+                    },
+                  ]}>
+                  <CustomIcon
+                    Icon={ICONS.DumbellWhiteIcon}
+                    width={12}
+                    height={12}
+                  />
+                </View>
               )}
               {/* {activityIndicators.hasMeal && (
                 <CustomIcon Icon={ICONS.MealLogIcon} width={15} height={15} />
@@ -164,6 +190,7 @@ const CalendarList = () => {
   const {dates, initialIndex, homeActiveIndex} = useAppSelector(
     state => state.initial,
   );
+  const {planData} = useAppSelector(state => state.planData);
   const {scheduleData} = useAppSelector(state => state.scheduleData);
   const [month, setMonth] = useState('');
 
@@ -186,25 +213,66 @@ const CalendarList = () => {
         return itemDateString === dateString;
       });
 
+      let workoutColor: string | null = null;
+
+      const workoutItem = dayActivities
+        .filter(a => a.type === 'workout')
+        .sort(
+          (a, b) =>
+            new Date(b.schedule_at).getTime() -
+            new Date(a.schedule_at).getTime(),
+        )[0];
+
+      if (workoutItem) {
+        const Exercise_id = Number(
+          workoutItem.content.Exercises?.[0]?.content?.[0]?.Exercise_id,
+        );
+
+        const workoutData = planData
+          ?.flatMap(plan => {
+            if (plan.allData?.plan_id !== workoutItem.content.plan_id)
+              return [];
+
+            return (
+              plan.allData?.content?.workouts
+                ?.filter(w => w.workout_id === workoutItem.content.Workout_id)
+                ?.map(w => ({
+                  ...w,
+                  plan_id: plan.allData?.plan_id,
+                })) || []
+            );
+          })
+          .find(w =>
+            w.exercises.some(ex =>
+              ex.workout_exercises.some(we => we.exercise_id === Exercise_id),
+            ),
+          );
+
+        workoutColor = workoutData?.color || null;
+      }
+
       return {
         hasWorkout: dayActivities.some(item => item.type === 'workout'),
         hasNotes: dayActivities.some(item => item.type === 'note'),
         hasMeal: dayActivities.some(item => item.type === 'food'),
         hasMeasurement: dayActivities.some(item => item.type === 'measurement'),
+        workoutColor,
       };
     },
-    [scheduleData],
+    [scheduleData, planData],
   );
 
   // When a day is pressed, update Redux index
   const onPressDate = (item: DayItem) => {
+    dispatch(setShowInitialData(false));
     const index = dates.findIndex(d => d.timestamp === item.timestamp);
     if (index !== -1) {
       // If same date is clicked again → unselect
       if (initialIndex === index) {
-        dispatch(setInitialIndex(-1)); // reset selection
+        // dispatch(setInitialIndex(-1)); // reset selection
       } else {
         dispatch(setInitialIndex(index));
+        console.log('ELSE');
         flatListRef.current?.scrollToIndex({
           index,
           animated: true,
@@ -295,6 +363,7 @@ const CalendarList = () => {
   const renderDay = useCallback(
     ({item, index}: {item: DayItem; index: number}) => (
       <DayCard
+        key={index}
         item={item}
         onPressDate={onPressDate}
         selectedDate={initialIndex !== -1 ? dates[initialIndex] : null}
@@ -432,4 +501,3 @@ const styles = StyleSheet.create({
 
 // Memoize the entire component to prevent unnecessary re-renders
 export default React.memo(CalendarList);
-3;

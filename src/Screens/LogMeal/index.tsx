@@ -403,7 +403,6 @@ const LogMeal: FC<LogMealScreenProps> = ({navigation, route}) => {
 
     try {
       const response = await postData<any>(ENDPOINTS.mealCreate, {data});
-      console.log('response ', response.data);
       if (response.data) {
         const getCalorieData = response.data.data.calories;
         const getCrabsData = response.data.data.carbs;

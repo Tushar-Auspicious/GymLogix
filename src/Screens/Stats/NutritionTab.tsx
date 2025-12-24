@@ -19,7 +19,6 @@ const NutritionTab: FC<NutritionTabProps> = ({foods}) => {
     tabValue: any,
     option: 'Total' | 'Average',
   ) => {
-    console.log('Fetching data for tab:', tabValue, 'with option:', option);
     // Aggregate data based on foods prop
     const aggregatedData: any = {};
 

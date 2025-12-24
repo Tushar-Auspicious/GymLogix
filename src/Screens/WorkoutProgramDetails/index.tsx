@@ -11,8 +11,8 @@ import {
   Alert,
   Animated,
   BackHandler,
-  FlatList,
   ImageBackground,
+  InteractionManager,
   Pressable,
   StyleSheet,
   View,
@@ -34,6 +34,11 @@ import {
   setSupersetData,
   setWorkoutProgress,
   setWorkoutTime,
+  resetExerciseTimers,
+  setStartCurrentExercise,
+  clearStartCurrentExercise,
+  pauseExerciseTimer,
+  clearAllExerciseTimers,
 } from '../../Redux/slices/LogWorkoutSlice';
 import {deleteExercisesByIds} from '../../Redux/slices/PlanDataSlice';
 import {addSchedule} from '../../Redux/slices/ScheduleSlice';
@@ -90,11 +95,13 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   const [selectedSuperset, setSelectedSuperset] = useState<Superset | null>(
     null,
   );
+  const [isComponentReady, setIsComponentReady] = useState(false);
   const exercisesData = useAppSelector(state => state.exerciseData);
   const {planData} = useAppSelector(state => state.planData);
   const {userData} = useAppSelector(state => state.userData);
   const {scheduleData} = useAppSelector(state => state.scheduleData);
   const [showExerciseDetail, setShowExerciseDetail] = useState(false);
+  const [isLoggingSet, setIsLoggingSet] = useState(false);
   const [selectedExerciseDetails, setSelectedExerciseDetails] =
     useState<any>(null);
   const [showAddSetUi, setShowAddSetUi] = useState(false);
@@ -109,9 +116,9 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   // Access isFinish from Redux
   const isFinish = useAppSelector(state => state.workoutData.isFinish);
 
-  const [exerciseTimeInSeconds, setExerciseTimeInSeconds] = useState<
-    ExerciseTime[]
-  >([]);
+  const exerciseTimeInSeconds = useAppSelector(
+    state => state.logWorkoutData.exerciseTimers,
+  );
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [exerciseWithSetData, setexerciseWithSetData] = useState<
@@ -128,9 +135,13 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
     state => state.logWorkoutData,
   );
 
-  const programDetails = planData
-    ?.filter(it => it.type === 'workout')
-    .find(item => item.allData?.plan_id === programId);
+  const programDetails = useMemo(
+    () =>
+      planData
+        ?.filter(it => it.type === 'workout')
+        .find(item => item.allData?.plan_id === programId),
+    [planData, programId],
+  );
 
   // Get the current day data from Redux store instead of route params
   // This ensures we always have the latest data including newly added exercises
@@ -155,8 +166,14 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   // Use this dayState everywhere instead of currentDayData
   const day = dayState;
 
+  // Defer component initialization until after navigation animation completes
   useEffect(() => {
-    if (isFrom) return;
+    setIsComponentReady(true);
+    return () => {};
+  }, []);
+
+  useEffect(() => {
+    if (isFrom || !isComponentReady) return;
 
     // Restore from Redux on mount
     setElapsedSeconds(workoutTime || 0);
@@ -177,7 +194,7 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
         clearInterval(timerRef.current);
       }
     };
-  }, [isFrom, workoutTime, dispatch]); // Re-run if workoutTime changes externally
+  }, [isFrom, workoutTime, dispatch, isComponentReady]); // Re-run if workoutTime changes externally
 
   // Moved exerciseList calculation to parent
   const exerciseList = useMemo(() => {
@@ -261,7 +278,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
       hasInitialized.current = true;
       prevExercisesLength.current = exercises?.length || 0;
     } else {
-      console.log('  ❌ No superset data found in Redux');
       hasInitialized.current = true;
     }
   }, [supersetDataFromRedux, exercises]);
@@ -276,16 +292,12 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
       supersetDataFromRedux?.exerciseData &&
       supersetDataFromRedux.exerciseData.length > 0
     ) {
-      console.log(
-        '⏭️ Skipping sync - superset data exists, handled by restore/merge effect',
-      );
       return;
     }
 
     // Only run this for workouts WITHOUT supersets
     // Just use exercises from Redux directly
-    console.log('🔄 Syncing exerciseData with Redux (no supersets)');
-    console.log('  - Using Redux data directly');
+
     setExerciseData(exercises);
   }, [exercises, supersetDataFromRedux]);
 
@@ -384,14 +396,7 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             .filter(item => item !== null) as ExerciseListItem[];
 
           // Save updated data to Redux
-          console.log(
-            '💾 Saving updated superset data to Redux after delete:',
-            {
-              workoutPlanId: Number(programId),
-              workoutId: (day[0] as any)?.workout_id,
-              exerciseDataLength: updatedData.length,
-            },
-          );
+
           dispatch(
             setSupersetData({
               workoutPlanId: Number(programId),
@@ -480,12 +485,7 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
     setSelectedExercises([]);
 
     // Save superset structure to Redux
-    console.log('💾 Saving NEW superset data to Redux:', {
-      workoutPlanId: Number(programId),
-      workoutId: (day[0] as any)?.workout_id,
-      exerciseDataLength: newExerciseData.length,
-      newExerciseData,
-    });
+
     dispatch(
       setSupersetData({
         workoutPlanId: Number(programId),
@@ -600,12 +600,11 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             dayData={day}
             planDayData={programDetails}
             draftWorkoutData={draftWorkout}
-            exerciseTimeInSeconds={exerciseTimeInSeconds}
-            setExerciseTimeInSeconds={setExerciseTimeInSeconds}
-            isFinish={isFinish}
             hideButton={isFrom}
             ScheduleHistoryData={ScheduleHistoryData}
             setsData={sets}
+            setIsLoggingSet={setIsLoggingSet}
+            isLoggingSet={isLoggingSet}
           />
         ) : (
           <ExerciseView
@@ -714,12 +713,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
   const hasSupersetExercisesWithSets = useMemo(() => {
     if (!selectedSuperset || !selectedSuperset.exercises) return false;
 
-    console.log('🔍 Checking superset exercises for sets');
-    console.log(
-      '  - selectedSuperset.exercises:',
-      selectedSuperset.exercises.length,
-    );
-
     return selectedSuperset.exercises.some((exercise: any) => {
       const exerciseId = String(exercise.exercise_id || exercise.id);
 
@@ -758,9 +751,11 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
                     selectedExerciseDetails.exercise_id ||
                       selectedExerciseDetails.id,
                   );
-
+                  dispatch(pauseExerciseTimer(exerciseId));
                   dispatch(setCurrentCompletedExerciseIds(exerciseId));
                   setShowExerciseDetail(false);
+                  setShowAddSetUi(false);
+                  setIsLoggingSet(false);
                 }
               }}
               backgroundColor={COLORS.teal}
@@ -785,20 +780,12 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
                         ex.setsData.length > 0,
                     ),
                   );
-                  console.log(
-                    `    - hasExerciseWithSets: ${hasExerciseWithSets}`,
-                  );
-                  console.log(
-                    `    - already completed: ${completedExercises.includes(
-                      exerciseId,
-                    )}`,
-                  );
+
                   // Only mark as completed if it has sets
                   if (
                     hasExerciseWithSets &&
                     !completedExercises.includes(exerciseId)
                   ) {
-                    console.log(`    ✅ Marking as completed: ${exerciseId}`);
                     dispatch(setCurrentCompletedExerciseIds(exerciseId));
                   }
                 });
@@ -841,7 +828,7 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
               {formatTime(elapsedSeconds)}
             </CustomText>
           </View>
-          {exerciseTimeInSeconds.length && (
+          {showExerciseDetail && selectedExerciseDetails ? (
             <View
               style={{
                 borderWidth: 1,
@@ -852,43 +839,36 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
                 paddingVertical: verticalScale(5),
                 justifyContent: 'space-between',
                 gap: verticalScale(10),
-                overflow: 'hidden',
               }}>
               <CustomText fontFamily="bold">Exercise</CustomText>
+              <CustomText fontSize={15} color={COLORS.white}>
+                {(() => {
+                  const currentExerciseId = String(
+                    selectedExerciseDetails.exercise_id ||
+                      selectedExerciseDetails.exerciseSettings?.exercise_id ||
+                      selectedExerciseDetails.id,
+                  );
 
-              <FlatList
-                data={exerciseTimeInSeconds}
-                keyExtractor={item => item.exerciseId}
-                horizontal
-                pagingEnabled
-                snapToAlignment="center"
-                snapToInterval={wp(70)}
-                decelerationRate="fast"
-                showsHorizontalScrollIndicator={false}
-                renderItem={({item}) => (
-                  <View
-                    style={{
-                      width:
-                        exerciseTimeInSeconds.length === 1 ? wp(45) : wp(70),
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}>
-                    <CustomText fontSize={15} color={COLORS.white}>
-                      {formatTime(item.timeInSeconds)}
-                    </CustomText>
-                  </View>
-                )}
-              />
+                  const timer = exerciseTimeInSeconds.find(
+                    (t: any) => String(t.exerciseId) === currentExerciseId,
+                  );
+
+                  return formatTime(timer?.timeInSeconds || 0);
+                })()}
+              </CustomText>
             </View>
-          )}
+          ) : null}
         </View>
       </View>
     );
   };
 
-  const getTagsData = programDetails?.allData?.content.tags;
+  const getTagsData = useMemo(
+    () => programDetails?.allData?.content.tags,
+    [programDetails],
+  );
 
-  const mapWorkoutResponseToDay = (response: any) => {
+  const mapWorkoutResponseToDay = useCallback((response: any) => {
     // Exercises is now an array of groups (superset or regular)
     const exercisesArray = response.content.Exercises || [];
 
@@ -933,193 +913,208 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
         duration: response.content.duration,
       },
     ];
-  };
+  }, []);
 
   //  Find Last Schedule Data
-  const lastSchedule = scheduleData
-    ?.filter(
-      item =>
-        item.type === 'workout' &&
-        item.content.plan_id === programDetails?.allData?.plan_id &&
-        item.content.Workout_id === day[0]?.workout_id,
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.schedule_at).getTime() - new Date(a.schedule_at).getTime(),
-    )[0];
+  const lastSchedule = useMemo(
+    () =>
+      scheduleData
+        ?.filter(
+          item =>
+            item.type === 'workout' &&
+            item.content.plan_id === programDetails?.allData?.plan_id &&
+            item.content.Workout_id === day[0]?.workout_id,
+        )
+        .sort(
+          (a, b) =>
+            new Date(b.schedule_at).getTime() -
+            new Date(a.schedule_at).getTime(),
+        )[0],
+    [scheduleData, programDetails, day],
+  );
 
   // BuildWorkoutResultData
-  const buildWorkoutResultData = (day: any) => {
-    const totalSeconds = day[0]?.duration || 0;
-    const exercises = day[0]?.exercises || [];
+  const buildWorkoutResultData = useCallback(
+    (day: any) => {
+      const totalSeconds = day[0]?.duration || 0;
+      const exercises = day[0]?.exercises || [];
 
-    // No need to filter by workout_id since mapWorkoutResponseToDay already gives us the right exercises
-    const filteredExercises = exercises;
+      // No need to filter by workout_id since mapWorkoutResponseToDay already gives us the right exercises
+      const filteredExercises = exercises;
 
-    // --- Previous Schedule Data (if exists) ---
-    // Handle new structure: Exercises is an array of groups
-    let prevExercises: any[] = [];
-    if (
-      lastSchedule?.content?.Exercises &&
-      Array.isArray(lastSchedule.content.Exercises)
-    ) {
-      // Flatten all exercises from all groups in previous schedule
-      lastSchedule.content.Exercises.forEach((group: any) => {
-        if (group.content && Array.isArray(group.content)) {
-          prevExercises.push(...group.content);
-        }
-      });
-    }
-    const prevDuration = lastSchedule?.content?.duration || 0;
+      // --- Previous Schedule Data (if exists) ---
+      // Handle new structure: Exercises is an array of groups
+      let prevExercises: any[] = [];
+      if (
+        lastSchedule?.content?.Exercises &&
+        Array.isArray(lastSchedule.content.Exercises)
+      ) {
+        // Flatten all exercises from all groups in previous schedule
+        lastSchedule.content.Exercises.forEach((group: any) => {
+          if (group.content && Array.isArray(group.content)) {
+            prevExercises.push(...group.content);
+          }
+        });
+      }
+      const prevDuration = lastSchedule?.content?.duration || 0;
 
-    // Collect exercise IDs from the workout day
-    const getExerciseIDS = filteredExercises.map(
-      (item: any) => item.exercise_id,
-    );
-
-    // Match them with exercise metadata (for names, muscles, etc.)
-    const findTargetedMuscle = exercisesData.exerciseData?.filter(item =>
-      getExerciseIDS.includes(String(item.exercise_id)),
-    );
-
-    // --- Overall Summary ---
-    const overallSummary = {
-      Duration: {
-        current: formatTime(totalSeconds),
-        previous: formatTime(prevDuration),
-      },
-      Volume: {
-        current: `${filteredExercises.length} exercises`,
-        previous: `${prevExercises.length} exercises`,
-      },
-      Effort: {
-        current: filteredExercises.length,
-        previous: prevExercises.length,
-      },
-      Distance: {
-        current:
-          filteredExercises.reduce(
-            (acc: any, ex: any) =>
-              acc +
-              ex.sets.reduce(
-                (sAcc: number, s: any) => sAcc + (s.distance || 0),
-                0,
-              ),
-            0,
-          ) + ' m',
-        previous:
-          prevExercises.reduce(
-            (acc: any, ex: any) =>
-              acc +
-              ex.Set.reduce(
-                (sAcc: number, s: any) => sAcc + (s.distance || 0),
-                0,
-              ),
-            0,
-          ) + ' m',
-      },
-      Sets: {
-        current: filteredExercises.reduce(
-          (acc: any, ex: any) => acc + (ex.recommendedSets || 0),
-          0,
-        ),
-        previous: prevExercises.reduce(
-          (acc: any, ex: any) => acc + (ex.Set?.length || 0),
-          0,
-        ),
-      },
-      Reps: {
-        current: filteredExercises.reduce(
-          (acc: any, ex: any) => acc + (ex.recommendedReps || 0),
-          0,
-        ),
-        previous: prevExercises.reduce(
-          (acc: any, ex: any) =>
-            acc +
-            ex.Set.reduce((sAcc: number, s: any) => sAcc + (s.reps || 0), 0),
-          0,
-        ),
-      },
-    };
-
-    // --- Best Records (dynamic) ---
-    // Find exercise with max total weight lifted
-    const bestWeightExercise = filteredExercises.reduce(
-      (best: any, ex: any) => {
-        const totalWeight = ex.sets.reduce(
-          (acc: number, s: any) => acc + (s.weight || 0) * (s.reps || 0),
-          0,
-        );
-        return totalWeight > (best.totalWeight || 0)
-          ? {...ex, totalWeight}
-          : best;
-      },
-      {},
-    );
-
-    // Find exercise with max reps achieved
-    const bestRepsExercise = filteredExercises.reduce((best: any, ex: any) => {
-      const totalReps = ex.sets.reduce(
-        (acc: number, s: any) => acc + (s.reps || 0),
-        0,
+      // Collect exercise IDs from the workout day
+      const getExerciseIDS = filteredExercises.map(
+        (item: any) => item.exercise_id,
       );
-      return totalReps > (best.totalReps || 0) ? {...ex, totalReps} : best;
-    }, {});
 
-    const bestRecords = {
-      Best_Total_Weight: {
-        exerciseName:
-          findTargetedMuscle?.find(
-            item =>
-              String(item.exercise_id) ===
-              String(bestWeightExercise.exercise_id),
-          )?.name || 'N/A',
-        details: `${bestWeightExercise?.recommendedSets || 0} Sets × ${
-          bestWeightExercise?.recommendedReps || 0
-        } Reps`,
-        weightAchieved: bestWeightExercise.totalWeight
-          ? `${bestWeightExercise.totalWeight} kg`
-          : '-',
-        image:
-          findTargetedMuscle?.find(
-            item =>
-              String(item.exercise_id) ===
-              String(bestWeightExercise.exercise_id),
-          )?.images_urls?.[0] || '',
-      },
-      Best_Reps: {
-        exerciseName:
-          findTargetedMuscle?.find(
-            item =>
-              String(item.exercise_id) === String(bestRepsExercise.exercise_id),
-          )?.name || 'N/A',
-        details: `${bestRepsExercise?.recommendedSets || 0} Sets × ${
-          bestRepsExercise?.recommendedReps || 0
-        } Reps`,
-        repsAchieved: bestRepsExercise.totalReps || 0,
-        image:
-          findTargetedMuscle?.find(
-            item =>
-              String(item.exercise_id) === String(bestRepsExercise.exercise_id),
-          )?.images_urls?.[0] || '',
-      },
-    };
+      // Match them with exercise metadata (for names, muscles, etc.)
+      const findTargetedMuscle = exercisesData.exerciseData?.filter(item =>
+        getExerciseIDS.includes(String(item.exercise_id)),
+      );
 
-    // --- Targeted Muscles ---
-    const targetedMuscles =
-      findTargetedMuscle?.flatMap(item => [
-        item.main_muscle,
-        ...(item.secondary_muscles || []),
-      ]) || [];
+      // --- Overall Summary ---
+      const overallSummary = {
+        Duration: {
+          current: formatTime(totalSeconds),
+          previous: formatTime(prevDuration),
+        },
+        Volume: {
+          current: `${filteredExercises.length} exercises`,
+          previous: `${prevExercises.length} exercises`,
+        },
+        Effort: {
+          current: filteredExercises.length,
+          previous: prevExercises.length,
+        },
+        Distance: {
+          current:
+            filteredExercises.reduce(
+              (acc: any, ex: any) =>
+                acc +
+                ex.sets.reduce(
+                  (sAcc: number, s: any) => sAcc + (s.distance || 0),
+                  0,
+                ),
+              0,
+            ) + ' m',
+          previous:
+            prevExercises.reduce(
+              (acc: any, ex: any) =>
+                acc +
+                ex.Set.reduce(
+                  (sAcc: number, s: any) => sAcc + (s.distance || 0),
+                  0,
+                ),
+              0,
+            ) + ' m',
+        },
+        Sets: {
+          current: filteredExercises.reduce(
+            (acc: any, ex: any) => acc + (ex.recommendedSets || 0),
+            0,
+          ),
+          previous: prevExercises.reduce(
+            (acc: any, ex: any) => acc + (ex.Set?.length || 0),
+            0,
+          ),
+        },
+        Reps: {
+          current: filteredExercises.reduce(
+            (acc: any, ex: any) => acc + (ex.recommendedReps || 0),
+            0,
+          ),
+          previous: prevExercises.reduce(
+            (acc: any, ex: any) =>
+              acc +
+              ex.Set.reduce((sAcc: number, s: any) => sAcc + (s.reps || 0), 0),
+            0,
+          ),
+        },
+      };
 
-    return {
-      overallSummary,
-      bestRecords,
-      targetedMuscles,
-    };
-  };
+      // --- Best Records (dynamic) ---
+      // Find exercise with max total weight lifted
+      const bestWeightExercise = filteredExercises.reduce(
+        (best: any, ex: any) => {
+          const totalWeight = ex.sets.reduce(
+            (acc: number, s: any) => acc + (s.weight || 0) * (s.reps || 0),
+            0,
+          );
+          return totalWeight > (best.totalWeight || 0)
+            ? {...ex, totalWeight}
+            : best;
+        },
+        {},
+      );
+
+      // Find exercise with max reps achieved
+      const bestRepsExercise = filteredExercises.reduce(
+        (best: any, ex: any) => {
+          const totalReps = ex.sets.reduce(
+            (acc: number, s: any) => acc + (s.reps || 0),
+            0,
+          );
+          return totalReps > (best.totalReps || 0) ? {...ex, totalReps} : best;
+        },
+        {},
+      );
+
+      const bestRecords = {
+        Best_Total_Weight: {
+          exerciseName:
+            findTargetedMuscle?.find(
+              item =>
+                String(item.exercise_id) ===
+                String(bestWeightExercise.exercise_id),
+            )?.name || 'N/A',
+          details: `${bestWeightExercise?.recommendedSets || 0} Sets × ${
+            bestWeightExercise?.recommendedReps || 0
+          } Reps`,
+          weightAchieved: bestWeightExercise.totalWeight
+            ? `${bestWeightExercise.totalWeight} kg`
+            : '-',
+          image:
+            findTargetedMuscle?.find(
+              item =>
+                String(item.exercise_id) ===
+                String(bestWeightExercise.exercise_id),
+            )?.images_urls?.[0] || '',
+        },
+        Best_Reps: {
+          exerciseName:
+            findTargetedMuscle?.find(
+              item =>
+                String(item.exercise_id) ===
+                String(bestRepsExercise.exercise_id),
+            )?.name || 'N/A',
+          details: `${bestRepsExercise?.recommendedSets || 0} Sets × ${
+            bestRepsExercise?.recommendedReps || 0
+          } Reps`,
+          repsAchieved: bestRepsExercise.totalReps || 0,
+          image:
+            findTargetedMuscle?.find(
+              item =>
+                String(item.exercise_id) ===
+                String(bestRepsExercise.exercise_id),
+            )?.images_urls?.[0] || '',
+        },
+      };
+
+      // --- Targeted Muscles ---
+      const targetedMuscles =
+        findTargetedMuscle?.flatMap(item => [
+          item.main_muscle,
+          ...(item.secondary_muscles || []),
+        ]) || [];
+
+      return {
+        overallSummary,
+        bestRecords,
+        targetedMuscles,
+      };
+    },
+    [lastSchedule, exercisesData],
+  );
 
   const LOG_WORKOUT = async () => {
+    // === Pause currently active exercise if one is selected/open ===
+
     // Stop timer only once
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -1267,9 +1262,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             .find(ex => String(ex.exercise_id) === exerciseId);
 
           if (exerciseItem) {
-            console.log(
-              `      - Has sets: ${exerciseItem.setsData?.length || 0}`,
-            );
           }
 
           if (exerciseItem && hasValidSets(exerciseItem)) {
@@ -1278,9 +1270,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
               supersetExercises.push(exerciseObj);
             }
           } else {
-            console.log(
-              `      ❌ Skipped: ${exerciseId} (no valid sets or not found)`,
-            );
           }
         });
 
@@ -1302,7 +1291,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
           .find(ex => String(ex.exercise_id) === exerciseId);
 
         if (exerciseItem) {
-          console.log(`    - Has sets: ${exerciseItem.setsData?.length || 0}`);
         }
 
         if (exerciseItem && hasValidSets(exerciseItem)) {
@@ -1315,9 +1303,6 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
             });
           }
         } else {
-          console.log(
-            `    ❌ Skipped: ${exerciseId} (no valid sets or not found)`,
-          );
         }
       }
     });
@@ -1371,49 +1356,78 @@ const WorkoutProgramDetails: FC<LogWorkoutProgramDetailsScreenProps> = ({
         setExerciseLog([]);
         setScheduleMap({});
         setElapsedSeconds(0);
-        setExerciseTimeInSeconds([]);
+        dispatch(resetExerciseTimers());
         setexerciseWithSetData([]);
+        dispatch(clearStartCurrentExercise());
+        setShowAddSetUi(true);
+        setIsLoggingSet(false);
+        dispatch(clearAllExerciseTimers());
 
         const resultDay = mapWorkoutResponseToDay(response.data.data);
         const workoutResultData = buildWorkoutResultData(resultDay);
 
-        navigation.navigate('workoutResult', {
-          workoutData: workoutResultData,
-        });
+        // Use replace instead of navigate to properly unmount this screen
+        // and prevent "addViewAt failed" error
+        // Add a small delay to ensure all state updates are complete
+        setTimeout(() => {
+          navigation.replace('workoutResult', {
+            workoutData: workoutResultData,
+          });
+        }, 100);
       }
     } catch (error) {
       console.log(error, 'Something went wrong');
     }
   };
 
-  useEffect(() => {
-    const backAction = () => {
-      if (showAddSetUi) {
-        setShowAddSetUi(false);
-      } else if (showExerciseDetail) {
-        setShowExerciseDetail(false);
-      } else if (isSupersetSelected) {
-        handleCloseSupersetView();
-      } else {
-        navigation.goBack();
-      }
-      return true; // prevent default (app exit)
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const backAction = () => {
+        if (showAddSetUi) {
+          setShowAddSetUi(false);
+          return true;
+        } else if (showExerciseDetail) {
+          setShowExerciseDetail(false);
+          return true;
+        } else if (isSupersetSelected) {
+          handleCloseSupersetView();
+          return true;
+        } else if (isLoggingSet) {
+          setIsLoggingSet(false);
+          return true;
+        } else {
+          navigation.goBack();
+          return true;
+        }
+      };
 
-    const backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      backAction,
-    );
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        backAction,
+      );
 
-    return () => backHandler.remove();
-  }, [showAddSetUi, showExerciseDetail, isSupersetSelected, navigation]);
+      // setIsLoggingSet(false);
+
+      return () => {
+        backHandler.remove();
+      };
+    }, [
+      showAddSetUi,
+      showExerciseDetail,
+      isLoggingSet,
+      isSupersetSelected,
+      navigation,
+    ]),
+  );
 
   return (
     <View style={styles.main}>
       <SafeAreaView style={styles.safeArea}>
         <ImageBackground
           source={{
-            uri: programDetails?.allData?.image_url,
+            uri:
+              programDetails?.allData?.image_url ||
+              'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
           }}
           style={styles.coverImage}
           imageStyle={styles.coverImageStyle}>

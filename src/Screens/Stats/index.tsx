@@ -222,13 +222,6 @@ const STATS = () => {
           new Date(schedule.schedule_at) >= new Date(range.from) &&
           new Date(schedule.schedule_at) <= new Date(range.to),
       ) || [];
-    console.log(
-      'FILYERRRRRRRR',
-      filteredData.filter(
-        item =>
-          item.type === 'measurement' && item.content.list[0].part === 'Waist',
-      ),
-    );
 
     setFilteredScheduleData(filteredData);
   }, [range, plan, workout, exercise, scheduleData]);

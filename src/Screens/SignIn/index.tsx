@@ -111,16 +111,17 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
 
         if (cleanToken) {
           const response = await fetchData<UserResponse>(ENDPOINTS.getUser);
-          console.log(response, 'UUUU ̰');
 
           if (response.data.user) {
             dispatch(setUserData(response.data.user));
           }
-          await storeAllHashes();
-          await getPlanData();
-          await getFoodData();
-          await getScheduleData();
-          await getInsight();
+          await Promise.all([
+            storeAllHashes(),
+            getPlanData(),
+            getFoodData(),
+            getScheduleData(),
+            getInsight(),
+          ]);
         }
         // showCustomToast('success', 'Log in Successfully');
         navigation.replace('mainStack', {
@@ -160,8 +161,6 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
       );
 
       dispatch(setFoodData(response.data.data));
-
-      // console.log('bsfn', response.data.data);
 
       dispatch(
         setIngredients(
@@ -292,7 +291,6 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
       dispatch(setExerciseData(exerciseList));
 
       const catalog = buildExerciseCatalog(exerciseList);
-      // console.log('catalog --->', catalog);
       dispatch(setExerciseCatalog(catalog));
     }
   };
@@ -307,8 +305,6 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
           STORAGE_KEYS.localScheduleData,
           response.data,
         );
-
-        // console.log('response -snfks', response.data.data);
 
         dispatch(setScheduleData(response.data.data));
       }

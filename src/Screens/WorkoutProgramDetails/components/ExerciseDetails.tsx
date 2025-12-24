@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -29,6 +30,9 @@ import {
   SetData,
   setDraftWorkout,
   updateExercise,
+  incrementExerciseTimer,
+  setStartCurrentExercise,
+  startExerciseTimer,
 } from '../../../Redux/slices/LogWorkoutSlice';
 import {updateIsFinish} from '../../../Redux/slices/workoutDataSlice';
 import {useAppDispatch, useAppSelector} from '../../../Redux/store';
@@ -72,16 +76,17 @@ const ExerciseDetails: FC<{
       | {
           exerciseId: string;
           setsData: ExtendedSetDetail[];
+          isDropSet: boolean;
           logTime: any;
         }[]
       | null
     >
   >;
-  exerciseTimeInSeconds: any;
-  setExerciseTimeInSeconds: any;
   hideButton: boolean;
   ScheduleHistoryData: string;
   setsData: any;
+  isLoggingSet: boolean;
+  setIsLoggingSet: React.Dispatch<React.SetStateAction<boolean>>;
 }> = ({
   exerciseData,
   showAddSetUi,
@@ -91,11 +96,11 @@ const ExerciseDetails: FC<{
   dayData,
   planDayData,
   draftWorkoutData,
-  exerciseTimeInSeconds,
-  setExerciseTimeInSeconds,
   hideButton,
   ScheduleHistoryData,
   setsData,
+  isLoggingSet,
+  setIsLoggingSet,
 }) => {
   const dispatch = useAppDispatch();
   const [activeTab, setActiveTab] = useState(1);
@@ -106,6 +111,10 @@ const ExerciseDetails: FC<{
     null,
   );
 
+  const {startCurrentExercise} = useAppSelector(state => state.logWorkoutData);
+
+  const flatListRef = useRef<FlatList>(null);
+
   // State for managing the selected difficulty for new sets
   const [selectedDifficulty, setSelectedDifficulty] = useState<
     'Warmup' | 'Easy' | 'Medium' | 'Hard'
@@ -114,43 +123,32 @@ const ExerciseDetails: FC<{
   const isFinish = useAppSelector(state => state.workoutData.isFinish);
 
   // State to store current picker values
-  const [currentPickerValues, setCurrentPickerValues] = useState({
-    reps: '6',
-    distance: '100m',
-    weight: '6kg',
-    time: '6m',
-  });
+  const [currentPickerValues, setCurrentPickerValues] = useState<{
+    reps?: string;
+    distance?: string;
+    weight?: string;
+    time?: string;
+  }>({});
 
   useEffect(() => {
-    if (!exerciseData?.id) return;
+    const exerciseId = String(
+      exerciseData.exercise_id ||
+        exerciseData.exerciseSettings?.exercise_id ||
+        exerciseData.id,
+    );
 
-    const id = exerciseData.id;
+    if (!exerciseId) return;
 
-    // Reset live timer for this exercise
-    let timerRef: NodeJS.Timeout | null = null;
+    const isThisExerciseActive =
+      isLoggingSet && startCurrentExercise.includes(exerciseId);
 
-    timerRef = setInterval(() => {
-      setExerciseTimeInSeconds((prev: any) => {
-        const existing = prev.find((item: any) => item.exerciseId === id);
+    if (isThisExerciseActive) {
+      dispatch(startExerciseTimer(exerciseId));
+    }
 
-        if (existing) {
-          // update time
-          return prev.map((item: any) =>
-            item.exerciseId === id
-              ? {...item, timeInSeconds: item.timeInSeconds + 1}
-              : item,
-          );
-        } else {
-          // first time opening this exercise
-          return [...prev, {exerciseId: id, timeInSeconds: 1}];
-        }
-      });
-    }, 1000);
-
-    return () => {
-      if (timerRef) clearInterval(timerRef);
-    };
-  }, [exerciseData?.id]);
+    // do NOT pause on unmount
+    return () => {};
+  }, [isLoggingSet, startCurrentExercise]);
 
   const getFilteredDraftWorkoutData = () => {
     if (!draftWorkoutData || !Array.isArray(draftWorkoutData)) return [];
@@ -176,6 +174,15 @@ const ExerciseDetails: FC<{
 
     return filteredData;
   };
+
+  useEffect(() => {
+    if (!showAddSetUi) {
+      // When we exit "Add Set" mode → scroll to latest set
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({animated: true});
+      }, 150);
+    }
+  }, [showAddSetUi]);
 
   // Memoize filteredWorkoutData
   const filteredWorkoutData = useMemo(
@@ -351,8 +358,6 @@ const ExerciseDetails: FC<{
               muscleMap[m.toLowerCase().trim()] || m.toLowerCase().trim(),
           )
           .filter(Boolean);
-
-    console.log('exercise', exerciseData);
 
     const getExerciseImageUri = (exerciseData: any) => {
       if (
@@ -676,8 +681,6 @@ const ExerciseDetails: FC<{
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         );
 
-      console.log('Final history count:', history.length);
-
       // Step 2: Apply date filter ONLY if ScheduleHistoryData is provided
       if (hideButton === true && ScheduleHistoryData) {
         const targetDate = ScheduleHistoryData.split('T')[0];
@@ -823,9 +826,9 @@ const ExerciseDetails: FC<{
   const handlePickerValuesChange = useCallback(
     (values: {
       reps: string;
-      distance: string;
-      weight: string;
-      time: string;
+      distance?: string;
+      weight?: string;
+      time?: string;
     }) => {
       setCurrentPickerValues(values);
     },
@@ -876,7 +879,8 @@ const ExerciseDetails: FC<{
   const formatTimeForDisplay = (
     timeString: string | number | undefined,
   ): string => {
-    if (timeString === undefined || timeString === null) return '00:00';
+    if (timeString === undefined || timeString === null) return '--';
+    if (timeString === '--') return '--';
 
     const timeStr = String(timeString).toLowerCase().trim();
     let totalSeconds = 0;
@@ -884,15 +888,12 @@ const ExerciseDetails: FC<{
     if (timeStr.endsWith('s')) {
       totalSeconds = parseInt(timeStr.replace('s', ''));
     } else if (timeStr.includes(':')) {
-      // Already in MM:SS format, return as is
       return timeStr;
     } else {
       totalSeconds = parseInt(timeStr);
     }
 
-    if (isNaN(totalSeconds)) {
-      return '00:00';
-    }
+    if (isNaN(totalSeconds)) return '--';
 
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -914,6 +915,13 @@ const ExerciseDetails: FC<{
     );
   };
 
+  const displayValue = (value: any, formatter?: (v: any) => string) => {
+    if (value === undefined || value === null || value === '--') {
+      return '--';
+    }
+    return formatter ? formatter(value) : value;
+  };
+
   // Function to handle adding a new set
   const handleAddSet = (
     usePickerValues: boolean = false,
@@ -932,24 +940,26 @@ const ExerciseDetails: FC<{
       return;
     }
     // Use picker values if requested, otherwise use default values
-    const defaultData = {
-      reps: '10',
-      distance: '100m',
-      weight: '10kg',
-      time: '1m',
-    };
 
-    const finalData = usePickerValues ? currentPickerValues : defaultData;
+    const finalData = {
+      reps: currentPickerValues.reps ?? null,
+      distance: currentPickerValues.distance ?? null,
+      weight: currentPickerValues.weight ?? null,
+      time:
+        currentPickerValues.time && currentPickerValues.time !== '--'
+          ? convertTimeToSeconds(currentPickerValues.time)
+          : '--',
+    };
 
     const getDate = new Date();
 
     const newSet: SetDetail = {
-      reps: finalData.reps,
-      weight: finalData.weight,
-      time: convertTimeToSeconds(finalData.time),
+      ...(finalData.reps && {reps: finalData.reps}),
+      ...(finalData.weight && {weight: finalData.weight}),
+      ...(finalData.distance && {distance: finalData.distance}),
+      ...(finalData.time !== '--' && {time: finalData.time}),
       count: 1,
       difficulty: selectedDifficulty,
-      distance: finalData.distance,
       logTime: formatDateTime(getDate),
       dropSets: [],
     };
@@ -1024,7 +1034,6 @@ const ExerciseDetails: FC<{
 
     // Update Redux store
     if (!existingWorkout) {
-      console.log('  ✅ Creating new workout in Redux');
       dispatch(
         setDraftWorkout({
           workoutPlanId: planId,
@@ -1033,7 +1042,6 @@ const ExerciseDetails: FC<{
         }),
       );
     } else {
-      console.log('  ✅ Updating existing workout in Redux');
       dispatch(
         updateExercise({
           ...newExerciseLog,
@@ -1043,12 +1051,16 @@ const ExerciseDetails: FC<{
       );
     }
 
-    console.log('✅ Set added successfully!');
-
     // Redux is now the single source of truth for sets
 
     // Close the AddSetUI
+    dispatch(setStartCurrentExercise(exerciseData.id));
     setShowAddSetUi(false);
+    setIsLoggingSet(true);
+
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({animated: true});
+    }, 100);
   };
 
   const renderSets = () => {
@@ -1056,10 +1068,12 @@ const ExerciseDetails: FC<{
 
     if (hideButton) {
       //  When hideButton is true → show setsData (from backend)
-      const matchedExercise = setsData?.find((item: any) =>
-        item.Exercise_id === exerciseData?.exercise_id
-          ? exerciseData?.exercise_id
-          : exerciseData?.id,
+      const currentExerciseId = String(
+        exerciseData?.exercise_id || exerciseData?.id,
+      );
+
+      const matchedExercise = setsData?.find(
+        (item: any) => String(item.Exercise_id) === currentExerciseId,
       );
 
       historySets =
@@ -1070,9 +1084,9 @@ const ExerciseDetails: FC<{
             set.distance ||
             (set.reps?.toString().toLowerCase().includes('m')
               ? set.reps
-              : '123m'),
-          Weight: `${set.weight}${set.weight_type || 'kg'}`,
-          Time: formatTimeForDisplay(set.time),
+              : '--'),
+          Weight: set.weight === 0 ? '--' : `${set.weight}kg`,
+          Time: displayValue(set.time),
           difficulty: set.difficulty || 'Medium',
           isNewlyAdded: false,
           dropSets: [],
@@ -1128,6 +1142,9 @@ const ExerciseDetails: FC<{
         <PickerComponent
           difficulty={selectedDifficulty}
           onValuesChange={handlePickerValuesChange}
+          showDistance={exerciseData.exerciseSettings?.Is_distance ?? true}
+          showWeight={exerciseData.exerciseSettings?.is_weight ?? true}
+          showTime={exerciseData.exerciseSettings?.Is_time ?? true}
         />
         {/* Difficulty selector */}
         <View style={styles.difficultyContainer}>
@@ -1304,6 +1321,11 @@ const ExerciseDetails: FC<{
 
         <FlatList
           data={historySets}
+          ref={flatListRef}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({animated: true})
+          }
+          onLayout={() => flatListRef.current?.scrollToEnd({animated: true})}
           renderItem={({item}) => {
             const difficultyColors = {
               Warmup: '#6C757D',

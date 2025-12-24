@@ -36,10 +36,6 @@ const NutritionProgramDetails: FC<NutritionProgramDetailsProps> = ({
   const {myMealsList} = useAppSelector(state => state.myMeals);
   const {planData} = useAppSelector(state => state.planData);
 
-  // console.log('id', currentProgramId);
-  // console.log('mealsId', myMealsList);
-  // console.log('plan id', planData);
-
   const filteredMeals =
     myMealsList?.filter(meal => meal.userId === currentProgramId) || [];
 
@@ -151,8 +147,6 @@ const NutritionProgramDetails: FC<NutritionProgramDetailsProps> = ({
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               renderItem={({item, index}) => {
-                console.log('item', item);
-
                 return (
                   <View style={styles.item}>
                     <View style={styles.mealItemContainer}>
@@ -164,8 +158,6 @@ const NutritionProgramDetails: FC<NutritionProgramDetailsProps> = ({
                       />
                       <Pressable
                         onPress={() => {
-                          console.log(item);
-
                           navigation.navigate('mealDetails', {
                             mealId: item.id,
                             isFromMyMeal: false,
@@ -228,7 +220,6 @@ const NutritionProgramDetails: FC<NutritionProgramDetailsProps> = ({
     const foundProgram = planData?.find(
       item => item.allData?.plan_id === currentProgramId,
     );
-    console.log('found', foundProgram);
     setCurrentProgramDetails(foundProgram ?? null);
   }, [currentProgramId]);
 

@@ -1,5 +1,9 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit';
 import {SetDetail} from '../../Seeds/TrainingPLans';
+import {store} from '../store';
+
+// 🔥 GLOBAL interval registry (survives screen unmount)
+const exerciseTimerIntervals: Record<string, NodeJS.Timeout> = {};
 
 // types/workout.ts
 export type SetData = {
@@ -46,6 +50,8 @@ interface WorkoutState {
     dayName: string | null;
   };
   currentCompletedExerciseIds: string[];
+  exerciseTimers: {exerciseId: string; timeInSeconds: number}[];
+  startCurrentExercise: string[];
 }
 
 const initialState: WorkoutState = {
@@ -57,6 +63,8 @@ const initialState: WorkoutState = {
   workoutProgress: '',
   currentWorkout: {planId: null, workoutName: null, dayName: null},
   currentCompletedExerciseIds: [],
+  exerciseTimers: [],
+  startCurrentExercise: [],
 };
 
 const logWorkoutSlice = createSlice({
@@ -202,6 +210,82 @@ const logWorkoutSlice = createSlice({
       state.workoutProgress = '';
       state.currentWorkout = {planId: null, workoutName: null, dayName: null};
     },
+    // Manage per-exercise timers (time in seconds)
+    setExerciseTimer(
+      state,
+      action: PayloadAction<{exerciseId: string; timeInSeconds: number}>,
+    ) {
+      const {exerciseId, timeInSeconds} = action.payload;
+      const idx = state.exerciseTimers.findIndex(
+        t => String(t.exerciseId) === String(exerciseId),
+      );
+      if (idx >= 0) {
+        state.exerciseTimers[idx].timeInSeconds = timeInSeconds;
+      } else {
+        state.exerciseTimers.push({exerciseId, timeInSeconds});
+      }
+    },
+    incrementExerciseTimer(state, action: PayloadAction<string>) {
+      const exerciseId = action.payload;
+      const idx = state.exerciseTimers.findIndex(
+        t => String(t.exerciseId) === String(exerciseId),
+      );
+      if (idx >= 0) {
+        state.exerciseTimers[idx].timeInSeconds += 1;
+      } else {
+        state.exerciseTimers.push({exerciseId, timeInSeconds: 1});
+      }
+    },
+    resetExerciseTimers(state) {
+      state.exerciseTimers = [];
+    },
+    setStartCurrentExercise(state, action: PayloadAction<string | number>) {
+      const id = String(action.payload);
+
+      if (!state.startCurrentExercise.includes(id)) {
+        state.startCurrentExercise.push(id);
+      } else {
+        console.log('⚠️ Redux: ID already exists:', id);
+      }
+    },
+
+    clearStartCurrentExercise(state) {
+      state.startCurrentExercise = [];
+    },
+
+    startExerciseTimer(state, action: PayloadAction<string>) {
+      const exerciseId = String(action.payload);
+
+      // Prevent duplicate intervals
+      if (exerciseTimerIntervals[exerciseId]) return;
+
+      exerciseTimerIntervals[exerciseId] = setInterval(() => {
+        // IMPORTANT: dispatch increment from store
+        // (store import required)
+        store.dispatch(incrementExerciseTimer(exerciseId));
+      }, 1000);
+    },
+
+    pauseExerciseTimer(state, action: PayloadAction<string>) {
+      const exerciseId = String(action.payload);
+
+      const interval = exerciseTimerIntervals[exerciseId];
+      if (interval) {
+        clearInterval(interval);
+        delete exerciseTimerIntervals[exerciseId];
+      }
+    },
+    clearAllExerciseTimers(state) {
+      // 🔴 Stop all running intervals
+      Object.keys(exerciseTimerIntervals).forEach(exerciseId => {
+        clearInterval(exerciseTimerIntervals[exerciseId]);
+        delete exerciseTimerIntervals[exerciseId];
+      });
+
+      // 🧹 Clear redux timer state
+      state.exerciseTimers = [];
+      state.startCurrentExercise = [];
+    },
   },
 });
 
@@ -217,6 +301,14 @@ export const {
   resetWorkout,
   setCurrentCompletedExerciseIds,
   setCurrentWorkout,
+  setExerciseTimer,
+  incrementExerciseTimer,
+  resetExerciseTimers,
+  setStartCurrentExercise,
+  clearStartCurrentExercise,
+  startExerciseTimer,
+  pauseExerciseTimer,
+  clearAllExerciseTimers,
 } = logWorkoutSlice.actions;
 
 export default logWorkoutSlice.reducer;

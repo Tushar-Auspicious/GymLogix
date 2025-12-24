@@ -35,6 +35,7 @@ interface CapturedPhoto {
 const NotesLogMenu = () => {
   const dispatch = useAppDispatch();
   const {isUploadImageOptionModal} = useAppSelector(state => state.modals);
+
   const {userData} = useAppSelector(state => state.userData);
 
   // Update state to store complete image object instead of just URI
@@ -46,7 +47,7 @@ const NotesLogMenu = () => {
   };
 
   const handleImagePick = () => {
-    launchImageLibrary({mediaType: 'photo', quality: 0.8}, async response => {
+    launchImageLibrary({mediaType: 'photo', quality: 0.5}, async response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorCode) {
@@ -74,13 +75,10 @@ const NotesLogMenu = () => {
             ENDPOINTS.uploadFile,
             formData,
           );
-          console.log('image pick ', response.data);
 
           if (response.data) {
             const get_Image_url = response.data.url;
             if (get_Image_url) {
-              console.log('image', image);
-
               setImage(get_Image_url);
             }
           }
@@ -96,7 +94,7 @@ const NotesLogMenu = () => {
     // Fixed typo in function name
     try {
       const result = await launchCamera({
-        quality: 1,
+        quality: 0.5,
         mediaType: 'photo',
       });
 
@@ -127,10 +125,10 @@ const NotesLogMenu = () => {
             ENDPOINTS.uploadFile,
             formData,
           );
-          console.log('image pick ', response.data);
 
           if (response.data) {
             const get_Image_url = response.data.url;
+
             if (get_Image_url) {
               console.log('image', image);
 
@@ -185,11 +183,8 @@ const NotesLogMenu = () => {
       },
     };
 
-    console.log('sent data note --->', data);
-
     try {
       const response = await postData<any>(ENDPOINTS.createSchedule, {data});
-      console.log('notes response --->', response);
       if (response.data.data) {
         dispatch(addSchedule(response.data.data));
 
@@ -216,7 +211,6 @@ const NotesLogMenu = () => {
           flexGrow: 1,
         }}>
         <CustomText fontFamily="bold">Image</CustomText>
-
         <TouchableOpacity
           onPress={() => {
             dispatch(setIsUploadImageOptionModal(true));

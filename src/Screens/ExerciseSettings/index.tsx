@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from 'react';
 import {
   Alert,
   FlatList,
@@ -10,57 +10,57 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from "react-native";
-import LinearGradient from "react-native-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { TimerPickerModal } from "react-native-timer-picker";
-import FONTS from "../../Assets/fonts";
-import ICONS from "../../Assets/Icons";
-import CustomIcon from "../../Components/CustomIcon";
-import { CustomText } from "../../Components/CustomText";
-import PrimaryButton from "../../Components/PrimaryButton";
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {TimerPickerModal} from 'react-native-timer-picker';
+import FONTS from '../../Assets/fonts';
+import ICONS from '../../Assets/Icons';
+import CustomIcon from '../../Components/CustomIcon';
+import {CustomText} from '../../Components/CustomText';
+import PrimaryButton from '../../Components/PrimaryButton';
 import {
   selectAllExercises,
   updateAlternateExerciseInSettings,
   updateExerciseSettings,
-} from "../../Redux/slices/exerciseCatalogSlice";
-import { useAppDispatch, useAppSelector } from "../../Redux/store";
-import { ExerciseSettingsScreenProps } from "../../Typings/route";
-import COLORS from "../../Utilities/Colors";
+} from '../../Redux/slices/exerciseCatalogSlice';
+import {useAppDispatch, useAppSelector} from '../../Redux/store';
+import {ExerciseSettingsScreenProps} from '../../Typings/route';
+import COLORS from '../../Utilities/Colors';
 import {
   horizontalScale,
   hp,
   responsiveFontSize,
   verticalScale,
   wp,
-} from "../../Utilities/Metrics";
+} from '../../Utilities/Metrics';
 
 const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
   navigation,
   route,
 }) => {
   const dispatch = useAppDispatch();
-  const { exerciseId } = route.params;
+  const {exerciseId} = route.params;
 
   // Find exercise in both catalog and custom exercises
-  const exerciseData = useAppSelector((state) => {
+  const exerciseData = useAppSelector(state => {
     const catalogExercises = state.exerciseCatalog.catalog.categories.flatMap(
-      (category) => category.exercises
+      category => category.exercises,
     );
     const customExercises = state.exerciseCatalog.customExercises;
     const allExercises = [...catalogExercises, ...customExercises];
-    return allExercises.find((item) => item.id === exerciseId);
+    return allExercises.find(item => item.id === exerciseId);
   });
 
-  const [exerciseSets, setExerciseSets] = useState("");
-  const [exerciseReps, setExerciseReps] = useState("");
+  const [exerciseSets, setExerciseSets] = useState('');
+  const [exerciseReps, setExerciseReps] = useState('');
   const [exerciseLogging, setExerciseLogging] = useState<
-    "Time" | "Weight" | "Distance"
-  >("Weight");
+    'Time' | 'Weight' | 'Distance'
+  >('Weight');
 
-  const [warmUpTime, setWarmUpTime] = useState("60");
-  const [workingSetTime, setWorkingSetTime] = useState("90");
-  const [finishExerciseTime, setFinishExerciseTime] = useState("120");
+  const [warmUpTime, setWarmUpTime] = useState('60');
+  const [workingSetTime, setWorkingSetTime] = useState('90');
+  const [finishExerciseTime, setFinishExerciseTime] = useState('120');
 
   const [isTimePickerModalVisible, setIsTimePickerModalVisible] = useState(0);
   const [showAlternateExerciseModal, setShowAlternateExerciseModal] =
@@ -71,15 +71,15 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
   const allExercises = useAppSelector(selectAllExercises);
 
   // Get current alternate exercise data
-  const alternateExerciseData = useAppSelector((state) => {
+  const alternateExerciseData = useAppSelector(state => {
     if (!exerciseData?.exerciseSettings?.alternateExercise) return null;
     const catalogExercises = state.exerciseCatalog.catalog.categories.flatMap(
-      (category) => category.exercises
+      category => category.exercises,
     );
     const customExercises = state.exerciseCatalog.customExercises;
     const allExercises = [...catalogExercises, ...customExercises];
     return allExercises.find(
-      (item) => item.id === exerciseData.exerciseSettings?.alternateExercise
+      item => item.id === exerciseData.exerciseSettings?.alternateExercise,
     );
   });
 
@@ -93,13 +93,13 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
   }) => {
     const timeParts = [];
     if (minutes !== undefined) {
-      timeParts.push(minutes.toString().padStart(2, "0"));
+      timeParts.push(minutes.toString().padStart(2, '0'));
     }
     if (seconds !== undefined) {
-      timeParts.push(seconds.toString().padStart(2, "0"));
+      timeParts.push(seconds.toString().padStart(2, '0'));
     }
 
-    return timeParts.join(":");
+    return timeParts.join(':');
   };
 
   useEffect(() => {
@@ -116,23 +116,23 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
         setExerciseSets(exerciseData.exerciseSettings!.sets!.toString());
         setExerciseReps(exerciseData.exerciseSettings!.reps!.toString());
         setExerciseLogging(
-          exerciseData.exerciseSettings!.loggingType || "Weight"
+          exerciseData.exerciseSettings!.loggingType || 'Weight',
         );
-        setWarmUpTime(exerciseData.exerciseSettings!.timing?.warmUp || "60");
+        setWarmUpTime(exerciseData.exerciseSettings!.timing?.warmUp || '60');
         setWorkingSetTime(
-          exerciseData.exerciseSettings!.timing?.workingSet || "90"
+          exerciseData.exerciseSettings!.timing?.workingSet || '90',
         );
         setFinishExerciseTime(
-          exerciseData.exerciseSettings!.timing?.finishExercise || "120"
+          exerciseData.exerciseSettings!.timing?.finishExercise || '120',
         );
       } else {
         // Use recommended values or sensible defaults
-        setExerciseSets(exerciseData.recommendedSets?.toString() || "3");
-        setExerciseReps(exerciseData.recommendedReps?.toString() || "10");
-        setExerciseLogging("Weight");
-        setWarmUpTime("60");
-        setWorkingSetTime("90");
-        setFinishExerciseTime("120");
+        setExerciseSets(exerciseData.recommendedSets?.toString() || '3');
+        setExerciseReps(exerciseData.recommendedReps?.toString() || '10');
+        setExerciseLogging('Weight');
+        setWarmUpTime('60');
+        setWorkingSetTime('90');
+        setFinishExerciseTime('120');
       }
       setIsFormInitialized(true);
     }
@@ -155,7 +155,7 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
           },
           alternateExercise: alternateExerciseData?.id,
         },
-      })
+      }),
     );
 
     navigation.goBack();
@@ -177,16 +177,14 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={{ uri: exerciseData?.coverImage?.uri }}
+        source={{uri: exerciseData?.coverImage?.uri}}
         style={styles.coverImage}
-        imageStyle={styles.coverImageStyle}
-      >
+        imageStyle={styles.coverImageStyle}>
         <LinearGradient
-          colors={["rgba(0,0,0,0)", "#1F1A16"]}
+          colors={['rgba(0,0,0,0)', '#1F1A16']}
           style={styles.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        >
+          start={{x: 0, y: 0}}
+          end={{x: 0, y: 1}}>
           <View style={styles.headerContainer}>
             <CustomIcon
               onPress={() => navigation.goBack()}
@@ -194,12 +192,11 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
             />
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 width: wp(90),
-              }}
-            >
+              }}>
               <CustomText color={COLORS.white} fontSize={18}>
                 {exerciseData?.name}
               </CustomText>
@@ -217,8 +214,7 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
           <CustomText
             fontSize={15}
             fontFamily="italic"
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             Set the strategy of your exercise
           </CustomText>
 
@@ -240,8 +236,7 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
                 color={COLORS.whiteTail}
                 fontSize={24}
                 fontFamily="bold"
-                style={styles.multiplySign}
-              >
+                style={styles.multiplySign}>
                 x
               </CustomText>
               <View style={styles.strategyLine} />
@@ -268,17 +263,16 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
           <CustomText
             fontSize={15}
             fontFamily="italic"
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             What would you like to log for this exercise
           </CustomText>
 
           <View style={styles.loggingContainer}>
             {[
-              { icon: ICONS.LogTimeIcon, label: "Time" },
-              { icon: ICONS.LogWeightIcon, label: "Weight" },
-              { icon: ICONS.LogDistanceIcon, label: "Distance" },
-            ].map((item) => (
+              {icon: ICONS.LogTimeIcon, label: 'Time'},
+              {icon: ICONS.LogWeightIcon, label: 'Weight'},
+              {icon: ICONS.LogDistanceIcon, label: 'Distance'},
+            ].map(item => (
               <TouchableOpacity
                 onPress={() => setExerciseLogging(item.label as any)}
                 key={item.label}
@@ -288,10 +282,9 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
                     borderColor:
                       exerciseLogging === item.label
                         ? COLORS.whiteTail
-                        : "transparent",
+                        : 'transparent',
                   },
-                ]}
-              >
+                ]}>
                 <CustomIcon
                   Icon={item.icon}
                   height={verticalScale(70)}
@@ -313,8 +306,7 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
           <CustomText
             fontSize={15}
             fontFamily="italic"
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             Set timing strategy for the exercise
           </CustomText>
 
@@ -358,8 +350,7 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
           <CustomText
             fontSize={15}
             fontFamily="italic"
-            color={COLORS.whiteTail}
-          >
+            color={COLORS.whiteTail}>
             Substitute exercise
           </CustomText>
 
@@ -369,7 +360,7 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
                 source={{
                   uri:
                     alternateExerciseData.coverImage?.uri ||
-                    "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8",
+                    'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
                 }}
                 style={styles.alternateExerciseImage}
               />
@@ -377,15 +368,13 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
                 <CustomText
                   color={COLORS.yellow}
                   fontFamily="medium"
-                  fontSize={12}
-                >
+                  fontSize={12}>
                   {alternateExerciseData.name}
                 </CustomText>
                 <CustomText
                   color={COLORS.white}
                   fontFamily="medium"
-                  fontSize={12}
-                >
+                  fontSize={12}>
                   {`${alternateExerciseData.recommendedSets || 3} sets x ${
                     alternateExerciseData.recommendedReps || 10
                   } reps`}
@@ -398,10 +387,9 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
                     updateAlternateExerciseInSettings({
                       id: exerciseId,
                       alternateExercise: undefined,
-                    })
+                    }),
                   );
-                }}
-              >
+                }}>
                 <CustomIcon Icon={ICONS.CrossIcon} height={16} width={16} />
               </TouchableOpacity>
             </View>
@@ -438,7 +426,7 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
         setIsVisible={() => setIsTimePickerModalVisible(0)}
         modalTitle="Set Time"
         onCancel={() => setIsTimePickerModalVisible(0)}
-        onConfirm={(selectedDate) => {
+        onConfirm={selectedDate => {
           const formattedTime = formatTime(selectedDate);
           if (isTimePickerModalVisible === 1) {
             setWarmUpTime(formattedTime);
@@ -460,8 +448,7 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
       <Modal
         visible={showAlternateExerciseModal}
         animationType="slide"
-        presentationStyle="pageSheet"
-      >
+        presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <CustomText fontSize={18} fontFamily="bold" color={COLORS.white}>
@@ -469,16 +456,15 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
             </CustomText>
             <TouchableOpacity
               onPress={() => setShowAlternateExerciseModal(false)}
-              style={styles.closeButton}
-            >
+              style={styles.closeButton}>
               <CustomIcon Icon={ICONS.CrossIcon} height={20} width={20} />
             </TouchableOpacity>
           </View>
 
           <FlatList
-            data={allExercises.filter((exercise) => exercise.id !== exerciseId)} // Exclude current exercise
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
+            data={allExercises.filter(exercise => exercise.id !== exerciseId)} // Exclude current exercise
+            keyExtractor={item => item.id}
+            renderItem={({item}) => (
               <TouchableOpacity
                 style={styles.exerciseSelectItem}
                 onPress={() => {
@@ -486,16 +472,15 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
                     updateAlternateExerciseInSettings({
                       id: exerciseId,
                       alternateExercise: item.id,
-                    })
+                    }),
                   );
                   setShowAlternateExerciseModal(false);
-                }}
-              >
+                }}>
                 <Image
                   source={{
                     uri:
                       item.coverImage?.uri ||
-                      "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8",
+                      'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
                   }}
                   style={styles.exerciseSelectImage}
                 />
@@ -503,15 +488,13 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
                   <CustomText
                     color={COLORS.yellow}
                     fontFamily="medium"
-                    fontSize={14}
-                  >
+                    fontSize={14}>
                     {item.name}
                   </CustomText>
                   <CustomText
                     color={COLORS.whiteTail}
                     fontFamily="regular"
-                    fontSize={12}
-                  >
+                    fontSize={12}>
                     {item.mainMuscle} • {item.equipment}
                   </CustomText>
                 </View>
@@ -532,26 +515,26 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: verticalScale(20),
   },
   coverImage: {
     height: hp(20),
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   coverImageStyle: {
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   gradient: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   headerContainer: {
     flex: 1,
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: verticalScale(10),
     paddingVertical: verticalScale(20),
     paddingHorizontal: verticalScale(10),
@@ -568,14 +551,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.brown,
     padding: verticalScale(15),
     borderRadius: 10,
-    alignItems: "center",
+    alignItems: 'center',
   },
   strategyContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   inputGroup: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: verticalScale(5),
   },
   strategyInput: {
@@ -585,14 +568,14 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderColor: COLORS.whiteTail,
     width: horizontalScale(72),
-    textAlign: "center",
+    textAlign: 'center',
     color: COLORS.whiteTail,
-    fontFamily: FONTS["bold"],
+    fontFamily: FONTS['bold'],
   },
   strategyDivider: {
     bottom: verticalScale(12),
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   strategyLine: {
     width: horizontalScale(50),
@@ -604,59 +587,59 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   loggingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-evenly",
-    width: "100%",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    width: '100%',
   },
   loggingOption: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: verticalScale(10),
     borderRadius: 20,
     borderWidth: 1,
     padding: verticalScale(15),
   },
   timingContainer: {
-    width: "100%",
+    width: '100%',
     paddingHorizontal: horizontalScale(15),
     gap: verticalScale(10),
   },
   timingRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   // Alternate Exercise styles
   alternateExerciseCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     borderRadius: verticalScale(10),
     backgroundColor: COLORS.lightBrown,
     padding: verticalScale(5),
     borderWidth: 1,
     borderColor: COLORS.white,
-    width: "100%",
+    width: '100%',
   },
   alternateExerciseImage: {
     height: 71,
     width: 66,
     borderRadius: 10,
-    resizeMode: "cover",
+    resizeMode: 'cover',
   },
   alternateExerciseContent: {
     paddingHorizontal: horizontalScale(10),
-    justifyContent: "flex-start",
+    justifyContent: 'flex-start',
     gap: verticalScale(5),
     paddingVertical: verticalScale(4),
     flex: 1,
   },
   removeAlternateButton: {
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: verticalScale(5),
   },
   addAlternateButton: {
-    alignSelf: "flex-end",
-    width: "auto",
+    alignSelf: 'flex-end',
+    width: 'auto',
     paddingHorizontal: horizontalScale(20),
     paddingVertical: verticalScale(5),
     borderRadius: verticalScale(5),
@@ -667,9 +650,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.darkBrown,
   },
   modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: horizontalScale(20),
     borderBottomWidth: 1,
     borderBottomColor: COLORS.brown,
@@ -681,8 +664,8 @@ const styles = StyleSheet.create({
     padding: horizontalScale(15),
   },
   exerciseSelectItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.lightBrown,
     padding: verticalScale(10),
     borderRadius: 10,

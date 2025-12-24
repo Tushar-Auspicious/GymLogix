@@ -322,7 +322,9 @@ const WorkroutDataScreen: FC<{
           delayLongPress={200}>
           <Image
             source={{
-              uri: exercise.coverImage?.uri,
+              uri:
+                exercise.coverImage?.uri ||
+                'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
             }}
             style={{
               height: '100%',

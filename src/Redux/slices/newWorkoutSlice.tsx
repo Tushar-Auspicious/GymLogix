@@ -43,6 +43,7 @@ export type WorkoutData = {
 interface NewWorkoutSlice {
   workoutData: WorkoutData;
   activeStep: number;
+  tempSelectedExerciseIds: string[];
 }
 
 // Define the initial state using that type
@@ -73,6 +74,7 @@ const initialState: NewWorkoutSlice = {
     ],
   },
   activeStep: 1,
+  tempSelectedExerciseIds: [],
 };
 
 export const NewWorkoutSlice = createSlice({
@@ -359,6 +361,26 @@ export const NewWorkoutSlice = createSlice({
       state.workoutData = initialState.workoutData;
       state.activeStep = initialState.activeStep;
     },
+
+    setTempSelectedExercises: (state, action: PayloadAction<string[]>) => {
+      state.tempSelectedExerciseIds = action.payload;
+    },
+
+    addToTempSelection: (state, action: PayloadAction<string>) => {
+      if (!state.tempSelectedExerciseIds.includes(action.payload)) {
+        state.tempSelectedExerciseIds.push(action.payload);
+      }
+    },
+
+    removeFromTempSelection: (state, action: PayloadAction<string>) => {
+      state.tempSelectedExerciseIds = state.tempSelectedExerciseIds.filter(
+        id => id !== action.payload,
+      );
+    },
+
+    clearTempSelection: state => {
+      state.tempSelectedExerciseIds = [];
+    },
   },
 });
 
@@ -381,6 +403,10 @@ export const {
   removeExerciseFromSuperset,
   deleteSuperset,
   resetNewWorkoutSlice,
+  setTempSelectedExercises,
+  addToTempSelection,
+  removeFromTempSelection,
+  clearTempSelection,
 } = NewWorkoutSlice.actions;
 
 export default NewWorkoutSlice.reducer;

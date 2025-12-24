@@ -20,7 +20,15 @@ import {CustomText} from '../../../Components/CustomText';
 import PrimaryButton from '../../../Components/PrimaryButton';
 import {selectAllExercises} from '../../../Redux/slices/exerciseCatalogSlice';
 import {setSupersetData} from '../../../Redux/slices/LogWorkoutSlice';
-import {reorderExercises} from '../../../Redux/slices/PlanDataSlice';
+import {
+  reorderExercises,
+  updateExerciseInaPlan,
+} from '../../../Redux/slices/PlanDataSlice';
+import {
+  setCopiedExerciseIds,
+  setCopiedSupersets,
+  setCopiedSource,
+} from '../../../Redux/slices/workoutDataSlice';
 import {useAppDispatch, useAppSelector} from '../../../Redux/store';
 import {Exercise} from '../../../Seeds/ExerciseCatalog';
 import {WeeklyStructure} from '../../../Seeds/TrainingPLans';
@@ -128,6 +136,13 @@ const ExerciseView: FC<ExerciseData> = ({
   const exercisesRef = useRef<any[]>([]);
   const allExercises = useAppSelector(selectAllExercises);
   const exercisesData = useAppSelector(state => state.exerciseData);
+
+  const {
+    copiedExerciseIds,
+    copiedSupersets,
+    copiedFromPlanId,
+    copiedFromDayIndex,
+  } = useAppSelector(state => state.workoutData);
 
   const findExercises = useCallback(
     (dataArray: any[]) => {
@@ -322,6 +337,273 @@ const ExerciseView: FC<ExerciseData> = ({
     return muscles.sort((a, b) => b.percentage - a.percentage);
   }, [isSupersetSelected, selectedSuperset, stableExercises]);
 
+  const getExerciseIDs = () => {
+    const exercisesToCopy: any[] = [];
+    const supersets: any[] = [];
+
+    // Copy both individual exercises and supersets
+    stableExercises.forEach(item => {
+      if (
+        item &&
+        typeof item === 'object' &&
+        'type' in item &&
+        item.type === 'superset'
+      ) {
+        // Create the superset ID
+        const supersetId = `superset-${item.exercises
+          .map((e: any) => e.exercise_id || e.id)
+          .join('-')}`;
+
+        // Check if the superset itself is selected (by its unique ID)
+        if (selectedExercises.includes(supersetId)) {
+          // Copy the entire superset
+          supersets.push(item);
+        } else {
+          // Check if individual exercises in the superset are selected
+          item.exercises.forEach((ex: any) => {
+            const id = ex.exercise_id || ex.id;
+            if (selectedExercises.includes(id)) {
+              exercisesToCopy.push(ex);
+            }
+          });
+        }
+      } else {
+        // For regular exercises, check if it's selected
+        const id = item.exercise_id || item.id;
+        if (selectedExercises.includes(id)) {
+          exercisesToCopy.push(item);
+        }
+      }
+    });
+
+    // Save selected exercises (full objects) and supersets to Redux state for paste functionality
+    dispatch(setCopiedExerciseIds(exercisesToCopy));
+    dispatch(setCopiedSupersets(supersets));
+
+    // Save the source plan and day index
+    dispatch(
+      setCopiedSource({
+        planId: programId,
+        dayIndex: currentDayIndex,
+      }),
+    );
+
+    return exercisesToCopy.map(ex => String(ex.id || ex.exercise_id));
+  };
+
+  // Check if we should show the paste button
+  const shouldShowPasteButton = useMemo(() => {
+    // No copied data
+    if (copiedExerciseIds.length === 0 && copiedSupersets.length === 0) {
+      return false;
+    }
+
+    // Check if we're on the same plan and day where we copied from
+    if (
+      copiedFromPlanId !== null &&
+      copiedFromDayIndex !== null &&
+      String(copiedFromPlanId) === String(programId) &&
+      copiedFromDayIndex === currentDayIndex
+    ) {
+      return false;
+    }
+
+    // Get current exercise IDs in this day
+    const currentExerciseIds = new Set(
+      stableExercises
+        .filter(item => !item.type || item.type !== 'superset')
+        .map((item: any) => String(item.exercise_id || item.id)),
+    );
+
+    // Check if all copied individual exercises already exist
+    const allIndividualExercisesExist = copiedExerciseIds.every((exe: any) => {
+      const id = String(exe.exercise_id || exe.id);
+      return currentExerciseIds.has(id);
+    });
+
+    // Check if all copied supersets already exist
+    const allSupersetsExist = copiedSupersets.every((superset: any) => {
+      const supersetId = `superset-${superset.exercises
+        .map((e: any) => e.exercise_id || e.id)
+        .join('-')}`;
+
+      // Check if this exact superset exists in stableExercises
+      return stableExercises.some((item: any) => {
+        if (!item.type || item.type !== 'superset') return false;
+        const existingSupersetId = `superset-${item.exercises
+          .map((e: any) => e.exercise_id || e.id)
+          .join('-')}`;
+        return existingSupersetId === supersetId;
+      });
+    });
+
+    // If all copied items already exist, don't show paste button
+    if (
+      copiedExerciseIds.length > 0 &&
+      copiedSupersets.length === 0 &&
+      allIndividualExercisesExist
+    ) {
+      return false;
+    }
+
+    if (
+      copiedExerciseIds.length === 0 &&
+      copiedSupersets.length > 0 &&
+      allSupersetsExist
+    ) {
+      return false;
+    }
+
+    if (
+      copiedExerciseIds.length > 0 &&
+      copiedSupersets.length > 0 &&
+      allIndividualExercisesExist &&
+      allSupersetsExist
+    ) {
+      return false;
+    }
+
+    return true;
+  }, [
+    copiedExerciseIds,
+    copiedSupersets,
+    copiedFromPlanId,
+    copiedFromDayIndex,
+    programId,
+    currentDayIndex,
+    stableExercises,
+  ]);
+
+  const handlePasteExercises = () => {
+    if (copiedExerciseIds.length === 0 && copiedSupersets.length === 0) return;
+
+    const currentDay = dayData[currentDayIndex];
+    const dayId = currentDay?.name || `day-${currentDayIndex}`;
+
+    // Get current exercise IDs to check for duplicates
+    const currentExerciseIds = new Set(
+      stableExercises
+        .filter(item => !item.type || item.type !== 'superset')
+        .map((item: any) => String(item.exercise_id || item.id)),
+    );
+
+    // Filter out exercises that already exist
+    const exercisesToPaste = copiedExerciseIds.filter((exe: any) => {
+      const id = String(exe.exercise_id || exe.id);
+      const exists = currentExerciseIds.has(id);
+      if (exists) {
+      }
+      return !exists;
+    });
+
+    // Filter out supersets that already exist
+    const supersetsToPaste = copiedSupersets.filter((superset: any) => {
+      const supersetId = `superset-${superset.exercises
+        .map((e: any) => e.exercise_id || e.id)
+        .join('-')}`;
+
+      const exists = stableExercises.some((item: any) => {
+        if (!item.type || item.type !== 'superset') return false;
+        const existingSupersetId = `superset-${item.exercises
+          .map((e: any) => e.exercise_id || e.id)
+          .join('-')}`;
+        return existingSupersetId === supersetId;
+      });
+
+      if (exists) {
+      }
+      return !exists;
+    });
+
+    if (exercisesToPaste.length === 0 && supersetsToPaste.length === 0) {
+      return;
+    }
+
+    // Helper function to convert time string to seconds
+    const toSeconds = (timeStr?: string): number => {
+      if (!timeStr || typeof timeStr !== 'string') return 0;
+      const trimmed = timeStr.trim();
+      if (!trimmed) return 0;
+
+      let parts = trimmed
+        .split(':')
+        .map(p => p.trim())
+        .filter(p => p && !isNaN(Number(p)))
+        .map(Number);
+
+      if (parts.length < 2) return 0;
+      if (parts.length > 2) parts = parts.slice(0, 2);
+
+      const [min = 0, sec = 0] = parts;
+      return min * 60 + sec;
+    };
+
+    // Helper function to convert seconds to minutes decimal
+    const toMinutesDecimal = (seconds: number): number => {
+      if (typeof seconds !== 'number' || isNaN(seconds) || seconds < 0)
+        return 0;
+      const minutes = Math.floor(seconds / 60);
+      const secs = (seconds % 60) / 60;
+      return parseFloat((minutes + secs).toFixed(2));
+    };
+
+    // Format exercises for updateExerciseInaPlan (Redux)
+    const payload = exercisesToPaste.map((exe: any) => {
+      const exerciseId = exe.id || exe.exercise_id;
+      const settings = exe.exerciseSettings || {};
+
+      return {
+        exercise_id: exerciseId,
+        sets: settings.sets || 3,
+        reps: settings.reps || 10,
+        timing_warmup:
+          toMinutesDecimal(toSeconds(settings.timing?.warmUp)) || 0,
+        timing_workset:
+          toMinutesDecimal(toSeconds(settings.timing?.workingSet)) || 0,
+        timing_finish:
+          toMinutesDecimal(toSeconds(settings.timing?.finishExercise)) || 0,
+        Is_time: settings.loggingType === 'Time',
+        is_weight: settings.loggingType === 'Weight',
+        Is_distance: settings.loggingType === 'Distance',
+        alternate_exercise_id: settings.alternateExercise || [],
+      };
+    });
+
+    // Dispatch action to add exercises to the plan (Redux)
+    dispatch(
+      updateExerciseInaPlan({
+        planId: Number(programId),
+        dayId,
+        exercise: payload,
+      }),
+    );
+
+    // Update local exerciseData state to immediately show the pasted exercises and supersets
+    // exerciseData expects raw exercise data (with exercise_id, sets, reps, etc.) or superset objects
+    const updatedExerciseData = [
+      ...exerciseData,
+      ...payload,
+      ...supersetsToPaste,
+    ] as any;
+    setExerciseData(updatedExerciseData);
+
+    // Update Redux superset data if needed
+    const workoutId = currentDay?.workout_id;
+    if (workoutId) {
+      dispatch(
+        setSupersetData({
+          workoutPlanId: Number(programId),
+          workoutId: workoutId,
+          exerciseData: updatedExerciseData,
+        }),
+      );
+    }
+
+    // Clear clipboard
+    dispatch(setCopiedExerciseIds([]));
+    dispatch(setCopiedSupersets([]));
+  };
+
   const renderItem = useCallback(
     ({item, drag, isActive}: RenderItemParams<any>) => {
       const alternateExerciseId = item.exerciseSettings?.alternateExercise;
@@ -362,6 +644,12 @@ const ExerciseView: FC<ExerciseData> = ({
         'type' in item &&
         item.type === 'superset'
       ) {
+        // Create a unique ID for the superset using all exercise IDs
+        const supersetId = `superset-${item.exercises
+          .map((e: any) => e.exercise_id || e.id)
+          .join('-')}`;
+        const isSupersetSelected = selectedExercises.includes(supersetId);
+
         return (
           <ScaleDecorator>
             <TouchableOpacity
@@ -370,17 +658,30 @@ const ExerciseView: FC<ExerciseData> = ({
                   onPressSuperset(item as Superset);
                 }
               }}
+              // onLongPress={
+              //   !hideButton
+              //     ? () => {
+              //         handleLongExercisePress(supersetId);
+              //       }
+              //     : undefined
+              // }
               activeOpacity={1}
               disabled={isActive}
               style={{
                 padding: verticalScale(4),
                 gap: verticalScale(5),
-                borderColor: COLORS.whiteTail,
-                borderWidth: 1,
+                borderColor: isSupersetSelected
+                  ? COLORS.yellow
+                  : COLORS.whiteTail,
+                borderWidth: isSupersetSelected ? 2 : 1,
                 borderRadius: 10,
                 width: wp(95),
                 alignSelf: 'center',
-                backgroundColor: isActive ? COLORS.nickel : undefined,
+                backgroundColor: isActive
+                  ? COLORS.nickel
+                  : isSupersetSelected
+                  ? COLORS.lighterBrown
+                  : undefined,
               }}>
               <View
                 style={{
@@ -641,7 +942,6 @@ const ExerciseView: FC<ExerciseData> = ({
               .map(item => {
                 // Handle supersets - they don't have exerciseSettings
                 if (item?.type === 'superset') {
-                  console.log('  - Skipping superset in Redux order');
                   return null; // Skip supersets in Redux order
                 }
 
@@ -776,10 +1076,7 @@ const ExerciseView: FC<ExerciseData> = ({
                         // Extract IDs from superset exercises
                         (item as any).exercises.forEach((ex: any) => {
                           const id = ex.id || ex.exercise_id;
-                          console.log(
-                            '    - Adding exercise ID from superset:',
-                            id,
-                          );
+
                           exerciseIds.push(id);
                         });
                       } else {
@@ -1091,7 +1388,9 @@ const ExerciseView: FC<ExerciseData> = ({
                       DELETE
                     </CustomText>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={getExerciseIDs}>
                     <CustomIcon Icon={ICONS.CopyIcon} height={15} width={15} />
                     <CustomText fontSize={6} fontFamily="bold">
                       COPY
@@ -1189,6 +1488,16 @@ const ExerciseView: FC<ExerciseData> = ({
               />
             </View>
           )}
+          {shouldShowPasteButton && (
+            <TouchableOpacity
+              style={styles.pasetButton}
+              onPress={handlePasteExercises}>
+              <CustomIcon Icon={ICONS.CopyIcon} height={15} width={15} />
+              <CustomText fontSize={6} fontFamily="bold">
+                PASTE
+              </CustomText>
+            </TouchableOpacity>
+          )}
           {renderExerciseList()}
         </>
       )}
@@ -1256,5 +1565,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 40,
     width: 40,
+  },
+  pasetButton: {
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.whiteTail,
+    borderRadius: 100,
+    justifyContent: 'center',
+    height: 40,
+    width: 40,
+    alignSelf: 'flex-start',
+    marginLeft: horizontalScale(20),
   },
 });

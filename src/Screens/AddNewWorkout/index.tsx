@@ -1,5 +1,11 @@
-import React, {FC, useEffect, useState} from 'react';
-import {Alert, ImageBackground, StyleSheet, View} from 'react-native';
+import React, {FC, useCallback, useEffect, useState} from 'react';
+import {
+  Alert,
+  BackHandler,
+  ImageBackground,
+  StyleSheet,
+  View,
+} from 'react-native';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import LinearGradient from 'react-native-linear-gradient';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -40,6 +46,8 @@ import {
   storeLocalStorageData,
 } from '../../Utilities/Storage';
 import STORAGE_KEYS from '../../Utilities/Constants';
+import {useFocusEffect} from '@react-navigation/native';
+import {setHomeActiveIndex} from '../../Redux/slices/initialSlice';
 
 const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
@@ -59,7 +67,7 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
     useState<string | null>(null);
 
   const handleImagePick = () => {
-    launchImageLibrary({mediaType: 'photo', quality: 0.8}, async response => {
+    launchImageLibrary({mediaType: 'photo', quality: 0.5}, async response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.errorCode) {
@@ -99,13 +107,10 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
     });
   };
 
-  console.log('GOAl', workoutData.goal);
-  console.log('LOCATION', workoutData.location);
-
   const handleCameraPick = async () => {
     try {
       const result = await launchCamera({
-        quality: 1,
+        quality: 0.5,
         mediaType: 'photo',
       });
 
@@ -215,6 +220,8 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
     }
   };
 
+  const isScrollEnabled = activeStep === 8 ? false : true;
+
   const toMinutesDecimal = (seconds: number): number => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -229,11 +236,13 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
   };
 
   const createNewWorkout = async () => {
-    const difficultyLevels: any = {
-      1: 'beginner',
-      2: 'intermediate',
-      3: 'advance',
-    };
+    let difficultyText = 'beginner';
+
+    if (workoutData.difficulty >= 1.5 && workoutData.difficulty < 2.5) {
+      difficultyText = 'intermediate';
+    } else if (workoutData.difficulty >= 2.5) {
+      difficultyText = 'advance';
+    }
 
     const data = {
       name: workoutData.name, //must be included
@@ -247,7 +256,7 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
         type: workoutData.goal,
         location: workoutData.location,
         duration: workoutData.durationInWeeks.toString(),
-        difficulty: difficultyLevels[workoutData.difficulty] || 'beginner',
+        difficulty: difficultyText,
         workouts: workoutData.exerciseList.map(item => ({
           workout_id: Number(item.id),
           name: item.dayName,
@@ -270,14 +279,17 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
                 timing_finish: toMinutesDecimal(
                   toSeconds(ex.exerciseSettings?.timing?.finishExercise),
                 ),
-                Is_time:
-                  ex.exerciseSettings?.loggingType === 'Time' ? true : false,
-                is_weight:
-                  ex.exerciseSettings?.loggingType === 'Weight' ? true : false,
-                Is_distance:
-                  ex.exerciseSettings?.loggingType === 'Distance'
-                    ? true
-                    : false,
+                Is_time: ex.exerciseSettings?.loggingType?.includes('Time')
+                  ? true
+                  : false,
+                is_weight: ex.exerciseSettings?.loggingType?.includes('Weight')
+                  ? true
+                  : false,
+                Is_distance: ex.exerciseSettings?.loggingType?.includes(
+                  'Distance',
+                )
+                  ? true
+                  : false,
                 alternate_exercise_id: ex.exerciseSettings?.alternateExercise
                   ? [ex.exerciseSettings?.alternateExercise]
                   : [],
@@ -335,38 +347,39 @@ const AddNewWorkout: FC<AddNewWorkoutScreenProps> = ({navigation}) => {
           ),
         );
 
-        Alert.alert(
-          'Success!',
-          `Workout "${workoutData.name}" has been saved successfully!`,
-          [
-            {
-              text: 'View My Workouts',
-              onPress: () => {
-                dispatch(resetNewWorkoutSlice());
-                navigation.navigate('tabs', {
-                  screen: 'PLAN',
-                });
-              },
-            },
-            {
-              text: 'Create Another',
-              onPress: () => {
-                dispatch(resetNewWorkoutSlice());
-                dispatch(setActiveStep(1));
-              },
-            },
-          ],
-        );
+        dispatch(resetNewWorkoutSlice());
+        navigation.navigate('tabs', {
+          screen: 'PLAN',
+        });
       }
     } catch (error) {
       console.log(error, 'Something went wrong');
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // If we are inside steps, go back step-by-step
+        if (activeStep > 1) {
+          dispatch(setActiveStep(activeStep - 1));
+          return true; // ⛔ prevent default back behavior
+        }
+
+        // If first step → allow normal back
+        return false;
+      };
+
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    }, [activeStep]),
+  );
+
   return (
     <View style={styles.main}>
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingContainer backgroundColor="transparent">
+        <KeyboardAvoidingContainer
+          backgroundColor="transparent"
+          scrollEnabled={isScrollEnabled}>
           {activeStep < 8 && (
             <ImageBackground
               source={

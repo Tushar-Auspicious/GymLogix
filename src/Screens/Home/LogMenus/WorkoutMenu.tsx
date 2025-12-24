@@ -178,7 +178,7 @@ const WorkoutMenu = () => {
                     key={sectionIndex?.toString()}
                     style={{
                       paddingHorizontal: horizontalScale(8),
-                      paddingVertical: verticalScale(2),
+                      paddingVertical: verticalScale(4),
                       backgroundColor: isDaySelected
                         ? COLORS.skinColor
                         : COLORS.brown,
@@ -199,8 +199,14 @@ const WorkoutMenu = () => {
                       }}
                     />
                     <View>
-                      <CustomText>{section.name}</CustomText>
-                      <CustomText>{`${totalExercises} exercises`}</CustomText>
+                      <CustomText fontFamily="bold" fontSize={14}>
+                        {section.name}
+                      </CustomText>
+                      <CustomText
+                        fontFamily="italic"
+                        fontSize={
+                          12
+                        }>{`${totalExercises} Exercises`}</CustomText>
                     </View>
                   </TouchableOpacity>
                 );
@@ -226,6 +232,7 @@ const WorkoutMenu = () => {
         data={filteredPlans}
         renderItem={renderNestedItem}
         keyExtractor={item => item.id?.toString()}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           gap: verticalScale(15),
         }}
@@ -350,30 +357,6 @@ const WorkoutMenu = () => {
           <PrimaryButton
             title="Start Workout"
             onPress={() => {
-              // if (selectedPlan && selectedDay) {
-              //   const selectedProgram = planData?.find(
-              //     item => item.allData?.plan_id === selectedPlan,
-              //   );
-
-              //   const selectedDayData =
-              //     selectedProgram?.allData?.content.workouts?.find(
-              //       (section: any) => section.name === selectedDay,
-              //     );
-
-              //   // Get the data for the selected day
-              //   const transformedDayData = transformDayData(
-              //     selectedProgram?.allData,
-              //     selectedDay,
-              //   );
-              //   dispatch(setWorkoutProgress('inprogress'));
-              //   workoutTimer.start();
-              //   navigation.navigate('workoutProgramDetails', {
-              //     programId: selectedPlan,
-              //     day: [transformedDayData], // Pass the selected day's data
-              //     selectedProgram: selectedProgram,
-              //   });
-              // }
-
               if (!selectedPlan || !selectedDay) return;
 
               const selectedProgram = planData?.find(

@@ -24,14 +24,11 @@ type MealPlansListProps = {
 
 const MealPlansList: FC<MealPlansListProps> = ({navigation}) => {
   const {myMealsList} = useAppSelector(state => state.myMeals);
-
   const [imageLoading, setImageLoading] = useState<{[key: string]: boolean}>(
     {},
   );
 
   const renderItem = ({item}: {item: MyMealsListItem}) => {
-    // console.log('dsjnfwe', item.coverImage?.uri);
-    // console.log('p[ed,', item.id);
     return (
       <Pressable
         onPress={() =>

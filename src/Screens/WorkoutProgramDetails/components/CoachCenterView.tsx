@@ -90,7 +90,6 @@ const CoachCenterView: FC<CoachData> = ({planId}) => {
       const response = await fetchData<ResponseData>(
         `${ENDPOINTS.get_messages}plan_id=${planId}`,
       );
-      console.log('get messages ----><', response.data);
       const formatted =
         response.data?.messages?.flatMap((item: any, parentIndex: number) =>
           item.messages.map((msg: any, index: number) => ({
