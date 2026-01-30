@@ -9,8 +9,15 @@ import Routing from './src/Routes';
 import COLORS from './src/Utilities/Colors';
 import CustomToast from './src/Components/CustomToast';
 import NetworkLogger from './src/Components/NetworkLogger';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import {endConnection, initConnection} from 'react-native-iap';
 
 LogBox.ignoreAllLogs();
+
+GoogleSignin.configure({
+  webClientId:
+    '489484992575-21a4bbf1shlr2g7vhkhsbqvk16s97mi2.apps.googleusercontent.com', // From Firebase console settings
+});
 
 const App = () => {
   const dispatch = useAppDispatch();
@@ -101,6 +108,28 @@ const App = () => {
 
   useEffect(() => {
     Appearance.setColorScheme('light');
+  }, []);
+
+  useEffect(() => {
+    // 1. Initialize the connection
+    const initializeIAP = async () => {
+      try {
+        console.log('Attempting to initialize IAP connection...');
+        const result = await initConnection();
+        console.log('IAP Connection successful:', result);
+
+        // 2. Set the state only upon success
+      } catch (error) {
+        console.error('[IAP Error] initConnection failed:', error);
+      }
+    };
+
+    initializeIAP();
+    // Cleanup: Disconnect when the component unmounts
+    return () => {
+      endConnection();
+      console.log('IAP Connection ended.');
+    };
   }, []);
 
   return (

@@ -22,6 +22,8 @@ const ENDPOINTS = {
   create_update_message: `conversation/create_update?`,
   get_messages: `conversation/get?`,
   remove_Schedule: `schedule/remove?`,
+  googleSign: `/user/auth/google`,
+  subscriptions: `membership/upgrade`,
 };
 
 export default ENDPOINTS;

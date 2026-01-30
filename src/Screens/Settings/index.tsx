@@ -1,7 +1,10 @@
-import React, {FC, useState} from 'react';
+import React, {FC, useCallback, useEffect, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
+  Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -16,9 +19,34 @@ import {CustomText} from '../../Components/CustomText';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
 import {useAppSelector} from '../../Redux/store';
-import {deleteLocalStorageData} from '../../Utilities/Storage';
+import {
+  deleteLocalStorageData,
+  getLocalStorageData,
+} from '../../Utilities/Storage';
 import STORAGE_KEYS from '../../Utilities/Constants';
 import {SettingScreenProps} from '../../Typings/route';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
+import * as RNIap from 'react-native-iap';
+import {
+  acknowledgePurchaseAndroid,
+  ErrorCode,
+  fetchProducts,
+  getAvailablePurchases,
+  ProductSubscription,
+  ProductSubscriptionAndroid,
+  ProductSubscriptionIOS,
+  PurchaseError,
+  useIAP,
+} from 'react-native-iap';
+import {postData} from '../../APIServices/api';
+import ENDPOINTS from '../../APIServices/endPoints';
+
+const productIds = Platform.select({
+  android: [
+    'com.gymlogix.subscription.monthly',
+    'com.gymlogix.subscription.yearly',
+  ],
+});
 
 const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
   const [acitveUi, setAcitveUi] = useState(0);
@@ -42,6 +70,10 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
   const [selectedUnits, setSelectedUnits] = useState('Metric'); // Metric or Imperial
   const [preventScreenLock, setPreventScreenLock] = useState(true);
 
+  const [selectedPlanType, setSelectedPlanType] = useState<
+    'monthly' | 'yearly' | any
+  >(null);
+
   const [selectedRMFormula, setSelectedRMFormula] = useState('Epley Formula');
   const [
     updateBodyWeightFromMeasurements,
@@ -52,6 +84,398 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
   const [syncToCloud, setSyncToCloud] = useState(true);
   const [dataRetentionPeriod, setDataRetentionPeriod] = useState('1 Year');
   const [shareAnalytics, setShareAnalytics] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedPurchaseDetails, setSelectedPurchaseDetails] = useState<{
+    productId: string; // The base plan ID or iOS product ID
+    offerToken?: string; // The specific Android offer token
+    planTitle: string; // The plan display name
+  } | null>(null);
+
+  const [subscriptionsList, setSubscriptionsList] = useState<
+    ProductSubscription[] | null
+  >([]);
+  const [selectedPlanTitle, setSelectedPlanTitle] = useState<string | null>(
+    null,
+  );
+
+  const {connected, requestPurchase, validateReceipt, finishTransaction} =
+    useIAP({
+      onPurchaseSuccess: async purchase => {
+        console.log(purchase, 'PURCHASE');
+
+        try {
+          const token = await getLocalStorageData(STORAGE_KEYS.token);
+
+          // 1️⃣ Validate receipt
+          const validation = await validateReceipt(purchase.productId, {
+            packageName: 'com.gymlogix',
+            productToken: purchase?.purchaseToken!,
+            accessToken: token,
+            isSub: true,
+          });
+
+          console.log(validation, 'VALIDATION SUCCESS');
+
+          // 2️⃣ Detect plan type (Monthly / Yearly)
+
+          const upgradeType = selectedPlanType || 'monthly';
+
+          // 3️⃣ Call your backend upgrade API
+          const upgradeResponse = await handleUpgradeMemberShip(
+            upgradeType,
+            purchase.transactionId || purchase.purchaseToken, // receipt
+            Platform.OS === 'android' ? 'google' : 'apple',
+            Platform.OS === 'android' ? 'com.gymlogix' : 'com.gymlogix',
+            Platform.OS === 'android' ? purchase.productId : purchase.productId,
+          );
+
+          console.log('MEMBERSHIP UPGRADED:', upgradeResponse);
+
+          // 4️⃣ Finish transaction
+          await finishTransaction({purchase});
+        } catch (error) {
+          console.error('Purchase Flow Error:', error);
+
+          // Still finish to avoid stuck purchases
+          await finishTransaction({purchase});
+        }
+      },
+      onPurchaseError: async error => {
+        // Always show the loading state is finished
+
+        console.error('IAP Purchase Failed:', error.code, error.message);
+
+        const isItemAlreadyOwnedError =
+          error.message === 'Item is already owned';
+
+        if (Platform.OS === 'android' && isItemAlreadyOwnedError) {
+          setTimeout(() => {
+            // Alert.alert(
+            //   'Subscription Already Active',
+            //   'This subscription is currently active on your device. It is linked to a different Google Play account on this device (likely the one used by your original app account). Please ensure you are logged into the correct Google Play Store account, or switch your account within the Play Store settings to buy it again from this account.',
+            //   [
+            //     {
+            //       text: 'Got It',
+            //     },
+            //     {
+            //       text: 'Manage Play Accounts',
+            //       onPress: async () => {
+            //         await RNIap.deepLinkToSubscriptions({
+            //           skuAndroid: error.productId,
+            //           packageNameAndroid: 'com.gymlogix', // Your app's package name
+            //         });
+            //       },
+            //     },
+            //   ],
+            // );
+          }, 400);
+          return;
+        } else if (
+          error.code === 'developer-error' &&
+          error.message === 'Invalid arguments provided to the API'
+        ) {
+          setTimeout(() => {
+            Alert.alert(
+              'Subscription Conflict Detected',
+              'This device has a recently cancelled subscription linked to a **different** Google Play account. Please ensure the correct account is logged into the Play Store, or wait for the existing subscription to fully expire to make a new purchase.',
+              [
+                {
+                  text: 'Got It',
+                },
+                {
+                  text: 'Manage Play Accounts',
+                  onPress: async () => {
+                    await RNIap.deepLinkToSubscriptions({
+                      skuAndroid: error.productId,
+                      packageNameAndroid: 'com.gymlogix', // Your app's package name
+                    });
+                  },
+                },
+              ],
+            );
+          }, 400);
+          return;
+        } else if (error.code !== ErrorCode.UserCancelled) {
+          // Default error handling for all other genuine errors
+          Alert.alert('Error', error.message);
+        }
+      },
+    });
+
+  const handlePlanSelect = (
+    purchaseDetails: typeof selectedPurchaseDetails,
+  ) => {
+    if (selectedPlanTitle === purchaseDetails?.planTitle) {
+      setSelectedPlanTitle(null);
+      setSelectedPurchaseDetails(null);
+    } else {
+      setSelectedPlanTitle(purchaseDetails?.planTitle || null);
+      setSelectedPurchaseDetails(purchaseDetails);
+    }
+  };
+
+  const handleUpgradeMemberShip = async (
+    upgrade: any, // 'monthly' or 'yearly'
+    receipt: any, // purchase receipt
+    platform: any, // 'google' or 'apple'
+    packageName: any, // required for Google (optional for Apple)
+    subscriptionId: any, // required for Google (optional for Apple)
+  ) => {
+    try {
+      const data = {
+        upgrade,
+        receipt,
+        platform,
+        packageName,
+        subscriptionId,
+      };
+
+      const response = await postData(ENDPOINTS.subscriptions, data);
+      console.log('SUBS', response);
+
+      return response;
+    } catch (error) {
+      console.error('Upgrade API Error:', error);
+    }
+  };
+
+  // const handleRestorePurchase = useCallback(async () => {
+  //   if (!connected) {
+  //     Alert.alert('Error', 'Billing not connected.');
+  //     return;
+  //   }
+
+  //   try {
+  //     setIsLoading(true);
+
+  //     const purchases = await getAvailablePurchases();
+
+  //     if (!purchases?.length) {
+  //       Alert.alert('Restore Failed', 'No previous purchases found.');
+  //       return;
+  //     }
+
+  //     // Get only valid subs
+  //     const validSubscriptions = purchases.filter(p =>
+  //       productIds?.includes(p.productId),
+  //     );
+
+  //     if (!validSubscriptions.length) {
+  //       Alert.alert('Restore Failed', 'No active subscription found.');
+  //       return;
+  //     }
+
+  //     // Pick latest subscription
+  //     const activeSubscription = validSubscriptions.sort(
+  //       (a, b) => b.transactionDate - a.transactionDate,
+  //     )[0];
+
+  //     console.log('RESTORE PURCHASE:', activeSubscription);
+
+  //     // Detect plan
+  //     const planType =
+  //       activeSubscription.productId === 'com.gymlogix.subscription.yearly'
+  //         ? 'yearly'
+  //         : 'monthly';
+
+  //     // Sync with backend
+  //     const response = await handleUpgradeMemberShip(
+  //       planType,
+  //       Platform.OS === 'android'
+  //         ? activeSubscription.purchaseToken
+  //         : activeSubscription.transactionId,
+  //       Platform.OS === 'android' ? 'google' : 'apple',
+  //       'com.gymlogix',
+  //       activeSubscription.productId,
+  //     );
+
+  //     console.log('RESTORE SYNC RESPONSE:', response);
+
+  //     await finishTransaction({purchase: activeSubscription});
+
+  //     Alert.alert(
+  //       'Success',
+  //       `${
+  //         planType.charAt(0).toUpperCase() + planType.slice(1)
+  //       } subscription restored successfully.`,
+  //     );
+  //   } catch (error) {
+  //     console.error('RESTORE ERROR:', error);
+  //     Alert.alert('Restore Error', 'Could not restore subscription.');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // }, [connected]);
+
+  const handleManageSubscription = async () => {
+    try {
+      if (Platform.OS === 'ios') {
+        await Linking.openURL('https://apps.apple.com/account/subscriptions');
+        return;
+      }
+
+      if (Platform.OS === 'android') {
+        if (!selectedPurchaseDetails?.productId) {
+          Alert.alert(
+            'No Subscription Found',
+            'Please purchase a subscription first.',
+          );
+          return;
+        }
+
+        await RNIap.deepLinkToSubscriptions({
+          skuAndroid: selectedPurchaseDetails.productId,
+          packageNameAndroid: 'com.gymlogix',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to open subscription management:', error);
+
+      Alert.alert(
+        'Error',
+        'Unable to open subscription settings. Please try again later.',
+      );
+    }
+  };
+
+  const getPriceDetails = (
+    subscription: ProductSubscriptionAndroid | ProductSubscriptionIOS,
+  ) => {
+    if (Platform.OS === 'ios') {
+      const iosSubscription = subscription as ProductSubscriptionIOS;
+
+      return {
+        mainPrice: iosSubscription.displayPrice,
+        introductoryPrice: iosSubscription.introductoryPriceAsAmountIOS,
+        introductoryPeriod:
+          iosSubscription.introductoryPriceSubscriptionPeriodIOS,
+        currency: iosSubscription.currency,
+        purchaseId: iosSubscription.id,
+        length: iosSubscription.subscriptionPeriodUnitIOS,
+      };
+    } else {
+      const androidSubscription = subscription as ProductSubscriptionAndroid;
+
+      // Android: Find both introductory and recurring phases
+      let mainPrice = androidSubscription.displayPrice;
+      let introOffer: {price: string; period: string} | null = null;
+      let offerToken: string | undefined = undefined; // New field for Android purchase
+      let purchaseId = androidSubscription.id; // Default to main ID
+
+      const offerDetails =
+        (androidSubscription.subscriptionOfferDetailsAndroid || [])[0];
+
+      if (offerDetails) {
+        const pricingPhases = offerDetails.pricingPhases?.pricingPhaseList;
+        offerToken = offerDetails.offerToken; // Get the offer token
+        purchaseId = offerDetails.basePlanId; // Use base plan ID
+
+        if (pricingPhases && pricingPhases.length > 0) {
+          const introductoryPhase = pricingPhases.find(
+            phase => phase.recurrenceMode === 2,
+          );
+
+          if (introductoryPhase) {
+            introOffer = {
+              price: introductoryPhase.formattedPrice,
+              period: introductoryPhase.billingPeriod,
+            };
+          }
+
+          const recurringPhase = pricingPhases.find(
+            phase => phase.recurrenceMode === 1,
+          );
+
+          if (recurringPhase) {
+            mainPrice = recurringPhase.formattedPrice;
+          } else {
+            mainPrice = pricingPhases[pricingPhases.length - 1].formattedPrice;
+          }
+        }
+      }
+
+      return {
+        mainPrice,
+        introductoryPrice: introOffer?.price,
+        introductoryPeriod: introOffer?.period,
+        currency: androidSubscription.currency,
+        offerToken, // Added offerToken
+        purchaseId, // Added purchaseId (Base Plan ID)
+        length: 'Month',
+      };
+    }
+  };
+
+  const handleSubscription = useCallback(
+    (itemId: string, offerToken?: string) => {
+      if (!subscriptionsList) return;
+
+      // allow adding subscriptionOffers on Android by using a looser type
+      const androidPayload: RNIap.RequestSubscriptionAndroidProps = {
+        skus: [itemId],
+        // obfuscatedAccountIdAndroid: userData?.id,
+        // obfuscatedProfileIdAndroid: userData?.id,
+      };
+
+      if (Platform.OS === 'android' && offerToken) {
+        androidPayload.subscriptionOffers = [
+          {
+            sku: itemId, // use the selected itemId as the sku
+            offerToken: offerToken, // Use the specific SELECTED offer token
+          },
+        ];
+      }
+
+      void requestPurchase({
+        request: {
+          ios: {
+            sku: itemId,
+            appAccountToken: userData?.id,
+          },
+          android: androidPayload,
+        },
+        type: 'subs',
+      }).catch((err: PurchaseError) => {
+        console.warn('requestPurchase failed:', err);
+        Alert.alert('Subscription Failed', err.message);
+      });
+    },
+    [subscriptionsList],
+  );
+
+  const loadSubscriptions = async () => {
+    setIsLoading(true);
+    try {
+      const subscriptions = await fetchProducts({
+        skus: productIds as string[], // Use the defined productIds
+        type: 'subs',
+      });
+
+      setSubscriptionsList(subscriptions as ProductSubscription[]);
+    } catch (error) {
+      console.error('Failed to fetch subscriptions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (connected) {
+      loadSubscriptions();
+
+      getAvailablePurchases()
+        .then(purchases => {
+          purchases.forEach(purchase => {
+            console.log(
+              'Finishing pending transaction for:',
+              purchase.productId,
+            );
+            finishTransaction({purchase});
+          });
+        })
+        .catch(e => console.error('Error checking available purchases', e));
+    }
+  }, [connected]);
 
   const rendermemberShipData = () => {
     return (
@@ -230,7 +654,142 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
             fontSize={12}>
             Join Now to access all beinfits
           </CustomText>
-          <View style={{gap: verticalScale(10)}}>
+          {isLoading ? (
+            <ActivityIndicator size={10} color={COLORS.crimson} />
+          ) : subscriptionsList && subscriptionsList.length > 0 ? (
+            subscriptionsList.map((plan: ProductSubscription) => {
+              const offerDetails = plan.subscriptionOfferDetailsAndroid?.[0];
+              const offerToken = offerDetails?.offerToken || null;
+
+              const {mainPrice, introductoryPrice, introductoryPeriod} =
+                getPriceDetails(plan);
+
+              const getPlanType = () => {
+                if (mainPrice.includes('₹1,100.00')) {
+                  return 'Monthly';
+                }
+
+                if (mainPrice.includes('₹10,800.00')) {
+                  return 'Yearly';
+                }
+
+                return '';
+              };
+
+              // DYNAMIC FEATURES: Create feature list
+              // let planFeatures = [...STATIC_PLAN_FEATURES];
+
+              if (
+                introductoryPrice &&
+                introductoryPeriod &&
+                (introductoryPrice === 'Free' ||
+                  introductoryPrice === '0' ||
+                  introductoryPrice === '$0.00') // Check for "Free" (Android) or "$0.00" (iOS)
+              ) {
+                let formattedPeriod;
+
+                // Format the period for display (Handle RNIap's specific formats)
+                if (Platform.OS === 'android') {
+                  formattedPeriod =
+                    introductoryPeriod === 'P1W'
+                      ? '1 Week'
+                      : introductoryPeriod;
+                } else {
+                  // iOS case (introductoryPeriod is usually "week", "month", etc.)
+                  formattedPeriod =
+                    introductoryPeriod === 'week'
+                      ? '1 Week'
+                      : introductoryPeriod;
+                }
+
+                // Add the trial feature to the list
+                // planFeatures.unshift(`✦    ${formattedPeriod} FREE Trial!`);
+
+                // Update the button title to emphasize the trial
+                //  buttonDisplayTitle = `Start ${formattedPeriod} FREE Trial`;
+              }
+
+              const planTitle = plan.displayName || plan.title;
+
+              const purchaseDetails = {
+                productId: plan.id,
+                offerToken,
+                planTitle,
+              };
+
+              return (
+                <View style={{gap: verticalScale(10)}} key={plan.id}>
+                  {/* Buttons */}
+                  <View
+                    style={{
+                      borderRadius: 100,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      overflow: 'hidden',
+                    }}>
+                    {/* Continue Button */}
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#D71745',
+                        paddingVertical: verticalScale(10),
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      onPress={() => {
+                        handlePlanSelect(purchaseDetails);
+                        setSelectedPlanType(getPlanType().toLowerCase());
+                        handleSubscription(
+                          purchaseDetails?.productId,
+                          purchaseDetails?.offerToken,
+                        );
+                      }}>
+                      <CustomText fontSize={12} fontFamily="medium">
+                        CONTINUE
+                      </CustomText>
+                    </TouchableOpacity>
+
+                    {/* Price Button */}
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#941231',
+                        paddingVertical: verticalScale(10),
+                      }}>
+                      <CustomText
+                        fontSize={12}
+                        fontFamily="medium"
+                        style={{textAlign: 'center'}}>
+                        {`${mainPrice}/${getPlanType()}`}
+                      </CustomText>
+                    </View>
+                  </View>
+                  <CustomText
+                    fontSize={12}
+                    fontFamily="medium"
+                    style={{textAlign: 'center'}}>
+                    {planTitle === 'Yearly Plan'
+                      ? 'Billed Annually at this'
+                      : 'Billed Monthly at this'}
+                  </CustomText>
+                </View>
+              );
+            })
+          ) : (
+            <CustomText color={COLORS.white} fontSize={16}>
+              No plans available.
+            </CustomText>
+          )}
+
+          <CustomText
+            fontFamily="medium"
+            color={COLORS.yellow}
+            fontSize={12}
+            onPress={handleManageSubscription}
+            style={{textAlign: 'center'}}>
+            MANAGE SUBSCRIPTIONS
+          </CustomText>
+          {/* <View style={{gap: verticalScale(10)}}>
             <View
               style={{
                 borderRadius: 100,
@@ -313,7 +872,7 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
               style={{textAlign: 'center'}}>
               Billed Monthly
             </CustomText>
-          </View>
+          </View> */}
         </View>
       </ScrollView>
     );
@@ -327,8 +886,9 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
       },
       {
         text: 'Confirm',
-        onPress: () => {
+        onPress: async () => {
           deleteLocalStorageData(STORAGE_KEYS.token);
+          await GoogleSignin.signOut();
           navigation.replace('authStack', {
             screen: 'signIn',
           });
@@ -1214,5 +1774,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: verticalScale(15),
+  },
+  restoreBtn: {
+    backgroundColor: '#D71745',
+    paddingVertical: verticalScale(10),
+    borderRadius: 99,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

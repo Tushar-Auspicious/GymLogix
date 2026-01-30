@@ -1,4 +1,4 @@
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {FlatList, ScrollView, StyleSheet, Text, View} from 'react-native';
 import React, {FC} from 'react';
 import {horizontalScale, verticalScale} from '../../../Utilities/Metrics';
 import {CustomText} from '../../../Components/CustomText';
@@ -69,6 +69,99 @@ const HistoryView: FC<HistoryViewProps> = ({
     return false;
   });
 
+  const renderItem = ({item}: any) => {
+    const {scheduleItem, exercise} = item;
+
+    const findScheduleExercise = exerciseData?.find(
+      ex => Number(ex.exercise_id) === Number(exercise?.Exercise_id),
+    );
+
+    return (
+      <View
+        style={{
+          backgroundColor: COLORS.lightBrown,
+          padding: 10,
+          borderRadius: 10,
+          flexDirection: 'row',
+          gap: verticalScale(10),
+        }}>
+        <View
+          style={{
+            backgroundColor: COLORS.whiteTail,
+            paddingVertical: verticalScale(10),
+            paddingHorizontal: horizontalScale(10),
+            borderRadius: 10,
+          }}>
+          <View
+            style={{
+              width: 35,
+              height: 35,
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: COLORS.sharpBlue,
+              borderRadius: 100,
+            }}>
+            <CustomIcon Icon={ICONS.DumbellWhiteIcon} height={18} width={18} />
+          </View>
+        </View>
+
+        <View style={{gap: verticalScale(5)}}>
+          <CustomText fontFamily="medium" fontSize={15}>
+            {findScheduleExercise?.name || 'Unknown'}
+          </CustomText>
+
+          <CustomText fontFamily="italic" fontSize={14}>
+            {(() => {
+              const date = new Date(scheduleItem.updated_at);
+              return date.toLocaleDateString('en-US', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              });
+            })()}
+          </CustomText>
+        </View>
+      </View>
+    );
+  };
+
+  const flatExerciseHistory = React.useMemo(() => {
+    const result: any[] = [];
+
+    historyWithSets?.forEach(item => {
+      const exercises = item?.content?.Exercises;
+
+      // NEW STRUCTURE (groups)
+      if (Array.isArray(exercises)) {
+        exercises.forEach((group: any) => {
+          group?.content?.forEach((ex: any) => {
+            if (Array.isArray(ex?.Set) && ex.Set.length > 0) {
+              result.push({
+                scheduleItem: item,
+                exercise: ex,
+              });
+            }
+          });
+        });
+      }
+
+      // OLD STRUCTURE (fallback)
+      else if (exercises?.content) {
+        exercises.content.forEach((ex: any) => {
+          if (Array.isArray(ex?.Set) && ex.Set.length > 0) {
+            result.push({
+              scheduleItem: item,
+              exercise: ex,
+            });
+          }
+        });
+      }
+    });
+
+    return result;
+  }, [historyWithSets]);
+
   return (
     <ScrollView
       style={{
@@ -79,92 +172,27 @@ const HistoryView: FC<HistoryViewProps> = ({
         rowGap: verticalScale(10),
       }}>
       {historyWithSets && historyWithSets?.length > 0 ? (
-        historyWithSets.map((item, index) => {
-          // Handle new structure: Exercises is an array of groups
-          let getScheduleExerciseId: any = null;
-          const exercises = item?.content?.Exercises;
-
-          if (Array.isArray(exercises)) {
-            // New structure: get first exercise from first group
-            const firstGroup = exercises[0];
-            if (firstGroup?.content && Array.isArray(firstGroup.content)) {
-              const firstExercise = firstGroup.content[0];
-              getScheduleExerciseId = firstExercise?.Exercise_id;
-            }
-          } else if (typeof exercises === 'object' && exercises?.content) {
-            // Old structure fallback: object with content
-            const firstExercise = exercises.content?.[0];
-            getScheduleExerciseId = firstExercise?.Exercise_id;
+        <FlatList
+          data={flatExerciseHistory}
+          keyExtractor={(item, index) =>
+            `${item.exercise.Exercise_id}-${index}`
           }
-
-          const findScheduleExercise = exerciseData?.find(
-            ex => Number(ex.exercise_id) === Number(getScheduleExerciseId),
-          );
-
-          return (
-            <View
-              key={item + index.toString()}
-              style={{
-                backgroundColor: COLORS.lightBrown,
-                padding: 10,
-                borderRadius: 10,
-                flexDirection: 'row',
-                gap: verticalScale(10),
-              }}>
-              <View
-                style={{
-                  backgroundColor: COLORS.whiteTail,
-                  paddingVertical: verticalScale(10),
-                  paddingHorizontal: horizontalScale(10),
-                  borderRadius: 10,
-                }}>
-                <View
-                  style={{
-                    width: 35,
-                    height: 35,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor:
-                      item.type === 'food' ? COLORS.darkPink : COLORS.sharpBlue,
-                    borderRadius: 100,
-                  }}>
-                  <CustomIcon
-                    Icon={
-                      item.type === 'food'
-                        ? ICONS.CalendarWithDumbellIcon
-                        : ICONS.DumbellWhiteIcon
-                    }
-                    height={18}
-                    width={18}
-                  />
-                </View>
-              </View>
-              <View
-                style={{
-                  gap: verticalScale(5),
-                  paddingVertical: verticalScale(2),
-                }}>
-                <CustomText fontFamily="medium" fontSize={15}>
-                  {findScheduleExercise?.name || 'Unknown'}
-                </CustomText>
-                <CustomText fontFamily="italic" fontSize={14}>
-                  {(() => {
-                    const date = new Date(item.updated_at);
-                    const weekday = date.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                    });
-                    const day = date.getDate();
-                    const month = date.toLocaleDateString('en-US', {
-                      month: 'short',
-                    });
-                    const year = date.getFullYear();
-                    return `${weekday} ${day} ${month} ${year}`;
-                  })()}
-                </CustomText>
-              </View>
-            </View>
-          );
-        })
+          renderItem={renderItem}
+          contentContainerStyle={{
+            paddingBottom: verticalScale(10),
+            paddingHorizontal: horizontalScale(10),
+            rowGap: verticalScale(10),
+          }}
+          ListEmptyComponent={
+            <CustomText
+              style={styles.noHistoryText}
+              fontSize={16}
+              fontFamily="bold"
+              color={COLORS.yellow}>
+              No history available for now
+            </CustomText>
+          }
+        />
       ) : (
         <CustomText
           style={styles.noHistoryText}

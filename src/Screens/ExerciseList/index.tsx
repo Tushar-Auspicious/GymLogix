@@ -32,6 +32,10 @@ import {ExerciseListScreenProps} from '../../Typings/route';
 import COLORS from '../../Utilities/Colors';
 import {horizontalScale, verticalScale, wp} from '../../Utilities/Metrics';
 import IMAGES from '../../Assets/Images';
+import {
+  clearTempSelectedExercises,
+  setTempSelectedExercises,
+} from '../../Redux/slices/tempExerciseSelectionSlice';
 
 const tabData = [
   {label: 'Category', value: 1},
@@ -53,6 +57,10 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
   );
   const [selectedExercises, setSelectedExercises] = useState<Set<string>>(
     () => new Set(),
+  );
+
+  const tempSelectedIds = useAppSelector(
+    state => state.tempExerciseSelection.selectedExerciseIds,
   );
 
   const historyExercises = useMemo(
@@ -103,15 +111,25 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
     };
   }, [searchedWord, historyExercises, listExercises]);
 
-  const toggleExerciseSelection = useCallback((exerciseId: string) => {
-    setSelectedExercises(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(exerciseId)) newSet.delete(exerciseId);
-      else newSet.add(exerciseId);
-      return newSet;
-    });
-  }, []);
+  const toggleExerciseSelection = useCallback(
+    (exerciseId: string) => {
+      setSelectedExercises(prev => {
+        const newSet = new Set(prev);
 
+        if (newSet.has(exerciseId)) {
+          newSet.delete(exerciseId);
+        } else {
+          newSet.add(exerciseId);
+        }
+
+        // 🔥 update redux ONCE per user action
+        dispatch(setTempSelectedExercises(Array.from(newSet)));
+
+        return newSet;
+      });
+    },
+    [dispatch],
+  );
   const toggleCategory = useCallback((bodyPart: string) => {
     setExpandedCategories(prev => {
       const newSet = new Set(prev);
@@ -139,10 +157,6 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
     );
 
     if (selectedExerciseObjects.length === 0) {
-      console.warn(
-        '[AddExercises] No matching exercises found in allExercises',
-        {selectedIds, allExercisesIds: allExercises.map(e => e.id)},
-      );
       Alert.alert(
         'Error',
         'Selected exercises are not available in the current list',
@@ -156,7 +170,7 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
       const trimmed = timeStr.trim();
       if (!trimmed) return 0;
 
-      const parts = trimmed
+      let parts = trimmed
         .split(':')
         .map(p => p.trim())
         .filter(p => p && !isNaN(Number(p)))
@@ -190,9 +204,15 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
         toMinutesDecimal(
           toSeconds(exe.exerciseSettings?.timing?.finishExercise),
         ) || 0,
-      Is_time: exe.exerciseSettings?.loggingType === 'Time',
-      is_weight: exe.exerciseSettings?.loggingType === 'Weight',
-      Is_distance: exe.exerciseSettings?.loggingType === 'Distance',
+      Is_time: exe.exerciseSettings?.loggingType?.includes('Time')
+        ? true
+        : false,
+      is_weight: exe.exerciseSettings?.loggingType?.includes('Weight')
+        ? true
+        : false,
+      Is_distance: exe.exerciseSettings?.loggingType?.includes('Distance')
+        ? true
+        : false,
       alternate_exercise_id: exe.exerciseSettings?.alternateExercise || [],
     }));
 
@@ -203,7 +223,7 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
         exercise: payload,
       }),
     );
-
+    dispatch(clearTempSelectedExercises());
     setSelectedExercises(new Set());
     navigation.goBack();
   }, [fromTrainingPlan, selectedExercises, allExercises, navigation]);
@@ -349,12 +369,19 @@ const ExerciseList: FC<ExerciseListScreenProps> = ({navigation, route}) => {
   ]);
 
   useEffect(() => {
-    if (previouslySelectedExercise) {
-      previouslySelectedExercise.forEach((exercise: string) => {
-        toggleExerciseSelection(exercise);
-      });
+    if (tempSelectedIds?.length > 0) {
+      //  restore unsaved selections
+      setSelectedExercises(new Set(tempSelectedIds));
+    } else if (
+      previouslySelectedExercise &&
+      previouslySelectedExercise?.length > 0
+    ) {
+      //  initial exercises already in plan
+      setSelectedExercises(new Set(previouslySelectedExercise));
+    } else {
+      setSelectedExercises(new Set());
     }
-  }, [previouslySelectedExercise]);
+  }, [tempSelectedIds, previouslySelectedExercise]);
 
   return (
     <View style={styles.main}>

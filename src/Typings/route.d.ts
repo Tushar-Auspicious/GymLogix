@@ -87,7 +87,10 @@ export type SignInProps = NativeStackScreenProps<
   AuthStackParams & RootStackParams,
   'signIn'
 >;
-export type SignUpProps = NativeStackScreenProps<AuthStackParams, 'signUp'>;
+export type SignUpProps = NativeStackScreenProps<
+  AuthStackParams & RootStackParams,
+  'signUp'
+>;
 export type ForgotPasswordProps = NativeStackScreenProps<
   AuthStackParams,
   'forgotpassword'

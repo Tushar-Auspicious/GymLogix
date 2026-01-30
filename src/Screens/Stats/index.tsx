@@ -29,21 +29,35 @@ const STATS = () => {
   const [extractedFoods, setExtractedFoods] = useState<any>([]);
   const [originalFoods, setOriginalFoods] = useState<any>([]);
 
-  const [range, setRange] = useState({from: '2025-03-01', to: '2025-07-01'});
+  const formatDate = (date: Date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const today = new Date();
+
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(today.getFullYear() - 1);
+
+  const [range, setRange] = useState({
+    from: formatDate(oneYearAgo),
+    to: formatDate(today),
+  });
+
   const [filteredScheduleData, setFilteredScheduleData] =
     useState(scheduleData);
 
-  // Function to convert 'YYYY-MM-DD' to ISO string
-  // const convertToISO = (dateStr: any) => {
-  //   const date = new Date(dateStr);
-  //   return date.toISOString();
-  // };
+  const startOfDay = (dateStr: string) => {
+    const d = new Date(dateStr);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
 
-  // Example usage
-  // const scheduleRange = {
-  //   from: convertToISO(range.from),
-  //   to: convertToISO(range.to),
-  // };
+  const endOfDay = (dateStr: string) => {
+    const d = new Date(dateStr);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  };
+
   // Step 1: Filter Plans
   const plans = planData
     ?.filter(item => item.type === 'workout' && item.allData?.name !== null)
@@ -56,10 +70,6 @@ const STATS = () => {
   // Step 2: Selected Plan
   const selectedPlan = plans?.find((p: any) => p.value === plan);
 
-  // find schedule for selected plan
-  // const planSchedules =
-  //   scheduleData?.filter(s => s.content?.plan_id === selectedPlan?.value) || [];
-
   // Step 3: Workouts
   const workouts =
     selectedPlan?.workouts
@@ -71,11 +81,6 @@ const STATS = () => {
       })) || [];
 
   const selectedWorkout = workouts?.find((w: any) => w.value === workout);
-
-  // all schedules for this workout under selected plan
-  // const workoutSchedules = planSchedules.filter(
-  //   s => s.content?.Workout_id === selectedWorkout?.value,
-  // );
 
   // Step 4: Exercises
   const exercises =
@@ -91,38 +96,6 @@ const STATS = () => {
           value: item.exercise_id,
         };
       }) || [];
-
-  // const selectedExercise = exercises?.find((e: any) => e.value === exercise);
-
-  // find schedule for selected exercise (inside workoutSchedule)
-  // const exerciseSchedules = workoutSchedules.flatMap(
-  //   ws =>
-  //     ws.content?.Exercises?.content?.filter(
-  //       (ex: any) => ex.Exercise_id === selectedExercise?.value,
-  //     ) || [],
-  // );
-
-  // extract exercise ids from schedule
-  // const scheduleExercises = selectedExercise
-  //   ? exerciseSchedules.map(ex => ex.Exercise_id)
-  //   : selectedWorkout
-  //   ? workoutSchedules.flatMap(
-  //       ws =>
-  //         ws.content?.Exercises?.content?.map((ex: any) => ex.Exercise_id) ||
-  //         [],
-  //     )
-  //   : selectedPlan
-  //   ? planSchedules.flatMap(
-  //       ws =>
-  //         ws.content?.Exercises?.content?.map((ex: any) => ex.Exercise_id) ||
-  //         [],
-  //     )
-  //   : [];
-
-  // // get matching details from exerciseData
-  // const exerciseDetails =
-  //   exerciseData?.filter(ex => scheduleExercises.includes(ex.exercise_id)) ||
-  //   [];
 
   // Function to update extracted exercises
   const updateExtractedExercises = () => {
@@ -154,11 +127,16 @@ const STATS = () => {
 
     if (exercise !== 'Select' && workout !== 'Select' && plan !== 'Select') {
       const loggedDataWithSelectedPlanandWorkout: any = scheduleData?.filter(
-        schedule =>
-          Number(schedule.content.plan_id) === Number(plan) &&
-          Number(schedule.content.Workout_id) === Number(workout) &&
-          new Date(schedule.schedule_at) >= new Date(range.from) &&
-          new Date(schedule.schedule_at) <= new Date(range.to),
+        schedule => {
+          const scheduleDate = new Date(schedule.schedule_at);
+
+          return (
+            Number(schedule.content.plan_id) === Number(plan) &&
+            Number(schedule.content.Workout_id) === Number(workout) &&
+            scheduleDate >= startOfDay(range.from) &&
+            scheduleDate <= endOfDay(range.to)
+          );
+        },
       );
 
       if (loggedDataWithSelectedPlanandWorkout?.length > 0) {
@@ -175,12 +153,15 @@ const STATS = () => {
         setExtractedExercise([]);
       }
     } else if (workout !== 'Select' && plan !== 'Select') {
-      const loggedWorkouts: any = scheduleData?.filter(
-        schedule =>
+      const loggedWorkouts: any = scheduleData?.filter(schedule => {
+        const scheduleDate = new Date(schedule.schedule_at);
+
+        return (
           Number(schedule.content.Workout_id) === Number(workout) &&
-          new Date(schedule.schedule_at) >= new Date(range.from) &&
-          new Date(schedule.schedule_at) <= new Date(range.to),
-      );
+          scheduleDate >= startOfDay(range.from) &&
+          scheduleDate <= endOfDay(range.to)
+        );
+      });
 
       if (loggedWorkouts?.length > 0) {
         const exerciseList = loggedWorkouts?.flatMap((workout: any) =>
@@ -192,12 +173,14 @@ const STATS = () => {
         setExtractedExercise([]);
       }
     } else if (plan !== 'Select') {
-      const loggedPlans: any = scheduleData?.filter(
-        schedule =>
+      const loggedPlans: any = scheduleData?.filter(schedule => {
+        const scheduleDate = new Date(schedule.schedule_at);
+        return (
           Number(schedule.content.plan_id) === Number(plan) &&
-          new Date(schedule.schedule_at) >= new Date(range.from) &&
-          new Date(schedule.schedule_at) <= new Date(range.to),
-      );
+          scheduleDate >= startOfDay(range.from) &&
+          scheduleDate <= endOfDay(range.to)
+        );
+      });
 
       if (loggedPlans?.length > 0) {
         const exerciseList = loggedPlans?.flatMap((plan: any) =>
@@ -217,11 +200,14 @@ const STATS = () => {
   useEffect(() => {
     updateExtractedExercises();
     const filteredData =
-      scheduleData?.filter(
-        schedule =>
-          new Date(schedule.schedule_at) >= new Date(range.from) &&
-          new Date(schedule.schedule_at) <= new Date(range.to),
-      ) || [];
+      scheduleData?.filter(schedule => {
+        const scheduleDate = new Date(schedule.schedule_at);
+
+        return (
+          scheduleDate >= startOfDay(range.from) &&
+          scheduleDate <= endOfDay(range.to)
+        );
+      }) || [];
 
     setFilteredScheduleData(filteredData);
   }, [range, plan, workout, exercise, scheduleData]);
@@ -353,12 +339,14 @@ const STATS = () => {
             setPlan(value);
             setWorkout('Select'); // reset workout
             setExercise('Select'); // reset exercise
-            const loggedPlans = scheduleData?.filter(
-              schedule =>
+            const loggedPlans = scheduleData?.filter(schedule => {
+              const scheduleDate = new Date(schedule.schedule_at);
+              return (
                 Number(schedule.content.plan_id) === Number(value) &&
-                new Date(schedule.schedule_at) >= new Date(range.from) &&
-                new Date(schedule.schedule_at) <= new Date(range.to),
-            );
+                scheduleDate >= startOfDay(range.from) &&
+                scheduleDate <= endOfDay(range.to)
+              );
+            });
             if (loggedPlans && loggedPlans.length > 0) {
               const exerciseList = loggedPlans.flatMap(plan =>
                 extractExercises(plan?.content?.Exercises),
@@ -378,12 +366,14 @@ const STATS = () => {
           onValueChange={value => {
             setWorkout(value);
             setExercise('Select'); // reset exercise
-            const loggedWorkouts = scheduleData?.filter(
-              schedule =>
+            const loggedWorkouts = scheduleData?.filter(schedule => {
+              const scheduleDate = new Date(schedule.schedule_at);
+              return (
                 Number(schedule.content.Workout_id) === Number(value) &&
-                new Date(schedule.schedule_at) >= new Date(range.from) &&
-                new Date(schedule.schedule_at) <= new Date(range.to),
-            );
+                scheduleDate >= startOfDay(range.from) &&
+                scheduleDate <= endOfDay(range.to)
+              );
+            });
             if (loggedWorkouts && loggedWorkouts.length > 0) {
               const exerciseList = loggedWorkouts.flatMap(workout =>
                 extractExercises(workout?.content?.Exercises),
@@ -404,11 +394,15 @@ const STATS = () => {
           onValueChange={value => {
             setExercise(value);
             const loggedDataWithSelectedPlanandWorkout = scheduleData?.filter(
-              schedule =>
-                Number(schedule.content.plan_id) === Number(plan) &&
-                Number(schedule.content.Workout_id) === Number(workout) &&
-                new Date(schedule.schedule_at) >= new Date(range.from) &&
-                new Date(schedule.schedule_at) <= new Date(range.to),
+              schedule => {
+                const scheduleDate = new Date(schedule.schedule_at);
+                return (
+                  Number(schedule.content.plan_id) === Number(plan) &&
+                  Number(schedule.content.Workout_id) === Number(workout) &&
+                  scheduleDate >= startOfDay(range.from) &&
+                  scheduleDate <= endOfDay(range.to)
+                );
+              },
             );
             if (
               loggedDataWithSelectedPlanandWorkout &&
@@ -486,13 +480,16 @@ const STATS = () => {
             setFoodPlan(value);
             setMeals('Select'); // reset meals when plan changes
             setIngredients('Select'); // reset ingredients
-            const loggedFoodPlan = scheduleData?.filter(
-              schedule =>
+            const loggedFoodPlan = scheduleData?.filter(schedule => {
+              const scheduleDate = new Date(schedule.schedule_at);
+
+              return (
                 schedule.content.plan_id === value &&
                 schedule.type === 'food' &&
-                new Date(schedule.schedule_at) >= new Date(range.from) &&
-                new Date(schedule.schedule_at) <= new Date(range.to),
-            );
+                scheduleDate >= startOfDay(range.from) &&
+                scheduleDate <= endOfDay(range.to)
+              );
+            });
             const foodContent = loggedFoodPlan || [];
             setOriginalFoods(foodContent); // Store the full plan foods
             setExtractedFoods(foodContent); // Initially set to full plan
@@ -624,8 +621,8 @@ const STATS = () => {
           {statsTab === 1 && renderTrainingDropDowns()}
           {statsTab === 2 && renderNutritionDropDowns()}
           <RangeSlider
-            minDate="2025-01-01"
-            maxDate="2025-12-31"
+            minDate={formatDate(oneYearAgo)}
+            maxDate={formatDate(today)}
             onDateRangeChange={setRange}
           />
         </View>

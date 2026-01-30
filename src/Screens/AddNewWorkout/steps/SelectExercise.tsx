@@ -112,14 +112,14 @@ const SelectExercise: FC<{
   // Initialize selectedExercises with exercises already added to the current day
 
   // Update selectedExercises when selectedDayForAddExercise changes
-  // useFocusEffect(
-  //   useCallback(() => {
-  //     if (selectedDayForAddExercise) {
-  //       const existingIds = getExerciseIdsFromDay(selectedDayForAddExercise);
-  //       dispatch(setTempSelectedExercises(existingIds));
-  //     }
-  //   }, [selectedDayForAddExercise, dispatch, getExerciseIdsFromDay]),
-  // );
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedDayForAddExercise && tempSelectedExerciseIds.length === 0) {
+        const existingIds = getExerciseIdsFromDay(selectedDayForAddExercise);
+        dispatch(setTempSelectedExercises(existingIds));
+      }
+    }, [selectedDayForAddExercise, tempSelectedExerciseIds.length, dispatch]),
+  );
   // Generate random exercises only once when component mounts
   const [historyExercises] = useState(() => allExercises.slice(0, 10));
 
@@ -147,83 +147,79 @@ const SelectExercise: FC<{
 
   const selectedExercises = tempSelectedExerciseIds;
 
-  console.log('SELCTED', selectedExercises);
-
-  const ExerciseItem = memo(
-    ({exercise}: {exercise: Exercise; isSelected: boolean}) => {
-      const selectedExercises = useAppSelector(
-        state => state.newWorkout.tempSelectedExerciseIds,
-      );
-      const isSelected = selectedExercises.includes(exercise.id);
-      return (
-        <View style={[styles.exerciseItem]}>
-          <Image
-            source={{
-              uri:
-                exercise.coverImage?.uri ??
-                'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
-            }}
-            style={styles.exerciseImage}
-          />
-          <View style={styles.exerciseContent}>
-            <View style={styles.exerciseHeader}>
-              <View style={styles.exerciseNameContainer}>
-                <CustomText
-                  color={COLORS.yellow}
-                  fontFamily="medium"
-                  fontSize={12}>
-                  {exercise.name}
-                </CustomText>
-              </View>
-              {isSelected ? (
-                <View style={styles.selectedActions}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedExerciseForSettingsStep(exercise.id);
-                      dispatch(setActiveStep(10));
-                    }}
-                    style={[styles.actionButton, styles.selectedButton]}>
-                    <CustomIcon
-                      Icon={ICONS.smallSettingIcon}
-                      height={18}
-                      width={18}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => toggleExerciseSelection(exercise.id)}
-                    style={[styles.actionButton, styles.selectedButton]}>
-                    <CustomText>V</CustomText>
-                  </TouchableOpacity>
-                </View>
-              ) : (
+  const ExerciseItem = memo(({exercise}: {exercise: Exercise}) => {
+    const selectedExercises = useAppSelector(
+      state => state.newWorkout.tempSelectedExerciseIds,
+    );
+    const isSelected = selectedExercises.includes(exercise.id);
+    return (
+      <View style={[styles.exerciseItem]}>
+        <Image
+          source={{
+            uri:
+              exercise.coverImage?.uri ??
+              'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8',
+          }}
+          style={styles.exerciseImage}
+        />
+        <View style={styles.exerciseContent}>
+          <View style={styles.exerciseHeader}>
+            <View style={styles.exerciseNameContainer}>
+              <CustomText
+                color={COLORS.yellow}
+                fontFamily="medium"
+                fontSize={12}>
+                {exercise.name}
+              </CustomText>
+            </View>
+            {isSelected ? (
+              <View style={styles.selectedActions}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedExerciseForSettingsStep(exercise.id);
+                    dispatch(setActiveStep(10));
+                  }}
+                  style={[styles.actionButton, styles.selectedButton]}>
+                  <CustomIcon
+                    Icon={ICONS.smallSettingIcon}
+                    height={18}
+                    width={18}
+                  />
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => toggleExerciseSelection(exercise.id)}
-                  style={styles.actionButton}>
-                  <CustomIcon Icon={ICONS.PlusIcon} height={12} width={12} />
+                  style={[styles.actionButton, styles.selectedButton]}>
+                  <CustomText>V</CustomText>
                 </TouchableOpacity>
-              )}
-            </View>
-            <View style={styles.tagsContainer}>
-              {[
-                exercise.equipment,
-                exercise.type,
-                exercise.force,
-                exercise.location,
-              ].map((tag, idx) => (
-                <CustomText
-                  key={`${exercise.id}-${idx}`}
-                  style={styles.tag}
-                  fontSize={10}
-                  color={COLORS.whiteTail}>
-                  {tag}
-                </CustomText>
-              ))}
-            </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => toggleExerciseSelection(exercise.id)}
+                style={styles.actionButton}>
+                <CustomIcon Icon={ICONS.PlusIcon} height={12} width={12} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.tagsContainer}>
+            {[
+              exercise.equipment,
+              exercise.type,
+              exercise.force,
+              exercise.location,
+            ].map((tag, idx) => (
+              <CustomText
+                key={`${exercise.id}-${idx}`}
+                style={styles.tag}
+                fontSize={10}
+                color={COLORS.whiteTail}>
+                {tag}
+              </CustomText>
+            ))}
           </View>
         </View>
-      );
-    },
-  );
+      </View>
+    );
+  });
 
   const CategoryItem = memo(({item}: {item: any}) => {
     const isExpanded = expandedCategories.includes(item.bodyPart);
@@ -252,10 +248,7 @@ const SelectExercise: FC<{
             data={item.exercises}
             keyExtractor={exercise => exercise.name}
             renderItem={({item: exercise, index}) => (
-              <ExerciseItem
-                exercise={exercise}
-                isSelected={selectedExercises.includes(exercise.id)}
-              />
+              <ExerciseItem exercise={exercise} />
             )}
           />
         )}
@@ -311,10 +304,7 @@ const SelectExercise: FC<{
             data={filterExercises(historyExercises)}
             keyExtractor={exercise => exercise.id}
             renderItem={({item: exercise}) => (
-              <ExerciseItem
-                exercise={exercise}
-                isSelected={selectedExercises.includes(exercise.id)}
-              />
+              <ExerciseItem exercise={exercise} />
             )}
             contentContainerStyle={styles.listContent}
             extraData={searchedWord}
@@ -326,10 +316,7 @@ const SelectExercise: FC<{
             data={filterExercises(listExercises)}
             keyExtractor={exercise => exercise.id}
             renderItem={({item: exercise}) => (
-              <ExerciseItem
-                exercise={exercise}
-                isSelected={selectedExercises.includes(exercise.id)}
-              />
+              <ExerciseItem exercise={exercise} />
             )}
             contentContainerStyle={styles.listContent}
             extraData={searchedWord}
@@ -450,9 +437,7 @@ const SelectExercise: FC<{
                   ? 'Add 1 Exercise'
                   : `Add ${newlySelectedCount} Exercises`;
               } else {
-                return deselectedCount === 1
-                  ? 'Remove 1 Exercise'
-                  : `Remove ${deselectedCount} Exercises`;
+                return 'Back';
               }
             } else {
               return 'Back';
@@ -500,6 +485,7 @@ const SelectExercise: FC<{
 
               dispatch(setActiveStep(activeStep - 1));
             }
+            dispatch(setActiveStep(activeStep - 1));
           }}
           disabled={false}
           style={{marginTop: verticalScale(10)}}

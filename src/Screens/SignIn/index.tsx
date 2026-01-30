@@ -1,5 +1,7 @@
 import React, {FC, useState} from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   ImageBackground,
   StyleSheet,
@@ -14,7 +16,7 @@ import GoogleButton from '../../Components/GoogleButton';
 import PrimaryButton from '../../Components/PrimaryButton';
 import {SignInProps} from '../../Typings/route';
 import COLORS from '../../Utilities/Colors';
-import {hp, verticalScale, wp} from '../../Utilities/Metrics';
+import {horizontalScale, hp, verticalScale, wp} from '../../Utilities/Metrics';
 import {showCustomToast} from '../../Utilities/Helpers';
 import ENDPOINTS from '../../APIServices/endPoints';
 import {storeLocalStorageData} from '../../Utilities/Storage';
@@ -40,16 +42,60 @@ import {
 import {setExerciseCatalog} from '../../Redux/slices/exerciseCatalogSlice';
 import {buildExerciseCatalog} from '../Splash';
 import {setInsightData} from '../../Redux/slices/InsightSlice';
+import {
+  GoogleSignin,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import auth from '@react-native-firebase/auth';
+import Toast from 'react-native-toast-message';
+
+export interface GoogleSignINResponse {
+  status: number;
+  user: User;
+  token: string;
+}
+
+export interface User {
+  google_id: string;
+  gender: any;
+  first_name: string;
+  last_name: any;
+  age: any;
+  locale: any;
+  email: string;
+  password: string;
+  pic_URL: string;
+  signup_at: string;
+  signin_at: any;
+  platform: any;
+  signup_type: string;
+  device_id: any;
+  is_premium: boolean;
+  premium_expiration: any;
+  user_type: string;
+  email_verified_at: string;
+  is_verified: boolean;
+  personal_settings: PersonalSettings;
+  user_id: number;
+  updated_at: string;
+  created_at: string;
+}
+
+export interface PersonalSettings {
+  height: any;
+  height_measurement: any;
+  workout_exp_years: any;
+}
 
 const SignIn: FC<SignInProps> = ({navigation}) => {
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
-
   const [loading, setLoading] = useState(false);
   const [loginDetails, setLoginDetails] = useState({
     email: '',
     password: '',
   });
+  const [googleLoader, setgoogleLoader] = useState(false);
 
   const [errors, setErrors] = useState({
     email: '',
@@ -136,6 +182,122 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
       showCustomToast('error', error.reason || 'Something went wrong');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
+
+      const result = await GoogleSignin.signIn();
+      console.log('Google Sign-In Result:', result);
+
+      // 🚨 USER CANCELLED
+      if (result?.type === 'cancelled') {
+        Alert.alert('Sign In Cancelled', 'You cancelled the Google sign-in.');
+        return;
+      }
+
+      const idToken = result?.data?.idToken;
+
+      // 🚨 NO TOKEN
+      if (!idToken) {
+        Alert.alert(
+          'Sign In Failed',
+          'Unable to get Google token. Please try again.',
+        );
+        return;
+      }
+
+      // ✅ SUCCESS
+      await handleSocialLogin(idToken);
+    } catch (err: unknown) {
+      console.error('Google Sign-In Error:', err);
+
+      const errorCode =
+        typeof err === 'object' && err !== null && 'code' in err
+          ? (err as any).code
+          : null;
+
+      switch (errorCode) {
+        case statusCodes.IN_PROGRESS:
+          Alert.alert(
+            'Sign In In Progress',
+            'Google Sign-In is already in progress.',
+          );
+          break;
+
+        case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+          Alert.alert(
+            'Play Services Error',
+            'Google Play Services is not available or outdated.',
+          );
+          break;
+
+        default:
+          Alert.alert(
+            'Sign In Failed',
+            'Something went wrong. Please try again.',
+          );
+      }
+    }
+  };
+
+  const handleSocialLogin = async (id_token: string) => {
+    // 3. Convert to Firebase credential
+    const googleCredential = auth.GoogleAuthProvider.credential(id_token);
+
+    // 4. Sign into Firebase
+    const userCredential = await auth().signInWithCredential(googleCredential);
+
+    const firebaseIdToken = await userCredential.user.getIdToken();
+
+    try {
+      setgoogleLoader(true);
+
+      const response = await postData<GoogleSignINResponse>(
+        `${ENDPOINTS.googleSign}?id_token=${firebaseIdToken}`,
+      );
+
+      if (response.status === 200) {
+        const rawToken = response.data.token;
+        const cleanToken = rawToken.replace(/^Bearer\s/, '');
+
+        await storeLocalStorageData(STORAGE_KEYS.token, cleanToken);
+
+        if (cleanToken) {
+          const response = await fetchData<UserResponse>(ENDPOINTS.getUser);
+
+          if (response.data.user) {
+            dispatch(setUserData(response.data.user));
+          }
+          await Promise.all([
+            storeAllHashes(),
+            getPlanData(),
+            getFoodData(),
+            getScheduleData(),
+            getInsight(),
+          ]);
+        }
+        // showCustomToast('success', 'Log in Successfully');
+        navigation.replace('mainStack', {
+          screen: 'tabs',
+          params: {
+            screen: 'HOME',
+          },
+        });
+      }
+    } catch (error: any) {
+      console.error('Social Login Error:', error);
+      setgoogleLoader(false);
+      Toast.show({
+        type: 'error',
+        text1: error.message || 'Something went wrong',
+      });
+    } finally {
+      setgoogleLoader(false);
     }
   };
 
@@ -343,7 +505,17 @@ const SignIn: FC<SignInProps> = ({navigation}) => {
       </View>
 
       <View style={styles.footer}>
-        <GoogleButton onPress={() => {}} />
+        {googleLoader ? (
+          <View style={styles.googleLoaderContainer}>
+            <ActivityIndicator size="small" color={COLORS.yellow} />
+          </View>
+        ) : (
+          <GoogleButton
+            onPress={() => {
+              handleGoogleSignIn();
+            }}
+          />
+        )}
         <CustomText fontFamily="medium">OR</CustomText>
         <View
           style={{marginVertical: verticalScale(20), gap: verticalScale(15)}}>
@@ -457,5 +629,15 @@ const styles = StyleSheet.create({
     color: COLORS.yellow,
     fontFamily: 'medium',
     fontSize: 12,
+  },
+  googleLoaderContainer: {
+    backgroundColor: COLORS.white,
+    paddingVertical: verticalScale(14),
+    paddingHorizontal: horizontalScale(20),
+    borderRadius: verticalScale(16),
+    alignItems: 'center',
+    marginVertical: verticalScale(5),
+    width: wp(90),
+    alignSelf: 'center',
   },
 });

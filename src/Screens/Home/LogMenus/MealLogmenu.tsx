@@ -457,6 +457,8 @@ const MealLogmenu = () => {
             showsVerticalScrollIndicator={false}>
             {item?.allData?.content?.meals.map(
               (section: any, sectionIndex: number) => {
+                const optionsLength = section?.options?.length ?? 0;
+
                 // Find the actual meal data from myMealsList
                 const actualMeal = myMealsList.find(
                   m => m.id === section.meal_id,
@@ -544,10 +546,11 @@ const MealLogmenu = () => {
                                 Icon={ICONS.SlideRightArrowIcon}
                                 height={20}
                                 width={20}
-                                onPress={() =>
-                                  index < section.options.length - 1 &&
-                                  scrollToIndex(sectionIndex, index + 1)
-                                }
+                                onPress={() => {
+                                  if (index < optionsLength - 1) {
+                                    scrollToIndex(sectionIndex, index + 1);
+                                  }
+                                }}
                               />
                             </View>
                             {sectionIndex < MealPlanData.length - 1 && (
@@ -571,6 +574,7 @@ const MealLogmenu = () => {
     const isActivatedPlan = planData
       ?.filter(item => item.type === 'food')
       .map(item => item);
+
     return (
       <FlatList
         ref={mainFlatListRef}

@@ -915,11 +915,35 @@ const ExerciseDetails: FC<{
     );
   };
 
-  const displayValue = (value: any, formatter?: (v: any) => string) => {
-    if (value === undefined || value === null || value === '--') {
-      return '--';
+  const getDisplayValue = (value: any): string => {
+    if (!value && value !== 0) return ''; // null, undefined, '', false → empty
+    if (value === 0) return '0'; // keep zero visible
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed === '' || trimmed === '--' || trimmed === '—') return '';
+      return trimmed;
     }
-    return formatter ? formatter(value) : value;
+    return String(value);
+  };
+
+  const getDisplayTime = (time: any): string => {
+    if (!time || time === '--' || time === '00:00' || time === '') {
+      return '';
+    }
+
+    // If already in MM:SS format
+    if (typeof time === 'string' && time.includes(':')) {
+      return time;
+    }
+
+    const seconds = Number(time);
+    if (isNaN(seconds)) return '';
+
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min.toString().padStart(2, '0')}:${sec
+      .toString()
+      .padStart(2, '0')}`;
   };
 
   // Function to handle adding a new set
@@ -1086,7 +1110,7 @@ const ExerciseDetails: FC<{
               ? set.reps
               : '--'),
           Weight: set.weight === 0 ? '--' : `${set.weight}kg`,
-          Time: displayValue(set.time),
+          Time: getDisplayTime(set.Time || set.time) || '',
           difficulty: set.difficulty || 'Medium',
           isNewlyAdded: false,
           dropSets: [],
@@ -1130,6 +1154,34 @@ const ExerciseDetails: FC<{
             })) || [],
         })) || [];
     }
+
+    const hasAnyDistance = historySets.some(
+      set =>
+        set.Distance &&
+        set.Distance !== '0m' &&
+        set.Distance !== '--' &&
+        set.Distance !== '',
+    );
+
+    const hasAnyWeight = historySets.some(
+      set =>
+        set.Weight &&
+        set.Weight !== '--' &&
+        set.Weight !== '0kg' &&
+        set.Weight !== '',
+    );
+
+    const hasAnyTime = historySets.some(
+      set =>
+        set.Time &&
+        set.Time !== '--' &&
+        set.Time !== '00:00' &&
+        set.Time !== '',
+    );
+
+    const showDistanceColumn = hasAnyDistance;
+    const showWeightColumn = hasAnyWeight;
+    const showTimeColumn = hasAnyTime;
 
     return showAddSetUi ? (
       //  your Add Set UI (unchanged)
@@ -1294,27 +1346,65 @@ const ExerciseDetails: FC<{
                 marginVertical: verticalScale(20),
               }}
             />
-            <View style={{width: wp(100), flexDirection: 'row'}}>
-              {/* <View style={{width: wp(10), alignItems: 'flex-start'}}></View> */}
-              <View
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingBottom: verticalScale(10),
+                width: wp(100),
+                marginBottom: verticalScale(5),
+                justifyContent: 'space-evenly',
+              }}>
+              <View style={{width: wp(10), alignItems: 'flex-start'}} />
+              <CustomText
+                key="reps"
+                fontSize={14}
+                fontFamily="semiBold"
                 style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingBottom: verticalScale(10),
-                  width: wp(85),
-                  justifyContent: 'space-evenly',
-                  marginBottom: verticalScale(5),
+                  flex: 1,
+                  textAlign: 'center',
                 }}>
-                {['Reps', 'Distance', 'Weight(kg)', 'Time'].map(label => (
-                  <CustomText
-                    key={label}
-                    fontSize={14}
-                    fontFamily="semiBold"
-                    style={{flex: 1, textAlign: 'center'}}>
-                    {label}
-                  </CustomText>
-                ))}
-              </View>
+                Reps
+              </CustomText>
+
+              {showDistanceColumn && (
+                <CustomText
+                  key="distance"
+                  fontSize={14}
+                  fontFamily="semiBold"
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                  }}>
+                  Distance
+                </CustomText>
+              )}
+
+              {showWeightColumn && (
+                <CustomText
+                  key="weight"
+                  fontSize={14}
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                  }}
+                  fontFamily="semiBold">
+                  Weight(kg)
+                </CustomText>
+              )}
+
+              {showTimeColumn && (
+                <CustomText
+                  key="time"
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                  }}
+                  fontSize={14}
+                  fontFamily="semiBold">
+                  Time
+                </CustomText>
+              )}
             </View>
           </View>
         )}
@@ -1402,29 +1492,41 @@ const ExerciseDetails: FC<{
                         fontFamily="medium"
                         color={textColor}
                         style={{flex: 1, textAlign: 'center'}}>
-                        {set.Reps || set.reps}
+                        {getDisplayValue(set.Reps || set.reps)}
                       </CustomText>
-                      <CustomText
-                        fontSize={20}
-                        fontFamily="medium"
-                        color={textColor}
-                        style={{flex: 1, textAlign: 'center'}}>
-                        {set.Distance || set.distance || '—'}
-                      </CustomText>
-                      <CustomText
-                        fontSize={20}
-                        fontFamily="medium"
-                        color={textColor}
-                        style={{flex: 1, textAlign: 'center'}}>
-                        {set.Weight || set.weight}
-                      </CustomText>
-                      <CustomText
-                        fontSize={20}
-                        fontFamily="medium"
-                        color={textColor}
-                        style={{flex: 1, textAlign: 'center'}}>
-                        {set.Time || formatTimeForDisplay(set.time)}
-                      </CustomText>
+                      {showDistanceColumn && (
+                        <CustomText
+                          fontSize={20}
+                          fontFamily="medium"
+                          color={textColor}
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                          }}>
+                          {getDisplayValue(set.Distance || set.distance) &&
+                            `${getDisplayValue(set.Distance || set.distance)}`}
+                        </CustomText>
+                      )}
+
+                      {showWeightColumn && (
+                        <CustomText
+                          fontSize={20}
+                          fontFamily="medium"
+                          color={textColor}
+                          style={{flex: 1, textAlign: 'center'}}>
+                          {getDisplayValue(set.Weight || set.weight) || '-'}
+                        </CustomText>
+                      )}
+
+                      {showTimeColumn && (
+                        <CustomText
+                          fontSize={20}
+                          fontFamily="medium"
+                          color={textColor}
+                          style={{flex: 1, textAlign: 'center'}}>
+                          {getDisplayTime(set.Time || set.time) || '-'}
+                        </CustomText>
+                      )}
                     </View>
                   ))}
                 </View>

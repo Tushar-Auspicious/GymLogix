@@ -477,7 +477,6 @@ const AddNewExercise = ({}) => {
 
         // 2. Add new exercise to the list
         const updatedExerciseList = [...localExerciseList, newExercise];
-        // Hello
         // 3. Store updated list and catalog in local storage
         await storeLocalStorageData(
           STORAGE_KEYS.localExerciseData,

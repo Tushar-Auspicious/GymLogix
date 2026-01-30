@@ -54,9 +54,9 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
 
   const [exerciseSets, setExerciseSets] = useState('');
   const [exerciseReps, setExerciseReps] = useState('');
-  const [exerciseLogging, setExerciseLogging] = useState<
-    'Time' | 'Weight' | 'Distance'
-  >('Weight');
+  type LoggingType = 'Time' | 'Weight' | 'Distance';
+
+  const [exerciseLogging, setExerciseLogging] = useState<LoggingType[]>([]);
 
   const [warmUpTime, setWarmUpTime] = useState('60');
   const [workingSetTime, setWorkingSetTime] = useState('90');
@@ -113,10 +113,15 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
         exerciseData.exerciseSettings.reps > 0;
 
       if (hasRealSettings) {
+        const savedLogging = exerciseData.exerciseSettings?.loggingType;
         setExerciseSets(exerciseData.exerciseSettings!.sets!.toString());
         setExerciseReps(exerciseData.exerciseSettings!.reps!.toString());
         setExerciseLogging(
-          exerciseData.exerciseSettings!.loggingType || 'Weight',
+          Array.isArray(savedLogging)
+            ? savedLogging
+            : savedLogging
+            ? [savedLogging]
+            : [],
         );
         setWarmUpTime(exerciseData.exerciseSettings!.timing?.warmUp || '60');
         setWorkingSetTime(
@@ -129,7 +134,7 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
         // Use recommended values or sensible defaults
         setExerciseSets(exerciseData.recommendedSets?.toString() || '3');
         setExerciseReps(exerciseData.recommendedReps?.toString() || '10');
-        setExerciseLogging('Weight');
+        setExerciseLogging([]);
         setWarmUpTime('60');
         setWorkingSetTime('90');
         setFinishExerciseTime('120');
@@ -159,6 +164,14 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
     );
 
     navigation.goBack();
+  };
+  const toggleLogging = (type: LoggingType) => {
+    setExerciseLogging(prev => {
+      if (prev.includes(type)) {
+        return prev.filter(item => item !== type); // remove
+      }
+      return [...prev, type]; // add
+    });
   };
 
   if (!exerciseData) {
@@ -274,15 +287,16 @@ const ExerciseSettings: React.FC<ExerciseSettingsScreenProps> = ({
               {icon: ICONS.LogDistanceIcon, label: 'Distance'},
             ].map(item => (
               <TouchableOpacity
-                onPress={() => setExerciseLogging(item.label as any)}
+                onPress={() => toggleLogging(item.label as LoggingType)}
                 key={item.label}
                 style={[
                   styles.loggingOption,
                   {
-                    borderColor:
-                      exerciseLogging === item.label
-                        ? COLORS.whiteTail
-                        : 'transparent',
+                    borderColor: exerciseLogging.includes(
+                      item.label as LoggingType,
+                    )
+                      ? COLORS.whiteTail
+                      : 'transparent',
                   },
                 ]}>
                 <CustomIcon

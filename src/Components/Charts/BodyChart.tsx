@@ -26,24 +26,30 @@ const BodyChart: FC<BodyChartProps> = ({primary_muscle}) => {
     : [primary_muscle];
 
   const mappedExercises = musclesArray.map((exercise: any) => {
-    const sets = exercise.Set || [];
-
+    const sets = exercise.Set ?? [];
     const Id = exercise.Exercise_id;
 
-    const weights = sets.map((s: any) => s.weight);
-    const reps = sets.map((s: any) => s.reps);
+    const totalWeight = sets.reduce(
+      (sum: number, s: any) => sum + (s.weight ?? 0),
+      0,
+    );
 
-    const totalWeight = weights.reduce((sum: number, w: number) => sum + w, 0);
-    const totalReps = reps.reduce((sum: number, r: number) => sum + r, 0);
+    const totalReps = sets.reduce(
+      (sum: number, s: any) => sum + (s.reps ?? 0),
+      0,
+    );
 
-    const findMainMuscle = exerciseData?.find(item => item.exercise_id === Id);
+    const findMainMuscle = exerciseData?.find(
+      item => String(item.exercise_id) === String(Id),
+    );
 
     return {
-      mainMuscle: Array.isArray(findMainMuscle?.main_muscle)
-        ? findMainMuscle?.main_muscle
-        : [findMainMuscle?.main_muscle],
-      weights,
-      reps,
+      mainMuscle: findMainMuscle?.main_muscle
+        ? Array.isArray(findMainMuscle.main_muscle)
+          ? findMainMuscle.main_muscle
+          : [findMainMuscle.main_muscle]
+        : [],
+
       totalWeight,
       totalReps,
     };
@@ -98,19 +104,19 @@ const BodyChart: FC<BodyChartProps> = ({primary_muscle}) => {
         {isFront ? (
           <SkeletonFront
             frontMusclesData={mappedExercises.length > 0 && mappedExercises}
-            selectedMuscles={
-              mappedExercises &&
-              mappedExercises.map(item => item.mainMuscle?.[0]?.toLowerCase())
-            }
+            selectedMuscles={mappedExercises
+              .map(item => item.mainMuscle?.[0])
+              .filter(Boolean)
+              .map(muscle => muscle.toLowerCase())}
             bodyChart={bodyChartTabs}
           />
         ) : (
           <SkeletonBack
             backMusclesData={mappedExercises.length > 0 && mappedExercises}
-            selectedMuscles={
-              mappedExercises &&
-              mappedExercises.map(item => item.mainMuscle?.[0]?.toLowerCase())
-            }
+            selectedMuscles={mappedExercises
+              .map(item => item.mainMuscle?.[0])
+              .filter(Boolean)
+              .map(muscle => muscle.toLowerCase())}
             bodyChart={bodyChartTabs}
           />
         )}
