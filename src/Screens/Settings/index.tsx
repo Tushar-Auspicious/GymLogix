@@ -48,6 +48,11 @@ const productIds = Platform.select({
   ],
 });
 
+const ANDROID_SUB_IDS = [
+  'com.gymlogix.subscription.monthly',
+  'com.gymlogix.subscription.yearly',
+];
+
 const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
   const [acitveUi, setAcitveUi] = useState(0);
 
@@ -97,6 +102,7 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
   const [selectedPlanTitle, setSelectedPlanTitle] = useState<string | null>(
     null,
   );
+  const [activeAndroidSub, setActiveAndroidSub] = useState<any>(null);
 
   const {connected, requestPurchase, validateReceipt, finishTransaction} =
     useIAP({
@@ -129,10 +135,16 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
             Platform.OS === 'android' ? purchase.productId : purchase.productId,
           );
 
-          console.log('MEMBERSHIP UPGRADED:', upgradeResponse);
-
           // 4️⃣ Finish transaction
           await finishTransaction({purchase});
+
+          const updatedSub = await refreshActiveSub();
+
+          if (updatedSub) {
+            setActiveAndroidSub(updatedSub);
+            setSelectedPlanTitle(null);
+            setSelectedPurchaseDetails(null);
+          }
         } catch (error) {
           console.error('Purchase Flow Error:', error);
 
@@ -231,7 +243,6 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
       };
 
       const response = await postData(ENDPOINTS.subscriptions, data);
-      console.log('SUBS', response);
 
       return response;
     } catch (error) {
@@ -314,17 +325,19 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
         return;
       }
 
+      console.log('SELETC', selectedPurchaseDetails);
+
       if (Platform.OS === 'android') {
-        if (!selectedPurchaseDetails?.productId) {
+        if (!activeAndroidSub?.productId) {
           Alert.alert(
-            'No Subscription Found',
-            'Please purchase a subscription first.',
+            'No Active Subscription',
+            'No active subscription found for this account.',
           );
           return;
         }
 
         await RNIap.deepLinkToSubscriptions({
-          skuAndroid: selectedPurchaseDetails.productId,
+          skuAndroid: activeAndroidSub.productId,
           packageNameAndroid: 'com.gymlogix',
         });
       }
@@ -406,41 +419,76 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
     }
   };
 
-  const handleSubscription = useCallback(
-    (itemId: string, offerToken?: string) => {
-      if (!subscriptionsList) return;
+  const refreshActiveSub = async () => {
+    try {
+      const purchases = await getAvailablePurchases();
 
-      // allow adding subscriptionOffers on Android by using a looser type
-      const androidPayload: RNIap.RequestSubscriptionAndroidProps = {
-        skus: [itemId],
-        // obfuscatedAccountIdAndroid: userData?.id,
-        // obfuscatedProfileIdAndroid: userData?.id,
+      const activeSub = purchases.find(p =>
+        ANDROID_SUB_IDS.includes(p.productId),
+      );
+
+      if (activeSub) {
+        setActiveAndroidSub(activeSub);
+        return activeSub;
+      }
+
+      setActiveAndroidSub(null);
+      return null;
+    } catch (e) {
+      console.log('Refresh sub error', e);
+      return null;
+    }
+  };
+
+  const handleSubscription = useCallback(
+    async (itemId: string, offerToken?: string) => {
+      let activeSub = activeAndroidSub;
+      if (!activeSub) {
+        activeSub = await refreshActiveSub();
+      }
+
+      type AndroidSubPayload = RNIap.RequestSubscriptionAndroidProps & {
+        purchaseTokenAndroid?: string;
+        prorationModeAndroid?: number;
       };
 
+      const androidPayload: AndroidSubPayload = {
+        skus: [itemId],
+      };
+
+      // Only add upgrade params if active sub exists
+      if (activeSub?.purchaseToken) {
+        androidPayload.purchaseTokenAndroid = activeSub.purchaseToken;
+        androidPayload.prorationModeAndroid = 3;
+      }
+
+      // Offer token (if exists)
       if (Platform.OS === 'android' && offerToken) {
         androidPayload.subscriptionOffers = [
           {
-            sku: itemId, // use the selected itemId as the sku
-            offerToken: offerToken, // Use the specific SELECTED offer token
+            sku: itemId,
+            offerToken,
           },
         ];
       }
 
-      void requestPurchase({
-        request: {
-          ios: {
-            sku: itemId,
-            appAccountToken: userData?.id,
+      try {
+        await requestPurchase({
+          request: {
+            ios: {
+              sku: itemId,
+              appAccountToken: userData?.id,
+            },
+            android: androidPayload,
           },
-          android: androidPayload,
-        },
-        type: 'subs',
-      }).catch((err: PurchaseError) => {
+          type: 'subs',
+        });
+      } catch (err: any) {
         console.warn('requestPurchase failed:', err);
         Alert.alert('Subscription Failed', err.message);
-      });
+      }
     },
-    [subscriptionsList],
+    [subscriptionsList, activeAndroidSub],
   );
 
   const loadSubscriptions = async () => {
@@ -459,22 +507,29 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
     }
   };
 
-  useEffect(() => {
-    if (connected) {
-      loadSubscriptions();
+  const isSamePlan = (sku: string) => {
+    return activeAndroidSub?.productId === sku;
+  };
 
-      getAvailablePurchases()
-        .then(purchases => {
-          purchases.forEach(purchase => {
-            console.log(
-              'Finishing pending transaction for:',
-              purchase.productId,
-            );
-            finishTransaction({purchase});
-          });
-        })
-        .catch(e => console.error('Error checking available purchases', e));
-    }
+  useEffect(() => {
+    if (!connected) return;
+
+    loadSubscriptions();
+
+    getAvailablePurchases()
+      .then(purchases => {
+        if (Platform.OS !== 'android') return;
+
+        const activeSub = purchases.find(p =>
+          ANDROID_SUB_IDS.includes(p.productId),
+        );
+
+        if (activeSub) {
+          console.log('ACTIVE ANDROID SUB:', activeSub.productId);
+          setActiveAndroidSub(activeSub);
+        }
+      })
+      .catch(e => console.error('Purchase check error', e));
   }, [connected]);
 
   const rendermemberShipData = () => {
@@ -717,6 +772,8 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
                 planTitle,
               };
 
+              const isActive = isSamePlan(purchaseDetails.productId);
+
               return (
                 <View style={{gap: verticalScale(10)}} key={plan.id}>
                   {/* Buttons */}
@@ -731,17 +788,28 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
                     <TouchableOpacity
                       style={{
                         flex: 1,
-                        backgroundColor: '#D71745',
+                        backgroundColor: isActive ? '#999999' : '#D71745',
                         paddingVertical: verticalScale(10),
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                       onPress={() => {
+                        if (
+                          Platform.OS === 'android' &&
+                          isSamePlan(purchaseDetails.productId)
+                        ) {
+                          Alert.alert(
+                            'Already Active',
+                            'This subscription is already active.',
+                          );
+                          return;
+                        }
+
                         handlePlanSelect(purchaseDetails);
                         setSelectedPlanType(getPlanType().toLowerCase());
                         handleSubscription(
-                          purchaseDetails?.productId,
-                          purchaseDetails?.offerToken,
+                          purchaseDetails.productId,
+                          purchaseDetails.offerToken,
                         );
                       }}>
                       <CustomText fontSize={12} fontFamily="medium">
@@ -753,7 +821,7 @@ const SETTINGS: FC<SettingScreenProps> = ({navigation}) => {
                     <View
                       style={{
                         flex: 1,
-                        backgroundColor: '#941231',
+                        backgroundColor: isActive ? '#706567' : '#941231',
                         paddingVertical: verticalScale(10),
                       }}>
                       <CustomText
